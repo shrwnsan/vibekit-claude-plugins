@@ -3,7 +3,7 @@
   "description": "Enhanced web search with better handling of rate limiting and blocking",
   "version": "1.0.0",
   "author": {
-    "name": "karma"
+    "name": "shrwnsan"
   },
   "capabilities": [
     "web_search",

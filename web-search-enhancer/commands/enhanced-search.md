@@ -1,16 +1,16 @@
 ---
 description: Enhanced web search with error handling for rate limiting and blocking
-usage: /enhanced-search <query>
+usage: /enhanced-search <query|url>
 parameters:
   - name: query
     type: string
     required: true
-    description: The search query to execute
+    description: The search query to execute or URL to extract content from
 ---
 
 # Enhanced Web Search Command
 
-Implements robust web search functionality that handles various blocking mechanisms:
+Implements robust web search functionality that handles various blocking mechanisms and URL content extraction:
 
 ## Features
 
@@ -21,6 +21,22 @@ Implements robust web search functionality that handles various blocking mechani
 - Result caching to reduce repeated requests
 - Proxy support with rotation
 - Rate limiting compliance
+- **URL Content Extraction**: Direct content extraction from URLs and permalinks
+
+## Usage
+
+### Web Search
+```bash
+/enhanced-search "Claude Code plugin documentation"
+/enhanced-search "best practices for API rate limiting"
+```
+
+### URL Content Extraction
+```bash
+/enhanced-search "https://docs.anthropic.com/en/docs/claude-code/plugins"
+/enhanced-search "https://github.com/example/repo"
+/enhanced-search "https://example.com/article"
+```
 
 ## Error Handling
 
@@ -28,16 +44,18 @@ Implements robust web search functionality that handles various blocking mechani
 - Connection refused error handling
 - Timeout management with configurable limits
 - Fallback to alternative search engines when primary fails
+- URL extraction error recovery with retry logic
 
 ## Implementation
 
 This command enhances Claude Code's existing search functionality by adding layers of error handling specifically designed to work around rate limiting and blocking mechanisms that cause 403 and ECONNREFUSED errors.
 
-The search process follows this flow:
-1. Submit search query with standard parameters
-2. If successful, return results
-3. If error detected (403, 429, ECONNREFUSED):
+The process follows this flow:
+1. **Input Detection**: Determine if input is a search query or URL
+2. **For URLs**: Extract content directly using Tavily Extract API with retry logic
+3. **For Queries**: Perform web search with enhanced error handling
+4. **Error Recovery**: If errors detected (403, 429, ECONNREFUSED):
    - Adjust request parameters (headers, delays, etc.)
    - Retry with modified parameters
    - If retry fails, try alternative search method
-4. Return results or error information
+5. **Return Results**: Formatted results with extraction metadata when applicable

@@ -1,5 +1,19 @@
 // hooks/handle-web-search.mjs
-import { tavilySearch } from './tavily-client.mjs';
+import { tavilySearch, tavilyExtract } from './tavily-client.mjs';
+
+/**
+ * Detects if the input is a URL
+ * @param {string} input - The input to check
+ * @returns {boolean} True if the input is a URL
+ */
+function isURL(input) {
+  try {
+    const url = new URL(input);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Handles web search requests with enhanced error handling
@@ -14,8 +28,13 @@ export async function handleWebSearch(params) {
   if (!query) {
     return {
       error: true,
-      message: 'No search query provided'
+      message: 'No search query or URL provided'
     };
+  }
+
+  // Check if the query is a URL and handle extraction
+  if (isURL(query)) {
+    return await handleURLExtraction(query, { maxRetries, timeout });
   }
 
   // Try the search with retry logic
@@ -99,4 +118,55 @@ function isRetryableError(error) {
          error.message.includes('429') ||
          error.message.includes('ECONNREFUSED') ||
          error.message.includes('ETIMEDOUT');
+}
+
+/**
+ * Handles URL extraction with retry logic
+ * @param {string} url - The URL to extract content from
+ * @param {Object} options - Extraction options
+ * @returns {Object} Extraction results or error information
+ */
+async function handleURLExtraction(url, options = {}) {
+  const { maxRetries = 3, timeout = 15000 } = options;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Add random delay to avoid rate limiting
+      if (attempt > 0) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000); // Exponential backoff up to 8s
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      // Try to extract content with custom headers
+      const extractOptions = {
+        headers: generateRandomHeaders(),
+        includeImages: false, // Don't include images by default for faster processing
+        ...options
+      };
+      
+      const results = await tavilyExtract(url, extractOptions, timeout);
+      
+      return {
+        success: true,
+        data: results,
+        attempt: attempt + 1,
+        isURLExtraction: true
+      };
+      
+    } catch (error) {
+      console.error(`URL extraction attempt ${attempt + 1} failed:`, error.message);
+      
+      // Check if it's a retryable error
+      if (attempt === maxRetries || !isRetryableError(error)) {
+        return {
+          error: true,
+          message: `Failed to extract content from URL: ${error.message}`,
+          attempt: attempt + 1,
+          isURLExtraction: true
+        };
+      }
+      
+      // Continue to next attempt
+    }
+  }
 }

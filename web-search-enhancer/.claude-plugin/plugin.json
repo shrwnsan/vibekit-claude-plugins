@@ -1,0 +1,13 @@
+{
+  "name": "web-search-enhancer",
+  "description": "Enhanced web search with better handling of rate limiting and blocking",
+  "version": "1.0.0",
+  "author": {
+    "name": "karma"
+  },
+  "capabilities": [
+    "web_search",
+    "error_handling",
+    "network"
+  ]
+}

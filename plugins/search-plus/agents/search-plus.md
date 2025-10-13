@@ -1,12 +1,12 @@
 ---
-description: Enhanced web search agent with error handling for 403 and ECONNREFUSED errors
+description: Search Plus agent with enhanced web search and error handling for 403 and ECONNREFUSED errors
 capabilities:
   - web_search
   - error_handling
   - retry_logic
 ---
 
-# Web Search Enhancement Agent
+# Search Plus Agent
 
 This agent provides enhanced web search functionality with improved error handling for rate limiting and blocking mechanisms.
 

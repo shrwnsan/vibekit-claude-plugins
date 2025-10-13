@@ -1,6 +1,6 @@
 ---
 description: Enhanced web search with error handling for rate limiting and blocking
-usage: /enhanced-search <query|url>
+usage: /search-plus <query|url>
 parameters:
   - name: query
     type: string
@@ -27,15 +27,15 @@ Implements robust web search functionality that handles various blocking mechani
 
 ### Web Search
 ```bash
-/enhanced-search "Claude Code plugin documentation"
-/enhanced-search "best practices for API rate limiting"
+/search-plus "Claude Code plugin documentation"
+/search-plus "best practices for API rate limiting"
 ```
 
 ### URL Content Extraction
 ```bash
-/enhanced-search "https://docs.anthropic.com/en/docs/claude-code/plugins"
-/enhanced-search "https://github.com/example/repo"
-/enhanced-search "https://example.com/article"
+/search-plus "https://docs.anthropic.com/en/docs/claude-code/plugins"
+/search-plus "https://github.com/example/repo"
+/search-plus "https://example.com/article"
 ```
 
 ## Error Handling

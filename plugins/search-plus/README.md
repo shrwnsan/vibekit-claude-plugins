@@ -33,7 +33,7 @@ These issues are well-documented in GitHub issues and community discussions, mak
 1. Clone or download this plugin directory
 2. Install the plugin in Claude Code:
    ```
-   /plugin install web-search-enhancer@local-marketplace
+   /plugin install search-plus@local-marketplace
    ```
 3. Configure your Tavily API key in `hooks/tavily-client.mjs` or environment variables
 
@@ -75,7 +75,7 @@ The plugin consists of:
 
 - **Plugin Manifest** (`/.claude-plugin/plugin.json`): Defines the plugin metadata
 - **Agent** (`/agents/enhanced-web-search.md`): Defines the enhanced web search agent
-- **Command** (`/commands/enhanced-search.md`): Defines the enhanced search command
+- **Command** (`/commands/search-plus.md`): Defines the search-plus command
 - **Hooks** (`/hooks/`): Contains JavaScript modules for handling search operations:
   - `handle-web-search.mjs`: Main search handler
   - `handle-search-error.mjs`: Error handling logic

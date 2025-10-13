@@ -1,4 +1,4 @@
-# AI Agent Guidelines for shrwnsan Claude Code Marketplace
+# AI Agent Guidelines for VibeKit Claude Code Marketplace
 
 This document provides detailed context and instructions for AI coding agents working with this Claude Code plugin marketplace.
 
@@ -6,37 +6,83 @@ This document provides detailed context and instructions for AI coding agents wo
 
 This is a plugin marketplace for Claude Code that hosts custom plugins to enhance development productivity. The marketplace follows Claude Code's plugin architecture with standardized structure and configuration.
 
+
 ### Directory Structure
 
 ```
-claude-code-marketplace/
+claude-vibekit-plugins/
 ├── .claude-plugin/marketplace.json    # Marketplace configuration
-├── web-search-enhancer/               # Plugin: Enhanced web search
+├── plugins/                           # Plugins directory
+│   └── search-plus/                   # Plugin: Enhanced web search
 ├── README.md                          # Human-readable documentation
 ├── AGENTS.md                          # This file - AI agent guidelines
 └── .git/                              # Git version control
 ```
 
+### Scalable Plugin Architecture
+
+The marketplace is organized to scale efficiently with multiple plugins:
+
+```
+plugins/
+├── search-plus/                       # Enhanced web search functionality
+└── [additional-plugins]/              # Additional plugins follow same structure
+```
+
+**Benefits of this organization:**
+- **Modular Structure**: Each plugin is self-contained within the plugins/ directory
+- **Consistent Patterns**: All plugins follow the same internal structure
+- **Easy Maintenance**: Clear separation between marketplace config and plugin code
+- **Scalable Design**: Can accommodate unlimited plugins without root directory clutter
+
 ### Plugin Structure Pattern
 
-Each plugin follows this structure:
+Each plugin follows this structure within the plugins/ directory:
 ```
-plugin-name/
+plugins/plugin-name/
 ├── .claude-plugin/plugin.json         # Plugin manifest (required)
 ├── agents/                            # Custom AI agents (optional)
 ├── commands/                          # Slash commands (optional)
-└── hooks/                             # Workflow hooks (optional)
+├── hooks/                             # Workflow hooks (optional)
+└── README.md                          # Plugin documentation (required)
 ```
 
 ## Build and Development Workflow
 
 ### Adding New Plugins
 
-1. **Create Plugin Directory**: `mkdir new-plugin-name`
-2. **Create Plugin Manifest**: Add `.claude-plugin/plugin.json` with required fields
+1. **Create Plugin Directory**: `mkdir plugins/new-plugin-name`
+2. **Create Plugin Manifest**: Add `plugins/new-plugin-name/.claude-plugin/plugin.json` with required fields
 3. **Implement Plugin Components**: Add agents, commands, and/or hooks as needed
-4. **Update Marketplace**: Add plugin entry to `.claude-plugin/marketplace.json`
+4. **Update Marketplace**: Add plugin entry to `.claude-plugin/marketplace.json` with source path `./plugins/new-plugin-name`
 5. **Test Installation**: Verify plugin can be installed via Claude Code
+
+### Plugin Creation Example
+
+To create a new plugin called "code-formatter":
+
+```bash
+# Create plugin directory
+mkdir plugins/code-formatter
+
+# Create plugin structure
+mkdir plugins/code-formatter/.claude-plugin
+mkdir plugins/code-formatter/agents
+mkdir plugins/code-formatter/commands
+mkdir plugins/code-formatter/hooks
+
+# Create plugin manifest
+cat > plugins/code-formatter/.claude-plugin/plugin.json << EOF
+{
+  "name": "code-formatter",
+  "version": "1.0.0",
+  "description": "Automated code formatting utilities",
+  "author": "your-name"
+}
+EOF
+
+# Add to marketplace.json with source path "./plugins/code-formatter"
+```
 
 ### Testing Plugins
 
@@ -104,19 +150,19 @@ Every plugin must include:
 The marketplace configuration file follows this schema:
 ```json
 {
-  "name": "shrwnsan-plugins",
+  "name": "vibekit",
   "owner": {
     "name": "shrwnsan",
     "email": "38465+shrwnsan@users.noreply.github.com"
   },
   "metadata": {
-    "description": "Curated collection of productivity-enhancing plugins",
+    "description": "Curated collection of productivity-enhancing plugins for Claude Code",
     "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "plugin-name",
-      "source": "./plugin-directory",
+      "source": "./plugins/plugin-directory",
       "description": "Plugin description",
       "version": "1.0.0",
       "keywords": ["tag1", "tag2"],
@@ -129,10 +175,22 @@ The marketplace configuration file follows this schema:
 ### Plugin Entry Requirements
 
 When adding plugins to marketplace.json:
-- Use relative paths for plugins in this repository
+- Use relative paths with `./plugins/` prefix for all plugins in this repository
 - Include comprehensive metadata for discoverability
 - Specify appropriate categories and keywords
 - Ensure version numbers match plugin.json
+- Update homepage URLs to include the new directory structure
+
+**Example plugin entry:**
+```json
+{
+  "name": "search-plus",
+  "source": "./plugins/search-plus",
+  "description": "Enhanced web search with URL extraction and error handling",
+  "version": "1.0.0",
+  "homepage": "https://github.com/shrwnsan/claude-vibekit-plugins/tree/main/plugins/search-plus"
+}
+```
 
 ## Testing Strategy
 
@@ -211,6 +269,44 @@ Use clear, descriptive commit messages:
 2. **Test plugin components**: Verify agents, commands, and hooks work
 3. **Check dependencies**: Ensure all required services are available
 4. **Validate configuration**: Check plugin configuration values
+
+## Plugin Management and Scalability
+
+### Managing Multiple Plugins
+
+As the marketplace grows, the plugins/ directory structure provides several advantages:
+
+**Organization Benefits:**
+- **Clean Root Directory**: Marketplace configuration remains separate from plugin code
+- **Predictable Structure**: All plugins follow the same organizational pattern
+- **Easy Navigation**: Developers can quickly find specific plugins
+- **Scalable Growth**: Can accommodate dozens of plugins without confusion
+
+**Plugin Discovery:**
+```bash
+# List all available plugins
+ls plugins/
+
+# Check specific plugin structure
+tree plugins/search-plus/
+
+# Find plugins by category (via marketplace.json)
+grep -A 5 -B 5 "category.*search" .claude-plugin/marketplace.json
+```
+
+**Batch Operations:**
+```bash
+# Validate all plugin manifests
+find plugins/ -name "plugin.json" -exec echo "Checking: {}" \; -exec cat {} \;
+
+# Test all plugins locally (scriptable)
+for plugin in plugins/*/; do
+  plugin_name=$(basename "$plugin")
+  echo "Testing plugin: $plugin_name"
+  # Add testing commands here
+done
+```
+
 
 ## Performance Optimization
 

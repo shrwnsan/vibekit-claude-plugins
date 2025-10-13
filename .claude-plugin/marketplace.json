@@ -1,5 +1,5 @@
 {
-  "name": "shrwnsan-plugins",
+  "name": "vibekit",
   "owner": {
     "name": "shrwnsan",
     "email": "38465+shrwnsan@users.noreply.github.com"
@@ -7,23 +7,23 @@
   "metadata": {
     "description": "Curated collection of productivity-enhancing plugins for Claude Code",
     "version": "1.0.0",
-    "homepage": "https://github.com/shrwnsan/claude-code-marketplace"
+    "homepage": "https://github.com/shrwnsan/claude-vibekit-plugins"
   },
   "plugins": [
     {
-      "name": "web-search-enhancer",
-      "source": "./web-search-enhancer",
-      "description": "Enhanced web search with advanced error handling for rate limiting and blocking issues",
+      "name": "search-plus",
+      "source": "./plugins/search-plus",
+      "description": "Enhanced web search with URL extraction and error handling for rate limiting and blocking issues",
       "version": "1.0.0",
       "author": {
         "name": "shrwnsan"
       },
-      "homepage": "https://github.com/shrwnsan/claude-code-marketplace/tree/main/web-search-enhancer",
-      "repository": "https://github.com/shrwnsan/claude-code-marketplace",
+      "homepage": "https://github.com/shrwnsan/claude-vibekit-plugins/tree/main/search-plus",
+      "repository": "https://github.com/shrwnsan/claude-vibekit-plugins",
       "license": "MIT",
-      "keywords": ["search", "web", "error-handling", "rate-limiting", "productivity"],
+      "keywords": ["search", "web", "error-handling", "rate-limiting", "productivity", "url-extraction"],
       "category": "productivity",
-      "tags": ["search", "web", "tavily", "error-recovery"]
+      "tags": ["search", "web", "tavily", "error-recovery", "url-extraction"]
     }
   ]
 }

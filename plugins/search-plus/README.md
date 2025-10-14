@@ -77,6 +77,37 @@ The plugin requires a Tavily API key to function. You can set this by:
 1. Editing `hooks/tavily-client.mjs` and replacing `YOUR_TAVILY_API_KEY_HERE` with your actual API key
 2. Or setting the `TAVILY_API_KEY` environment variable
 
+## Testing
+
+The plugin includes a comprehensive test suite to validate error handling capabilities:
+
+### Running Tests
+```bash
+node scripts/test-search-plus.mjs
+```
+
+### Test Coverage (54 test cases)
+- **URL Detection**: 28 test cases including httpbin.org endpoints, real documentation sites, API endpoints
+- **Error Handling**: Retry logic validation for 403, 429, ECONNREFUSED, ETIMEDOUT errors
+- **Header Rotation**: User-Agent diversity and header manipulation verification
+- **Flow Tracing**: Complete request flow visualization with detailed logging
+- **Content Extraction**: Real-world URL extraction scenarios
+
+### Test URLs
+The test suite uses both historical problematic URLs and standardized testing endpoints:
+- **Historical**: foundationcenter.org, researchgrantmatcher.com (from evaluation document)
+- **Standardized**: httpbin.org endpoints for reliable error testing
+- **Practice Sites**: quotes.toscrape.com, books.toscrape.com for web scraping
+- **Documentation**: MDN, Anthropic docs, Node.js docs for realistic content extraction
+- **API Endpoints**: GitHub API, JSONPlaceholder for API vs content detection
+
+### Test Results
+All tests pass with detailed flow tracing showing:
+- URL detection and categorization
+- Error handling with retry logic
+- Header rotation for avoiding detection
+- Content extraction simulation
+
 ## Usage
 
 Once installed, this plugin enhances Claude Code's search functionality. Simply use Claude Code's search features as normal, and the plugin will automatically handle errors more robustly than the default implementation.
@@ -98,7 +129,7 @@ The plugin consists of:
 
 - [ ] **Proxy Support**: Integration with proxy services for better IP rotation when dealing with persistent blocks
 - [ ] **Multiple Search Engine Fallback**: Support for alternative search engines if Tavily fails
-- [ ] **Testing Suite**: Add comprehensive unit and integration tests to ensure reliability
+- ✅ **Testing Suite**: Comprehensive test suite with 54 test cases covering URL detection, error handling, header rotation, and flow tracing
 
 ## Security Considerations
 
@@ -121,7 +152,10 @@ We welcome contributions! This project follows open source best practices:
 ### Development Guidelines
 
 - **Error Handling**: Any new search strategies should include comprehensive error handling
-- **Testing**: Test with various error scenarios (403, 429, ECONNREFUSED, timeouts)
+- **Testing**: Run the test suite to validate changes: `node scripts/test-search-plus.mjs`
+  - Test with various error scenarios (403, 429, ECONNREFUSED, timeouts)
+  - Verify URL detection works with new test cases
+  - Ensure header rotation still functions properly
 - **Documentation**: Update README and code comments for new features
 - **Security**: Never commit API keys or sensitive information
 
@@ -129,9 +163,9 @@ We welcome contributions! This project follows open source best practices:
 
 - [ ] **Proxy Support**: Integration with proxy services for better IP rotation
 - [ ] **Multiple Search Engine Fallback**: Support for alternative search engines
-- [ ] **Testing Suite**: Unit and integration tests for reliability
 - [ ] **Metrics Collection**: Success rate tracking and performance monitoring
 - [ ] **Configuration Management**: Environment-based configuration system
+- [ ] **Additional Test Scenarios**: Expand test coverage with more edge cases and real-world URLs
 
 ### Reporting Issues
 

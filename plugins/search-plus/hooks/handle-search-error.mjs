@@ -14,10 +14,13 @@ export async function handleWebSearchError(error, options) {
   // Check error type and apply appropriate recovery strategy
   if (error.code === 403 || error.message.includes('403') || error.message.toLowerCase().includes('forbidden')) {
     return await handle403Error(error, options);
-  } 
+  }
+  else if (error.code === 422 || error.message.includes('422') || is422SchemaError(error)) {
+    return await handle422Error(error, options);
+  }
   else if (error.code === 429 || error.message.includes('429') || error.message.toLowerCase().includes('rate limit')) {
     return await handleRateLimit(error, options);
-  } 
+  }
   else if (error.code === 'ECONNREFUSED' || error.message.toLowerCase().includes('connection refused')) {
     return await handleConnectionRefusedError(error, options);
   }
@@ -182,6 +185,193 @@ function generateDiverseHeaders() {
 }
 
 /**
+ * Detects if error is a 422 schema validation error
+ * @param {Object} error - The error object
+ * @returns {boolean} True if this is a 422 schema error
+ */
+function is422SchemaError(error) {
+  const errorMessage = error.message || '';
+  const errorString = JSON.stringify(error);
+
+  // Check for common 422 schema validation patterns
+  const schemaErrorPatterns = [
+    'missing',
+    'input_schema',
+    'Field required',
+    'unprocessable entity',
+    'validation error',
+    'schema validation',
+    'invalid request format'
+  ];
+
+  return schemaErrorPatterns.some(pattern =>
+    errorMessage.toLowerCase().includes(pattern) ||
+    errorString.toLowerCase().includes(pattern)
+  );
+}
+
+/**
+ * Handles 422 Unprocessable Entity errors (schema validation)
+ * @param {Object} error - The 422 error
+ * @param {Object} options - Search options
+ * @returns {Object} Recovery results
+ */
+async function handle422Error(error, options) {
+  console.log('Handling 422 schema validation error...');
+
+  // Try multiple recovery strategies
+  const strategies = [
+    () => repairSchemaAndRetry(options),
+    () => simplifyQueryAndRetry(options),
+    () => reformulateQueryForSchema(options),
+    () => tryAlternativeAPIFormat(options)
+  ];
+
+  for (const strategy of strategies) {
+    try {
+      console.log('Attempting 422 error recovery strategy...');
+      const results = await strategy();
+      if (results && !results.error) {
+        return {
+          success: true,
+          data: results,
+          message: 'Successfully retrieved results after handling 422 schema error'
+        };
+      }
+    } catch (strategyError) {
+      console.log('422 recovery strategy failed:', strategyError.message);
+      continue;
+    }
+  }
+
+  return {
+    error: true,
+    message: `Failed to retrieve results after handling 422 schema error: ${error.message}`
+  };
+}
+
+/**
+ * Attempts to repair schema issues and retry
+ * @param {Object} options - Original search options
+ * @returns {Object} Search results
+ */
+async function repairSchemaAndRetry(options) {
+  console.log('Attempting schema repair...');
+
+  // Add missing input_schema if this is the issue
+  const repairedParams = {
+    ...options,
+    input_schema: {
+      type: "web_search_20250305",
+      name: "web_search",
+      max_uses: 8
+    }
+  };
+
+  // Add delay before retry
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  return await tavilySearch(repairedParams);
+}
+
+/**
+ * Simplifies the query to avoid schema validation issues
+ * @param {Object} options - Original search options
+ * @returns {Object} Search results
+ */
+async function simplifyQueryAndRetry(options) {
+  console.log('Simplifying query for schema compatibility...');
+
+  const simplifiedQuery = simplifyQueryForSchema(options.query);
+  const simplifiedParams = {
+    ...options,
+    query: simplifiedQuery,
+    max_results: Math.min(options.max_results || 10, 5), // Reduce complexity
+    search_depth: "basic" // Use simpler search mode
+  };
+
+  await new Promise(resolve => setTimeout(resolve, 1500));
+
+  return await tavilySearch(simplifiedParams);
+}
+
+/**
+ * Reformulates query specifically for schema issues
+ * @param {Object} options - Original search options
+ * @returns {Object} Search results
+ */
+async function reformulateQueryForSchema(options) {
+  console.log('Reformulating query for schema compatibility...');
+
+  const reformulatedQuery = reformulateQueryForSchemaCompatibility(options.query);
+  const reformulatedParams = {
+    ...options,
+    query: reformulatedQuery,
+    include_answer: false, // Simplify request
+    include_raw_content: false
+  };
+
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  return await tavilySearch(reformulatedParams);
+}
+
+/**
+ * Tries alternative API format
+ * @param {Object} options - Original search options
+ * @returns {Object} Search results
+ */
+async function tryAlternativeAPIFormat(options) {
+  console.log('Trying alternative API format...');
+
+  // Try with minimal parameters
+  const minimalParams = {
+    query: options.query,
+    api_key: options.api_key,
+    search_depth: "basic"
+  };
+
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  return await tavilySearch(minimalParams);
+}
+
+/**
+ * Simplifies query for schema compatibility
+ * @param {string} query - Original query
+ * @returns {string} Simplified query
+ */
+function simplifyQueryForSchema(query) {
+  return query
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/[^\w\s\-.,!?]/g, '') // Remove special characters except basic punctuation
+    .substring(0, 200) // Limit length
+    .trim();
+}
+
+/**
+ * Reformulates query specifically for schema compatibility issues
+ * @param {string} query - Original query
+ * @returns {string} Reformulated query
+ */
+function reformulateQueryForSchemaCompatibility(query) {
+  // Break down complex queries into simpler components
+  const words = query.split(' ').filter(word => word.length > 2);
+  if (words.length > 8) {
+    // If query is too long, use the most important terms
+    return words.slice(0, 6).join(' ');
+  }
+
+  // Replace problematic patterns
+  return query
+    .replace(/\d{4}/g, '') // Remove years
+    .replace(/github|gitlab|bitbucket/gi, 'code repository') // Replace specific platforms
+    .replace(/open source|open-source/gi, 'free software') // Simplify terminology
+    .replace(/platform|boilerplate|framework/gi, 'software') // Generic terms
+    .trim();
+}
+
+/**
  * Reformulates a query to potentially bypass filters
  * @param {string} query - Original query
  * @returns {string} Reformulated query
@@ -194,11 +384,11 @@ function reformulateQuery(query) {
     'why is': 'reason for',
     'when did': 'date of'
   };
-  
+
   let reformulated = query;
   for (const [original, replacement] of Object.entries(synonyms)) {
     reformulated = reformulated.replace(new RegExp(original, 'gi'), replacement);
   }
-  
+
   return reformulated;
 }

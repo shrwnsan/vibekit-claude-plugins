@@ -1,5 +1,6 @@
 // hooks/handle-web-search.mjs
 import { tavilySearch, tavilyExtract } from './tavily-client.mjs';
+import { handleWebSearchError } from './handle-search-error.mjs';
 
 /**
  * Detects if the input is a URL
@@ -66,16 +67,40 @@ export async function handleWebSearch(params) {
       
     } catch (error) {
       console.error(`Search attempt ${attempt + 1} failed:`, error.message);
-      
-      // Check if it's a retryable error
+
+      // Use enhanced error handling for all errors, including 422
+      const errorResult = await handleWebSearchError(error, {
+        query,
+        maxResults: params.maxResults || 5,
+        includeAnswer: params.includeAnswer || true,
+        includeRawContent: params.includeRawContent || false,
+        headers: generateRandomHeaders(),
+        timeout,
+        attempt: attempt + 1
+      });
+
+      // If error handling succeeded, return the results
+      if (errorResult && errorResult.success) {
+        return {
+          success: true,
+          data: errorResult.data,
+          attempt: attempt + 1,
+          errorRecovered: true,
+          originalError: error.message,
+          recoveryMessage: errorResult.message
+        };
+      }
+
+      // If this was the last attempt or non-retryable error, return final failure
       if (attempt === maxRetries || !isRetryableError(error)) {
         return {
           error: true,
-          message: error.message,
-          attempt: attempt + 1
+          message: errorResult?.message || error.message,
+          attempt: attempt + 1,
+          errorHandlingApplied: true
         };
       }
-      
+
       // Continue to next attempt
     }
   }
@@ -109,15 +134,24 @@ function generateRandomHeaders() {
  * @returns {boolean} True if the error is retryable
  */
 function isRetryableError(error) {
-  // 403, 429, ECONNREFUSED, ETIMEDOUT are retryable
-  return error.code === 403 || 
-         error.code === 429 || 
-         error.code === 'ECONNREFUSED' || 
+  // 403, 422, 429, ECONNREFUSED, ETIMEDOUT are retryable
+  const errorMessage = error.message || '';
+  const errorString = JSON.stringify(error);
+
+  return error.code === 403 ||
+         error.code === 422 ||
+         error.code === 429 ||
+         error.code === 'ECONNREFUSED' ||
          error.code === 'ETIMEDOUT' ||
-         error.message.includes('403') ||
-         error.message.includes('429') ||
-         error.message.includes('ECONNREFUSED') ||
-         error.message.includes('ETIMEDOUT');
+         errorMessage.includes('403') ||
+         errorMessage.includes('422') ||
+         errorMessage.includes('429') ||
+         errorMessage.includes('ECONNREFUSED') ||
+         errorMessage.includes('ETIMEDOUT') ||
+         // Check for schema validation patterns
+         errorString.toLowerCase().includes('missing') ||
+         errorString.toLowerCase().includes('input_schema') ||
+         errorString.toLowerCase().includes('field required');
 }
 
 /**

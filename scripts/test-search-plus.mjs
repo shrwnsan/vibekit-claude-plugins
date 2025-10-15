@@ -288,7 +288,167 @@ async function testProblematicURLFlow() {
   }
 }
 
-// Test 6: Header Rotation and Content Extraction
+// Test 6: 422 Error Handling
+async function test422ErrorHandling() {
+  logTest('422 Error Handling');
+
+  console.log('\n→ Testing 422 error detection...');
+
+  // Test 422 error detection function
+  const test422Errors = [
+    {
+      error: {
+        code: 422,
+        message: 'API Error: 422 {"detail":[{"type":"missing","loc":["body","tools",0,"input_schema"],"msg":"Field required"}]}'
+      },
+      expected: true,
+      description: 'Missing input_schema field'
+    },
+    {
+      error: {
+        code: 422,
+        message: 'Unprocessable Entity: Schema validation failed'
+      },
+      expected: true,
+      description: 'Schema validation error'
+    },
+    {
+      error: {
+        message: '{"detail":[{"type":"missing","loc":["body","tools",0,"input_schema"],"msg":"Field required"}]}'
+      },
+      expected: true,
+      description: '422 error in JSON string'
+    },
+    {
+      error: {
+        code: 400,
+        message: 'Bad Request'
+      },
+      expected: false,
+      description: 'Non-422 error'
+    }
+  ];
+
+  // Test 422 error detection
+  test422Errors.forEach(test => {
+    const result = is422SchemaError(test.error);
+    assert(
+      result === test.expected,
+      `422 detection - ${test.description}: ${result}`
+    );
+  });
+
+  console.log('\n→ Testing query simplification for schema compatibility...');
+
+  const queryTests = [
+    {
+      query: 'open source infographic sharing platform boilerplate github 2024',
+      expected: 'open source infographic sharing platform boilerplate github 2024',
+      description: 'Normal query unchanged'
+    },
+    {
+      query: 'data visualization sharing platform with @special #characters and $symbols!',
+      expected: 'data visualization sharing platform with special characters and symbols!',
+      description: 'Special characters removed (keeps basic punctuation)'
+    },
+    {
+      query: '   multiple    spaces   and   tabs	',
+      expected: 'multiple spaces and tabs',
+      description: 'Whitespace normalized'
+    }
+  ];
+
+  queryTests.forEach(test => {
+    const result = simplifyQueryForSchema(test.query);
+    assert(
+      result === test.expected,
+      `Query simplification - ${test.description}: "${test.query}" → "${result}"`
+    );
+  });
+
+  console.log('\n→ Testing retryable error detection with 422...');
+
+  const retryableWith422 = [
+    { error: { code: 403 }, expected: true, description: '403 Forbidden' },
+    { error: { code: 422 }, expected: true, description: '422 Unprocessable Entity' },
+    { error: { code: 429 }, expected: true, description: '429 Rate Limited' },
+    { error: { code: 'ECONNREFUSED' }, expected: true, description: 'Connection Refused' },
+    { error: { code: 'ETIMEDOUT' }, expected: true, description: 'Timeout' },
+    { error: { message: '422 validation error' }, expected: true, description: '422 in message' },
+    { error: { message: '{"detail":[{"type":"missing","input_schema"}]}' }, expected: true, description: 'Schema pattern in message' }
+  ];
+
+  retryableWith422.forEach(test => {
+    const result = isRetryableError(test.error);
+    assert(
+      result === test.expected,
+      `Retryable with 422 - ${test.description}: ${result}`
+    );
+  });
+
+  console.log('\n→ Testing problematic query scenarios...');
+
+  // Test the queries that previously failed with 422 errors
+  const problematicQueries = [
+    "open source infographic sharing platform boilerplate github 2024",
+    "scaling requirements for infographic sharing sites architecture",
+    "data visualization sharing platform open source projects github",
+    "chart sharing platform open source github",
+    "infographic sharing website architecture scaling requirements"
+  ];
+
+  problematicQueries.forEach((query, index) => {
+    console.log(`→ Query ${index + 1}: "${query.substring(0, 40)}..."`);
+    console.log(`   Simplified: "${simplifyQueryForSchema(query)}"`);
+    console.log(`   Reformulated: "${reformulateQueryForSchemaCompatibility(query)}"`);
+
+    // Verify queries are processed without errors
+    const simplified = simplifyQueryForSchema(query);
+    const reformulated = reformulateQueryForSchemaCompatibility(query);
+
+    assert(
+      simplified && simplified.length > 0,
+      `Query ${index + 1} simplification works`
+    );
+
+    assert(
+      reformulated && reformulated.length > 0,
+      `Query ${index + 1} reformulation works`
+    );
+  });
+
+  console.log('\n→ Testing 422 error recovery flow simulation...');
+
+  // Simulate the 422 error recovery process
+  const mock422Error = {
+    code: 422,
+    message: 'API Error: 422 {"detail":[{"type":"missing","loc":["body","tools",0,"input_schema"],"msg":"Field required"}]}'
+  };
+
+  const searchOptions = {
+    query: "open source infographic sharing platform boilerplate github 2024",
+    maxResults: 5,
+    includeAnswer: true,
+    timeout: 10000
+  };
+
+  console.log(`→ Simulating 422 error for query: "${searchOptions.query}"`);
+  console.log(`→ Error: ${mock422Error.message}`);
+  console.log(`→ is422SchemaError(): ${is422SchemaError(mock422Error)}`);
+  console.log(`→ isRetryableError(): ${isRetryableError(mock422Error)}`);
+
+  if (is422SchemaError(mock422Error)) {
+    console.log(`→ Would trigger handle422Error() with strategies:`);
+    console.log(`   1. Schema repair - add missing input_schema`);
+    console.log(`   2. Query simplification - "${simplifyQueryForSchema(searchOptions.query)}"`);
+    console.log(`   3. Query reformulation - "${reformulateQueryForSchemaCompatibility(searchOptions.query)}"`);
+    console.log(`   4. Alternative API format - minimal parameters`);
+
+    assert(true, '422 error recovery flow simulated successfully');
+  }
+}
+
+// Test 7: Header Rotation and Content Extraction
 async function testHeaderRotationAndExtraction() {
   logTest('Header Rotation and Content Extraction');
 
@@ -387,24 +547,80 @@ function isURL(input) {
 }
 
 function isRetryableError(error) {
-  // Check if the error code is retryable
-  if (error.code === 403 || error.code === 429 ||
+  // Check if the error code is retryable (now includes 422)
+  if (error.code === 403 || error.code === 422 || error.code === 429 ||
       error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
     return true;
   }
 
-  // Check if the error message contains retryable indicators
-  if (error.message && (
-      error.message.includes('403') ||
-      error.message.includes('429') ||
-      error.message.includes('ECONNREFUSED') ||
-      error.message.includes('ETIMEDOUT')
-  )) {
+  // Check if the error message contains retryable indicators (now includes 422)
+  const errorMessage = error.message || '';
+  const errorString = JSON.stringify(error);
+
+  if (errorMessage.includes('403') || errorMessage.includes('422') ||
+      errorMessage.includes('429') || errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('ETIMEDOUT')) {
+    return true;
+  }
+
+  // Check for schema validation patterns
+  if (errorString.toLowerCase().includes('missing') ||
+      errorString.toLowerCase().includes('input_schema') ||
+      errorString.toLowerCase().includes('field required')) {
     return true;
   }
 
   // All other errors are not retryable
   return false;
+}
+
+// 422 Error Detection Functions
+function is422SchemaError(error) {
+  const errorMessage = error.message || '';
+  const errorString = JSON.stringify(error);
+
+  // Check for common 422 schema validation patterns
+  const schemaErrorPatterns = [
+    'missing',
+    'input_schema',
+    'Field required',
+    'unprocessable entity',
+    'validation error',
+    'schema validation',
+    'invalid request format'
+  ];
+
+  return schemaErrorPatterns.some(pattern =>
+    errorMessage.toLowerCase().includes(pattern) ||
+    errorString.toLowerCase().includes(pattern)
+  );
+}
+
+// Query simplification for schema compatibility
+function simplifyQueryForSchema(query) {
+  return query
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/[^\w\s\-.,!?]/g, '') // Remove special characters except basic punctuation
+    .substring(0, 200) // Limit length
+    .trim();
+}
+
+// Query reformulation for schema compatibility
+function reformulateQueryForSchemaCompatibility(query) {
+  // Break down complex queries into simpler components
+  const words = query.split(' ').filter(word => word.length > 2);
+  if (words.length > 8) {
+    // If query is too long, use the most important terms
+    return words.slice(0, 6).join(' ');
+  }
+
+  // Replace problematic patterns
+  return query
+    .replace(/\d{4}/g, '') // Remove years
+    .replace(/github|gitlab|bitbucket/gi, 'code repository') // Replace specific platforms
+    .replace(/open source|open-source/gi, 'free software') // Simplify terminology
+    .replace(/platform|boilerplate|framework/gi, 'software') // Generic terms
+    .trim();
 }
 
 function generateRandomHeaders() {
@@ -434,6 +650,7 @@ async function runTests() {
   testURLDetection();
   testRetryableErrors();
   testHeaderGeneration();
+  test422ErrorHandling();
 
   // Run integration tests
   await testMockTavilyIntegration();

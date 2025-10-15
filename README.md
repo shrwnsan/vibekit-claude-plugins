@@ -2,6 +2,12 @@
 
 A curated collection of productivity-enhancing plugins for Claude Code, designed to solve common development challenges and improve your coding workflow.
 
+**What we offer:**
+- Battle-tested plugins for real-world development problems
+- Enhanced error handling for Claude Code limitations
+- Community-driven solutions with comprehensive documentation
+- Simple installation and reliable performance
+
 ## 🚀 Quick Start
 
 ### Option 1: Install from GitHub (Recommended for users)
@@ -21,7 +27,7 @@ Browse available plugins:
 Install a specific plugin:
 
 ```bash
-/plugin install search-plus@shrwnsan-plugins
+/plugin install search-plus@vibekit
 ```
 
 ### Option 2: Test Locally (For developers)
@@ -39,7 +45,7 @@ claude
 /plugin marketplace add ./test-marketplace
 
 # Install plugin locally
-/plugin install search-plus@test-marketplace
+/plugin install search-plus@vibekit
 
 # Restart Claude Code when prompted
 ```
@@ -63,29 +69,21 @@ Check that the plugin is working:
 
 ### 🔍 Search Plus
 
-Enhanced web search with advanced error handling for rate limiting and blocking issues that commonly occur when Claude Code attempts to research websites.
+Enhanced web search with advanced error handling for 403, 429, and connection issues that commonly occur when Claude Code attempts to research websites. Features retry logic, header manipulation, and reliable URL content extraction.
 
-**Features:**
-- Advanced retry logic with exponential backoff
-- Header manipulation to avoid detection
-- Rate limit compliance and circuit breaker patterns
-- Query reformulation when blocked
-- Timeout management and connection refused handling
-- **URL/Content Extraction**: Extract content directly from URLs and permalinks
-
-**Usage Examples:**
+**Quick Start:**
 ```bash
-# Search the web with error handling
+# Install the plugin
+/plugin install search-plus@vibekit
+
+# Search with error handling
 /search-plus "Claude Code plugin documentation"
 
-# Extract content from a specific URL
+# Extract content from URLs
 /search-plus "https://docs.anthropic.com/en/docs/claude-code/plugins"
-
-# Research with fallback strategies
-/search-plus "GitHub API rate limiting best practices"
 ```
 
-**Use Case:** Perfect for developers who frequently encounter 403 Forbidden, 429 Rate Limit, or ECONNREFUSED errors when using Claude Code's built-in search functionality, or need reliable content extraction from specific URLs.
+[→ Detailed Documentation](plugins/search-plus/README.md)
 
 ## 🎯 Use Cases
 
@@ -117,14 +115,14 @@ claude-vibekit-plugins/
 ├── .claude-plugin/
 │   └── marketplace.json          # Marketplace configuration
 ├── plugins/                      # Plugins directory
-│   └── search-plus/              # Plugin directory
+│   └── your-plugin/              # Individual plugin directories
 │       ├── .claude-plugin/
-│       │   └── plugin.json       # Plugin manifest
-│       ├── agents/               # Custom AI agents
-│       ├── commands/             # Slash commands
-│       ├── hooks/                # Workflow hooks
-│       └── README.md             # Plugin documentation
-├── README.md                     # This file
+│       │   └── plugin.json       # Plugin manifest (required)
+│       ├── agents/               # Custom AI agents (optional)
+│       ├── commands/             # Slash commands (optional)
+│       ├── hooks/                # Workflow hooks (optional)
+│       └── README.md             # Plugin documentation (required)
+├── README.md                     # Marketplace documentation
 └── AGENTS.md                     # AI agent guidelines
 ```
 
@@ -188,17 +186,9 @@ plugins/your-plugin-name/
 - **Security**: Never commit API keys or sensitive information
 - **Compatibility**: Ensure compatibility with Claude Code's latest version
 
-### Areas for Contribution
-
-- [ ] **Proxy Support**: IP rotation for persistent blocks
-- [ ] **Multiple Search Engines**: Alternative search providers
-- [ ] **Testing Suite**: Comprehensive test coverage
-- [ ] **Metrics Collection**: Success rate tracking
-- [ ] **Configuration Management**: Environment-based configs
-
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 

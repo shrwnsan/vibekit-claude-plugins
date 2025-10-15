@@ -1,10 +1,10 @@
-# AI Agent Guidelines for VibeKit Claude Code Marketplace
+# AI Agent Guidelines
 
-This document provides detailed context and instructions for AI coding agents working with this Claude Code plugin marketplace.
+This document provides context and instructions for AI agents working with this plugin marketplace.
 
 ## Project Overview
 
-This is a plugin marketplace for Claude Code that hosts custom plugins to enhance development productivity. The marketplace follows Claude Code's plugin architecture with standardized structure and configuration.
+This is a plugin marketplace that hosts custom plugins to enhance development productivity. The marketplace follows standardized plugin architecture with consistent structure and configuration.
 
 
 ### Directory Structure
@@ -112,36 +112,36 @@ Check marketplace configuration:
 /plugin marketplace list
 ```
 
-## Code Standards and Guidelines
+## Standards and Guidelines
 
-### Plugin Manifest Requirements
+### Plugin Requirements
 
-Every plugin must include:
-- `name`: Unique plugin identifier (kebab-case)
+Recommended plugin manifest fields:
+- `name`: Unique identifier (kebab-case)
 - `description`: Brief functionality description
-- `version`: Semantic version (e.g., "1.0.0")
+- `version`: Semantic version
 - `author`: Author information
 
-### Error Handling Standards
+### Error Handling
 
-- All external API calls must include try-catch blocks
-- Implement retry logic with exponential backoff for network operations
-- Provide clear error messages to users
-- Log errors appropriately for debugging
+- Include try-catch blocks for external API calls
+- Implement retry logic with exponential backoff
+- Provide clear error messages
+- Log errors for debugging
 
-### Security Guidelines
+### Security
 
 - Never commit API keys or sensitive information
 - Use environment variables for configuration secrets
-- Validate all user inputs and external data
-- Follow principle of least privilege for external service access
+- Validate all inputs and external data
+- Follow principle of least privilege
 
-### Documentation Standards
+### Documentation
 
-- Each plugin must include comprehensive README.md
-- Document all configuration options and requirements
-- Provide usage examples and troubleshooting guidance
-- Include information about external dependencies
+- Each plugin should include README.md
+- Document configuration options and requirements
+- Provide usage examples
+- Include external dependency information
 
 ## Marketplace Configuration
 
@@ -270,71 +270,33 @@ Use clear, descriptive commit messages:
 3. **Check dependencies**: Ensure all required services are available
 4. **Validate configuration**: Check plugin configuration values
 
-## Plugin Management and Scalability
+## Plugin Management
 
-### Managing Multiple Plugins
+### Organization
 
-As the marketplace grows, the plugins/ directory structure provides several advantages:
+- **Scalable Structure**: plugins/ directory accommodates multiple plugins
+- **Clean Separation**: Marketplace configuration separate from plugin code
+- **Consistent Patterns**: All plugins follow the same structure
+- **Easy Discovery**: Simple navigation and categorization
 
-**Organization Benefits:**
-- **Clean Root Directory**: Marketplace configuration remains separate from plugin code
-- **Predictable Structure**: All plugins follow the same organizational pattern
-- **Easy Navigation**: Developers can quickly find specific plugins
-- **Scalable Growth**: Can accommodate dozens of plugins without confusion
-
-**Plugin Discovery:**
-```bash
-# List all available plugins
-ls plugins/
-
-# Check specific plugin structure
-tree plugins/search-plus/
-
-# Find plugins by category (via marketplace.json)
-grep -A 5 -B 5 "category.*search" .claude-plugin/marketplace.json
-```
-
-**Batch Operations:**
-```bash
-# Validate all plugin manifests
-find plugins/ -name "plugin.json" -exec echo "Checking: {}" \; -exec cat {} \;
-
-# Test all plugins locally (scriptable)
-for plugin in plugins/*/; do
-  plugin_name=$(basename "$plugin")
-  echo "Testing plugin: $plugin_name"
-  # Add testing commands here
-done
-```
-
-
-## Performance Optimization
-
-### Plugin Best Practices
+### Performance
 
 - Minimize startup time for plugins
 - Use lazy loading for heavy operations
-- Implement efficient error handling
 - Cache frequently accessed data
 - Optimize external API calls
-
-### Resource Management
-
-- Clean up resources when plugins are disabled
-- Avoid memory leaks in long-running operations
 - Use appropriate timeouts for network operations
-- Monitor plugin resource usage
 
-## Agent-Specific Instructions
+## Agent Guidelines
 
-### For Claude Code Agents
+### General Guidelines
 
 - Read AGENTS.md files in plugin directories for specific guidance
 - Follow plugin-specific conventions and workflows
 - Respect plugin configuration and security settings
 - Use plugin-provided tools and commands appropriately
 
-### For Development Agents
+### Development Guidelines
 
 - Maintain consistency with existing plugin patterns
 - Follow established coding standards and practices

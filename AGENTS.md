@@ -10,7 +10,7 @@ This is a plugin marketplace that hosts custom plugins to enhance development pr
 ### Directory Structure
 
 ```
-claude-vibekit-plugins/
+vibekit-claude-plugins/
 ├── .claude-plugin/marketplace.json    # Marketplace configuration
 ├── plugins/                           # Plugins directory
 │   └── search-plus/                   # Plugin: Enhanced web search
@@ -188,7 +188,7 @@ When adding plugins to marketplace.json:
   "source": "./plugins/search-plus",
   "description": "Enhanced web search with URL extraction and error handling",
   "version": "1.0.0",
-  "homepage": "https://github.com/shrwnsan/claude-vibekit-plugins/tree/main/plugins/search-plus"
+  "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus"
 }
 ```
 

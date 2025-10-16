@@ -1,4 +1,4 @@
-# VibeKit Claude Code Marketplace
+# VibeKit: Productivity Plus Claude Code Plugin Marketplace
 
 A curated collection of productivity-enhancing plugins for Claude Code, designed to solve common development challenges and improve your coding workflow.
 
@@ -15,7 +15,7 @@ A curated collection of productivity-enhancing plugins for Claude Code, designed
 Add this marketplace to Claude Code:
 
 ```bash
-/plugin marketplace add shrwnsan/claude-vibekit-plugins
+/plugin marketplace add shrwnsan/vibekit-claude-plugins
 ```
 
 Browse available plugins:
@@ -111,7 +111,7 @@ Each plugin includes:
 ### Project Structure
 
 ```
-claude-vibekit-plugins/
+vibekit-claude-plugins/
 ├── .claude-plugin/
 │   └── marketplace.json          # Marketplace configuration
 ├── plugins/                      # Plugins directory
@@ -188,7 +188,11 @@ plugins/your-plugin-name/
 
 ## 📄 License
 
-Apache License 2.0 - see [LICENSE](LICENSE) file for details.
+This marketplace and all included plugins are licensed under the Apache License 2.0.
+
+Copyright 2025 shrwnsan - Licensed under Apache 2.0
+
+See the [LICENSE](LICENSE) file for complete license terms and conditions.
 
 ## 🙏 Acknowledgments
 
@@ -201,7 +205,7 @@ Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 - [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code)
 - [Plugin Development Guide](https://docs.claude.com/en/docs/claude-code/plugins)
 - [Marketplace Documentation](https://docs.claude.com/en/docs/claude-code/plugin-marketplaces)
-- [Issue Reporting](https://github.com/shrwnsan/claude-vibekit-plugins/issues)
+- [Issue Reporting](https://github.com/shrwnsan/vibekit-claude-plugins/issues)
 
 ---
 

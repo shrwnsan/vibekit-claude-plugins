@@ -1,4 +1,4 @@
-# Web Search Enhancer Plugin for Claude Code
+# Search Plus: Web Search enhancer plugin for Claude Code
 
 A Claude Code plugin that enhances web search functionality with comprehensive error handling, particularly for rate limiting (429), access forbidden (403), schema validation (422), and connection refused (ECONNREFUSED) errors that commonly occur when Claude Code attempts to research certain websites.
 
@@ -189,4 +189,8 @@ When reporting issues, please include:
 
 ## License
 
-Apache License 2.0 - see LICENSE file for details. Feel free to use this plugin in your projects and contribute back to the community.
+This plugin is licensed under the Apache License 2.0, consistent with the entire VibeKit marketplace. See the main [LICENSE](../../LICENSE) file for complete details.
+
+Copyright 2025 shrwnsan - Licensed under Apache 2.0
+
+Feel free to use this plugin in your projects and contribute back to the community under the same open source terms.

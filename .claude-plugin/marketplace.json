@@ -5,9 +5,9 @@
     "email": "38465+shrwnsan@users.noreply.github.com"
   },
   "metadata": {
-    "description": "Curated collection of productivity-enhancing plugins for Claude Code",
+    "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
     "version": "1.0.0",
-    "homepage": "https://github.com/shrwnsan/claude-vibekit-plugins"
+    "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins"
   },
   "plugins": [
     {
@@ -18,8 +18,8 @@
       "author": {
         "name": "shrwnsan"
       },
-      "homepage": "https://github.com/shrwnsan/claude-vibekit-plugins/tree/main/search-plus",
-      "repository": "https://github.com/shrwnsan/claude-vibekit-plugins",
+      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/search-plus",
+      "repository": "https://github.com/shrwnsan/vibekit-claude-plugins",
       "license": "Apache-2.0",
       "keywords": ["search", "web", "error-handling", "rate-limiting", "schema-validation", "productivity", "url-extraction"],
       "category": "productivity",

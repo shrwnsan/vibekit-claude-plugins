@@ -70,14 +70,21 @@ function checkClaudeInstallation() {
   return result;
 }
 
-// Command availability check - verify command file exists in marketplace installation
+// Command availability check - verify command file exists in local development or marketplace installation
 function checkCommandAvailability() {
+  // Check local development directory first
+  const localCommandPath = join(__dirname, '..', 'plugins', 'search-plus', 'commands', 'search-plus.md');
+  // Fallback to marketplace installation path
   const marketplaceCommandPath = join(homedir(), '.claude', 'plugins', 'marketplaces', 'vibekit', 'plugins', 'search-plus', 'commands', 'search-plus.md');
 
+  // Use local path if it exists, otherwise try marketplace path
+  const commandPath = existsSync(localCommandPath) ? localCommandPath : marketplaceCommandPath;
+
   const result = {
-    commandFileExists: existsSync(marketplaceCommandPath),
-    commandPath: marketplaceCommandPath,
-    commandAvailable: false
+    commandFileExists: existsSync(commandPath),
+    commandPath: commandPath,
+    commandAvailable: false,
+    isLocalDevelopment: existsSync(localCommandPath)
   };
 
   result.commandAvailable = result.commandFileExists;
@@ -129,7 +136,7 @@ function runQuickStatusCheck() {
   if (claudeInstallation.pluginName) {
     console.log(`   Plugin name: ${claudeInstallation.pluginName}`);
   }
-  console.log(`   Command file: ${commandStatus.commandAvailable ? '✅' : '❌'}`);
+  console.log(`   Command file: ${commandStatus.commandAvailable ? '✅' : '❌'}${commandStatus.isLocalDevelopment ? ' (local)' : ' (marketplace)'}`);
 
   // Overall status
   console.log('\n🎯 Overall Status:');

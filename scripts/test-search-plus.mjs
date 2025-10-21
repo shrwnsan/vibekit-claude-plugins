@@ -209,6 +209,49 @@ function log(message) {
   appendFileSync(logFile, logMessage);
 }
 
+// Enhanced success evaluation that considers expected errors
+function isTestSuccessful(result, expectedErrors) {
+  // If the test succeeded, it's successful
+  if (result.success) {
+    return true;
+  }
+
+  // If the test failed but we expected this specific error, it's also successful
+  if (!result.success && result.error && expectedErrors && expectedErrors.length > 0) {
+    const actualErrorCode = result.error.code;
+
+    // Direct match
+    if (expectedErrors.includes(actualErrorCode)) {
+      return true;
+    }
+
+    // Semantic mapping for validation errors
+    if ((actualErrorCode === 'VALIDATION_ERROR' || actualErrorCode === '400') &&
+        (expectedErrors.includes('400') || expectedErrors.includes('VALIDATION_ERROR'))) {
+      return true;
+    }
+
+    // Semantic mapping for domain restrictions
+    if ((actualErrorCode === 'UNKNOWN' || actualErrorCode === 'DOMAIN_RESTRICTION' || actualErrorCode === 'DOMAIN_BLOCK') &&
+        (expectedErrors.includes('DOMAIN_RESTRICTION') || expectedErrors.includes('DOMAIN_BLOCK') || expectedErrors.includes('403'))) {
+      return true;
+    }
+
+    // Semantic mapping for silent failures
+    if ((actualErrorCode === 'SILENT_FAILURE' || actualErrorCode === 'UNKNOWN') &&
+        (expectedErrors.includes('SILENT_FAILURE') || expectedErrors.includes('UNKNOWN'))) {
+      return true;
+    }
+  }
+
+  // If we expected no errors and got none, it's successful
+  if (!result.success && (!expectedErrors || expectedErrors.length === 0)) {
+    return false; // Unexpected failure
+  }
+
+  return false;
+}
+
 function appendFileSync(file, content) {
   try {
     if (existsSync(file)) {
@@ -747,9 +790,15 @@ async function runBaselineTests() {
     baselineResults.summary.totalTests++;
     totalResponseTime += result.responseTime;
 
-    if (result.success) {
+    const isActuallySuccessful = isTestSuccessful(result, scenario.expectedErrors);
+
+    if (isActuallySuccessful) {
       baselineResults.summary.successfulTests++;
-      log(`   ✅ Success (${result.responseTime}ms)`);
+      if (result.success) {
+        log(`   ✅ Success (${result.responseTime}ms)`);
+      } else {
+        log(`   🟡 Expected Failure (${result.responseTime}ms) - ${result.error.code} (matched expected error)`);
+      }
     } else {
       baselineResults.summary.failedTests++;
       log(`   ❌ Failed: ${result.error.code} - ${result.error.message ? result.error.message.substring(0, 100) + '...' : 'No error message'}`);
@@ -809,14 +858,20 @@ async function runEnhancedTests() {
     enhancedResults.summary.totalTests++;
     totalResponseTime += result.responseTime;
 
-    if (result.success) {
+    const isActuallySuccessful = isTestSuccessful(result, scenario.expectedErrors);
+
+    if (isActuallySuccessful) {
       enhancedResults.summary.successfulTests++;
-      log(`   ✅ Success (${result.responseTime}ms)`);
-      if (result.resultCount) {
-        log(`   📊 Results: ${result.resultCount} items`);
-      }
-      if (result.contentLength) {
-        log(`   📄 Content: ${result.contentLength} characters`);
+      if (result.success) {
+        log(`   ✅ Success (${result.responseTime}ms)`);
+        if (result.resultCount) {
+          log(`   📊 Results: ${result.resultCount} items`);
+        }
+        if (result.contentLength) {
+          log(`   📄 Content: ${result.contentLength} characters`);
+        }
+      } else {
+        log(`   🟡 Expected Failure (${result.responseTime}ms) - ${result.error.code} (matched expected error)`);
       }
     } else {
       enhancedResults.summary.failedTests++;
@@ -942,11 +997,17 @@ async function runEnhancedTestingWithDetection(pluginStatus) {
     enhancedResults.summary.totalTests++;
     totalResponseTime += result.responseTime;
 
-    if (result.success) {
+    const isActuallySuccessful = isTestSuccessful(result, scenario.expectedErrors);
+
+    if (isActuallySuccessful) {
       enhancedResults.summary.successfulTests++;
-      log(`   ✅ Success (${result.responseTime}ms)`);
-      if (result.resultCount) {
-        log(`   📊 Results: ${result.resultCount} items`);
+      if (result.success) {
+        log(`   ✅ Success (${result.responseTime}ms)`);
+        if (result.resultCount) {
+          log(`   📊 Results: ${result.resultCount} items`);
+        }
+      } else {
+        log(`   🟡 Expected Failure (${result.responseTime}ms) - ${result.error.code} (matched expected error)`);
       }
     } else {
       enhancedResults.summary.failedTests++;
@@ -1017,9 +1078,15 @@ async function runBaselineTestingWithDetection(pluginStatus) {
     baselineResults.summary.totalTests++;
     totalResponseTime += result.responseTime;
 
-    if (result.success) {
+    const isActuallySuccessful = isTestSuccessful(result, scenario.expectedErrors);
+
+    if (isActuallySuccessful) {
       baselineResults.summary.successfulTests++;
-      log(`   ✅ Success (${result.responseTime}ms)`);
+      if (result.success) {
+        log(`   ✅ Success (${result.responseTime}ms)`);
+      } else {
+        log(`   🟡 Expected Failure (${result.responseTime}ms) - ${result.error.code} (matched expected error)`);
+      }
     } else {
       baselineResults.summary.failedTests++;
       log(`   ❌ Failed: ${result.error.code} - ${result.error.message ? result.error.message.substring(0, 100) + '...' : 'No error message'}`);

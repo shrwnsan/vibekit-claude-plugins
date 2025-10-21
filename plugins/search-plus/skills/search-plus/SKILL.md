@@ -1,6 +1,6 @@
 ---
 name: Enhanced Searching
-description: Enhanced web searching capability that handles 403/429/422 errors and extracts content from blocked URLs. Provides reliable research access when standard tools fail, need to extract specific web content, or encounter rate limiting during documentation analysis.
+description: Enhanced web searching capability that handles 403/429/422 errors and extracts content from blocked URLs. Provides reliable research access when standard tools fail, need to extract specific web content, or encounter rate limiting during documentation analysis. Use when encountering access restrictions, rate limiting, or silent search failures.
 allowed-tools:
   - web_search
   - web_fetch

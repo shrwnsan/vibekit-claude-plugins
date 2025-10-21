@@ -120,20 +120,102 @@ All 79 tests pass with detailed flow tracing showing:
 
 ## Usage
 
-Once installed, this plugin enhances Claude Code's search functionality. Simply use Claude Code's search features as normal, and the plugin will automatically handle errors more robustly than the default implementation.
+The Search Plus plugin provides three ways to enhance your web research workflow:
+
+### Three Ways to Invoke
+
+1. **Automatic (Skill)**: Claude automatically discovers and uses Search Plus when your requests imply web research
+   - Simply say: "Research the latest Claude Code plugin architecture"
+   - Ask for: "Extract content from https://docs.anthropic.com/en/docs/claude-code/plugins"
+   - Claude will automatically invoke the Skill when research context is detected
+
+2. **Explicit (Command)**: Directly invoke the enhanced search command
+   ```bash
+   /search-plus "Claude Code plugin documentation"
+   /search-plus "https://github.com/example/repo"
+   ```
+
+3. **Delegated (Agent)**: Use the specialized agent for complex, multi-step research
+   - "Use the search-plus agent to deeply investigate this topic"
+   - Agent provides isolated context for complex research sessions
+
+### Feature Comparison
+
+| Feature | Skill (Auto) | Command (Explicit) | Agent (Delegated) |
+|---------|-------------|-------------------|-------------------|
+| **Discovery** | Automatic by Claude | Manual invocation | Manual delegation |
+| **Context** | Main conversation | Main conversation | Isolated session |
+| **Complexity** | Single queries | Single queries | Multi-step research |
+| **Control** | Automatic | Deterministic | Specialized |
+| **Use Case** | Natural research flow | Precise control | Deep investigation |
+
+### When to Use Each Mode
+
+- **Use Skill** for natural research flow when you want Claude to handle the details
+- **Use Command** for deterministic control and when you know exactly what you need
+- **Use Agent** for complex, multi-step research that requires dedicated context and follow-up analysis
 
 ## Architecture
 
 The plugin consists of:
 
-- **Plugin Manifest** (`/.claude-plugin/plugin.json`): Defines the plugin metadata
-- **Agent** (`/agents/enhanced-web-search.md`): Defines the enhanced web search agent
+- **Plugin Manifest** (`/.claude-plugin/plugin.json`): Defines the plugin metadata and components
+- **Skill** (`/skills/search-plus/SKILL.md`): Auto-discoverable capability for intelligent research
+- **Agent** (`/agents/search-plus.md`): Defines the enhanced web search agent
 - **Command** (`/commands/search-plus.md`): Defines the search-plus command
 - **Hooks** (`/hooks/`): Contains JavaScript modules for handling search operations:
-  - `handle-web-search.mjs`: Main search handler
-  - `handle-search-error.mjs`: Error handling logic
-  - `handle-rate-limit.mjs`: Rate limiting strategies
+  - `handle-web-search.mjs`: Main search handler with URL detection
+  - `handle-search-error.mjs`: Comprehensive error handling for 403/422/429
+  - `handle-rate-limit.mjs`: Rate limiting strategies and backoff logic
   - `tavily-client.mjs`: Tavily API client with enhanced error handling
+
+### Flow Diagram
+
+The following diagram illustrates the search-plus plugin's request flow:
+
+```mermaid
+flowchart TD
+    A[User initiates web search] --> B{Check if input is URL}
+    B -->|Yes| C[Handle URL Extraction]
+    B -->|No| D[Handle Web Search]
+    
+    C --> E[Attempt content extraction from URL]
+    E --> F{Extraction successful?}
+    F -->|Yes| G[Return extracted content]
+    F -->|No| H{Is error retryable?}
+    H -->|Yes| I[Wait with exponential backoff]
+    I --> J[Retry extraction with new headers]
+    J --> E
+    H -->|No| K[Return extraction error]
+    
+    D --> L[Attempt web search via Tavily API]
+    L --> M{Search successful?}
+    M -->|Yes| N[Return search results]
+    M -->|No| O{Is error retryable?}
+    O -->|Yes| P[Wait with exponential backoff]
+    P --> Q[Retry search with new headers]
+    Q --> L
+    O -->|No| R[Call error handler]
+    
+    R --> S{Error type detected?}
+    S -->|403 Forbidden| T[Try with different headers + reformulate query]
+    S -->|422 Schema| U[Apply schema recovery strategies]
+    S -->|429 Rate Limit| V[Apply rate limiting strategies]
+    S -->|400-499/500-599| W[Return error with details]
+    
+    T --> X{Recovery successful?}
+    U --> X
+    V --> X
+    X -->|Yes| Y[Return recovered results]
+    X -->|No| Z[Return final error with handling details]
+    
+    style A fill:#e1f5fe
+    style G fill:#e8f5e8
+    style N fill:#e8f5e8
+    style Y fill:#e8f5e8
+    style K fill:#ffebee
+    style Z fill:#ffebee
+```
 
 ## Enhancements Needed
 

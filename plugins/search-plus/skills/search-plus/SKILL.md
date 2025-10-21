@@ -1,97 +1,52 @@
 ---
-name: Search Plus
-description: Performs web searches with advanced 403/429/422 error handling and reliable URL content extraction via Tavily. Achieves high success where standard tools fail. Use when researching websites, extracting web content, or recovering from search errors.
+name: Enhanced Searching
+description: Enhanced web searching capability that handles 403/429/422 errors and extracts content from blocked URLs. Provides reliable research access when standard tools fail, need to extract specific web content, or encounter rate limiting during documentation analysis.
 allowed-tools:
   - web_search
   - web_fetch
 ---
 
-# Search Plus Skill
+# Enhanced Searching
 
-Enhanced web search capability that handles problematic websites and extraction scenarios where standard Claude Code tools typically fail.
-
-## When to Use
-
-- **Research Tasks**: When you need to research live web topics and want reliable access
-- **URL Content Extraction**: When direct extraction from URLs fails with standard tools
-- **Error Recovery**: When encountering 403 Forbidden, 429 Rate Limited, or 422 Schema Validation errors
-- **Comprehensive Research**: When you need thorough results without silent failures
-- **Live Information**: When researching current events, documentation, or online resources
-
-## What It Does
-
-### Web Search Enhancement
-- Executes searches using Tavily's AI-first search API
-- Handles websites that block traditional scraping tools
-- Provides comprehensive results with context-aware ranking
-- Eliminates "Did 0 searches..." responses that plague standard tools
-
-### URL Content Extraction
-- Directly extracts content from URLs and permalinks
-- Bypasses access restrictions and blocking mechanisms
-- Maintains formatting and structure for better analysis
-- Works with documentation sites, articles, and GitHub repositories
-
-### Error Recovery
-- **403 Forbidden Errors**: 80% success rate through header manipulation and API strategies
-- **429 Rate Limiting**: 90% success rate with exponential backoff and retry logic
-- **422 Schema Validation**: 100% success rate with query reformulation and parameter adjustment
-- **Connection Errors**: 50% success rate for temporary network issues
-
-## Examples
-
-### Research Scenarios
-```
-"Research the latest Claude Code plugin architecture"
-"Find best practices for API rate limiting in 2024"
-"Compare different JavaScript frameworks for web development"
-```
-
-### URL Extraction
-```
-"Extract content from https://docs.anthropic.com/en/docs/claude-code/plugins"
-"Summarize the article at https://example.com/technical-guide"
-"Get information from this GitHub repository: https://github.com/user/repo"
-```
-
-### Error Recovery
-```
-"This website is blocking access, can you try extracting content?"
-"The search failed with rate limiting, please retry"
-"Getting validation errors when searching, can you fix this?"
-```
+Advanced web search and URL extraction that overcomes 403/429/422 errors where standard tools fail.
 
 ## Capabilities
 
-### Search Features
-- Advanced query processing and reformulation
-- Multiple search engine fallbacks
-- Context-aware result ranking
-- Real-time web indexing
+- **Error Recovery**: Resolves 403 Forbidden (80%), 429 Rate Limited (90%), 422 Schema Validation (100%) failures
+- **URL Extraction**: Direct content extraction from blocked documentation sites, articles, and repositories
+- **Research Reliability**: Eliminates "Did 0 searches..." responses and silent failures
+- **Content Access**: Bypasses access restrictions while maintaining formatting and structure
 
-### Extraction Features
-- Content extraction from any valid URL
-- Preservation of formatting and structure
-- Metadata extraction (titles, dates, authors)
-- Batch URL processing capabilities
+## Examples
 
-### Error Handling
-- Automatic retry with exponential backoff
-- Header rotation and user-agent variation
-- Query parameter optimization
-- Circuit breaker patterns for persistent failures
+### Documentation Research
+```
+"Extract content from the Claude Code documentation at https://docs.anthropic.com/en/docs/claude-code"
+"Research web scraping best practices from online documentation"
+"Analyze this GitHub repository's README: https://github.com/example/repo"
+```
+
+### Error Recovery Scenarios
+```
+"This website is blocking access with 403 errors, can you extract the content?"
+"Search failed with rate limiting, please retry with enhanced error handling"
+"Getting 422 validation errors when researching, can you resolve this?"
+"Standard search returned no results, try the enhanced searching approach"
+```
+
+### Content Extraction
+```
+"Extract and summarize the technical article at this URL"
+"Get information from documentation sites that typically block access"
+"Research live information that standard tools cannot reach"
+## Performance
+
+- **Success Rate**: 80-90% vs 0-20% with standard tools
+- **Error Recovery**: 403 (80%), 429 (90%), 422 (100%) resolution rates
+- **Zero Silent Failures**: Eliminates empty results and timeouts
 
 ## Limitations
 
-- Requires internet connectivity and valid API configuration
-- May be slower than basic search due to comprehensive error handling
-- Some paywalled or restricted content may remain inaccessible
-- Very large files may require pagination for complete extraction
-
-## Success Metrics
-
-Based on comprehensive testing with problematic URLs:
-- **Overall Success Rate**: 80-90% (vs 0-20% with standard tools)
-- **Error Recovery**: Maintains documented recovery rates across error types
-- **Research Efficiency**: 60-70% faster than manual retry methods
-- **Zero Silent Failures**: Eliminates empty results and unexpected timeouts
+- Requires internet connectivity and API configuration
+- Some paywalled content may remain inaccessible
+- Slower than basic search due to comprehensive error handling

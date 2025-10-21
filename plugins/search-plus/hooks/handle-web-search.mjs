@@ -35,7 +35,22 @@ export async function handleWebSearch(params) {
 
   // Check if the query is a URL and handle extraction
   if (isURL(query)) {
-    return await handleURLExtraction(query, { maxRetries, timeout });
+    console.log(`🔍 Extracting content from URL: ${query}`);
+    const result = await handleURLExtraction(query, { maxRetries, timeout });
+
+    // Provide brief status feedback
+    if (result.success) {
+      console.log(`✅ URL extraction completed successfully`);
+    } else {
+      console.log(`❌ URL extraction failed: ${result.message}`);
+    }
+
+    return result;
+  }
+
+  // Provide status feedback for search queries
+  if (!isURL(query)) {
+    console.log(`🔍 Searching: ${query}`);
   }
 
   // Try the search with retry logic

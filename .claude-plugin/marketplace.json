@@ -14,11 +14,11 @@
       "name": "search-plus",
       "source": "./plugins/search-plus",
       "description": "Enhanced web search with URL extraction and comprehensive error handling for access issues",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "shrwnsan"
       },
-      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/search-plus",
+      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus",
       "repository": "https://github.com/shrwnsan/vibekit-claude-plugins",
       "license": "Apache-2.0",
       "keywords": ["search", "web", "error-handling", "rate-limiting", "schema-validation", "productivity", "url-extraction"],

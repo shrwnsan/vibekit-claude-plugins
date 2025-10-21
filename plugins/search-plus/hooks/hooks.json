@@ -1,19 +1,16 @@
 {
-  "hooks": [
-    {
-      "name": "on-web-search-request",
-      "event": "web_search_request",
-      "handler": "handle-web-search.mjs"
-    },
-    {
-      "name": "on-web-search-error",
-      "event": "web_search_error",
-      "handler": "handle-search-error.mjs"
-    },
-    {
-      "name": "on-rate-limit",
-      "event": "rate_limit_detected",
-      "handler": "handle-rate-limit.mjs"
-    }
-  ]
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "WebSearch|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/handle-web-search.mjs",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
 }

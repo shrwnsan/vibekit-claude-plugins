@@ -6,7 +6,7 @@ parameters:
     type: string
     required: true
     description: The search query to execute or URL to extract content from
-subagent_type: search-plus:search-plus
+subagent_type: search-plus
 ---
 
 # Enhanced Web Search Command

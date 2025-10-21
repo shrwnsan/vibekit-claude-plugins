@@ -325,7 +325,10 @@ async function testPluginSearch(query) {
     if (result.error) {
       return {
         success: false,
-        error: result.error,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: result.message || 'Unknown error occurred'
+        },
         responseTime: endTime - startTime,
         results: [],
         metadata: {
@@ -406,9 +409,7 @@ async function testPluginExtraction(url) {
 
     log(`🔧 Testing Plugin Extraction: "${url}"`);
 
-    const result = await tavilyExtract({
-      urls: [url]
-    }, 15000);
+    const result = await tavilyExtract(url, {}, 15000);
 
     const endTime = Date.now();
 

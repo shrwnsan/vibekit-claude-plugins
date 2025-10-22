@@ -1,0 +1,8 @@
+# Bare minimum Dependabot version updates
+version: 2
+updates:
+  # For GitHub Actions (if you add any workflows later)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"

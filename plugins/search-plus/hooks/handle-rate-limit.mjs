@@ -1,5 +1,5 @@
 // hooks/handle-rate-limit.mjs
-import { tavilySearch } from './tavily-client.mjs';
+import { tavilySearch } from './content-extractor.mjs';
 
 /**
  * Handles rate limiting scenarios

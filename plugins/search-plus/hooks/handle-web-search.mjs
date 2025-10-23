@@ -1,5 +1,5 @@
 // hooks/handle-web-search.mjs
-import { tavilySearch, tavilyExtract } from './tavily-client.mjs';
+import { tavilySearch, extractContent } from './content-extractor.mjs';
 import { handleWebSearchError } from './handle-search-error.mjs';
 
 /**
@@ -193,7 +193,7 @@ async function handleURLExtraction(url, options = {}) {
         ...options
       };
       
-      const results = await tavilyExtract(url, extractOptions, timeout);
+      const results = await extractContent(url, extractOptions);
       
       return {
         success: true,

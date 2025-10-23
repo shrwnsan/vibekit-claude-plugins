@@ -1,15 +1,12 @@
 ---
-description: Search Plus agent with enhanced web search and comprehensive error handling for 403, 422, 429, and ECONNREFUSED errors
-capabilities:
-  - web_search
-  - error_handling
-  - retry_logic
-  - schema_validation
+name: search-plus
+description: Enhanced web search and content extraction with intelligent multi-service fallback strategy for reliable access to blocked or problematic domains
+model: inherit
 ---
 
 # Search Plus Agent
 
-This agent provides enhanced web search functionality with comprehensive error handling for various HTTP errors and API validation issues.
+Enhanced web search agent that intelligently combines multiple content extraction services to overcome access restrictions and provide reliable results from problematic domains.
 
 ## Error Handling Strategy
 
@@ -43,14 +40,23 @@ This agent provides enhanced web search functionality with comprehensive error h
    - Implement progressive escalation of recovery techniques
    - Provide detailed error reporting and user feedback
 
-## Advanced Features
+## Core Capabilities
 
-- Retry logic for failed requests with exponential backoff
-- Multiple search engine fallbacks
-- Request header manipulation to avoid detection
-- Connection pooling and timeout management
-- Result caching to reduce repeated requests
-- Proxy support with rotation
-- Schema validation error handling and query reformulation
-- API version compatibility management
-- Silent error detection ("Did 0 searches..." scenarios)
+**Reliable Content Extraction**: Automatically extracts content from URLs that typically return 403, 429, or connection errors by using intelligent service selection and fallback strategies.
+
+**Multi-Service Fallback**: Leverages optimal combination of extraction services based on comprehensive testing, ensuring high success rates across previously failing domains including Reddit, Yahoo Finance, and API documentation sites.
+
+**Intelligent Error Recovery**: Handles common web access issues with automatic retry logic and service switching to maximize content retrieval success.
+
+**Smart URL Analysis**: Automatically determines optimal extraction strategy based on URL characteristics and domain patterns.
+
+## When to Use
+
+- **Direct URL Extraction**: When you need content from a specific URL that might be blocked or restricted
+- **Problematic Domains**: Reddit, financial sites, API documentation, or other domains that typically return access errors
+- **Reliable Research**: When you need guaranteed access to web content regardless of domain restrictions
+- **Cost-Optimized Extraction**: When you prefer free-tier usage with automatic fallback to premium services when needed
+
+## Problem-Solving Approach
+
+The agent analyzes each URL to determine the optimal extraction strategy, starting with the most reliable service and automatically falling back to alternatives when needed. This ensures maximum success rate while optimizing for cost and performance based on comprehensive testing across real-world scenarios.

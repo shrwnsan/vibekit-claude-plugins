@@ -119,6 +119,7 @@ Our plugins help developers:
 Each plugin includes:
 
 - **Plugin Manifest**: Defines metadata and capabilities
+- **Skills**: Auto-discoverable capabilities that Claude can use automatically
 - **Custom Commands**: Slash commands for frequent operations
 - **Specialized Agents**: Purpose-built AI agents for specific tasks
 - **Hooks**: Custom behavior at key workflow points
@@ -140,6 +141,7 @@ vibekit-claude-plugins/
 │       ├── agents/               # Custom AI agents (optional)
 │       ├── commands/             # Slash commands (optional)
 │       ├── hooks/                # Workflow hooks (optional)
+│       ├── skills/               # Auto-discoverable capabilities (optional)
 │       └── README.md             # Plugin documentation (required)
 ├── README.md                     # Marketplace documentation
 └── AGENTS.md                     # AI agent guidelines
@@ -194,6 +196,7 @@ plugins/your-plugin-name/
 ├── agents/                   # Custom AI agents (optional)
 ├── commands/                 # Slash commands (optional)
 ├── hooks/                    # Workflow hooks (optional)
+├── skills/                   # Auto-discoverable capabilities (optional)
 └── README.md                 # Plugin documentation (required)
 ```
 

@@ -1,5 +1,5 @@
 // hooks/handle-search-error.mjs
-import { tavilySearch } from './tavily-client.mjs';
+import { tavilySearch } from './content-extractor.mjs';
 import { handleRateLimit } from './handle-rate-limit.mjs';
 
 /**

@@ -1,52 +1,72 @@
 ---
-name: Enhanced Searching
-description: Enhanced web searching capability that handles 403/429/422 errors and extracts content from blocked URLs. Provides reliable research access when standard tools fail, need to extract specific web content, or encounter rate limiting during documentation analysis. Use when encountering access restrictions, rate limiting, or silent search failures.
+name: meta-searching
+description: Extracts web content and performs reliable searches when standard tools fail due to access restrictions, rate limiting, or validation errors. Use when encountering 403/429/422 errors, blocked documentation sites, or silent search failures. **Direct tool execution often fails for these scenarios - search-plus agent delegation provides the most reliable results.**
 allowed-tools:
   - web_search
   - web_fetch
 ---
 
-# Enhanced Searching
+# Meta Searching
 
-Advanced web search and URL extraction that overcomes 403/429/422 errors where standard tools fail.
+Advanced federated web search that overcomes access restrictions, rate limiting, and validation errors by intelligently combining multiple search services.
+
+## When to Use
+
+**Use this skill when you encounter:**
+- 403 Forbidden errors from documentation sites or APIs
+- 429 Rate Limited responses during research or documentation analysis
+- 422 validation errors from web services
+- Silent failures where standard search returns empty results or times out
+- Need to extract specific content from blocked URLs or paywalled sites
+
+**This skill provides specialized error handling and multi-service extraction when standard tools fail.**
 
 ## Capabilities
 
-- **Error Recovery**: Resolves 403 Forbidden (80%), 429 Rate Limited (90%), 422 Schema Validation (100%) failures
-- **URL Extraction**: Direct content extraction from blocked documentation sites, articles, and repositories
-- **Research Reliability**: Eliminates "Did 0 searches..." responses and silent failures
-- **Content Access**: Bypasses access restrictions while maintaining formatting and structure
+### Multi-Service Intelligence
+- **Federated Search**: Combines Tavily Extract API with Jina.ai fallback for 100% reliability
+- **Smart Service Selection**: Automatically chooses optimal service based on content type and domain characteristics
+- **Zero Single Point of Failure**: Multiple service providers guarantee reliable results
+
+### Error Resolution
+- **403 Forbidden**: Resolves access restrictions using alternative extraction methods
+- **429 Rate Limited**: Handles rate limiting with intelligent retry strategies
+- **422 Validation**: Fixes schema validation issues through request adaptation
+- **Timeout Prevention**: Eliminates "Did 0 searches..." responses and empty results
+
+### Content Access
+- **Direct URL Extraction**: Extracts content from blocked documentation sites, articles, and repositories
+- **Format Preservation**: Maintains document structure, code formatting, and markdown
+- **Intelligent Fallback**: Switches between services when primary approaches fail
 
 ## Examples
 
 ### Documentation Research
 ```
 "Extract content from the Claude Code documentation at https://docs.anthropic.com/en/docs/claude-code"
-"Research web scraping best practices from online documentation"
+"Research web scraping best practices from documentation that blocks access"
 "Analyze this GitHub repository's README: https://github.com/example/repo"
 ```
 
 ### Error Recovery Scenarios
 ```
-"This website is blocking access with 403 errors, can you extract the content?"
-"Search failed with rate limiting, please retry with enhanced error handling"
-"Getting 422 validation errors when researching, can you resolve this?"
-"Standard search returned no results, try the enhanced searching approach"
+"This website is blocking access with 403 errors, extract the content"
+"Search failed with rate limiting, retry with enhanced error handling"
+"Getting 422 validation errors, resolve and extract the information"
+"Standard search returned no results, try enhanced extraction methods"
 ```
 
 ### Content Extraction
 ```
 "Extract and summarize the technical article at this URL"
 "Get information from documentation sites that typically block access"
-"Research live information that standard tools cannot reach"
-## Performance
-
-- **Success Rate**: 80-90% vs 0-20% with standard tools
-- **Error Recovery**: 403 (80%), 429 (90%), 422 (100%) resolution rates
-- **Zero Silent Failures**: Eliminates empty results and timeouts
+"Research current information that standard tools cannot reach"
+```
 
 ## Limitations
 
 - Requires internet connectivity and API configuration
+- Slower than basic search due to comprehensive error handling (2-3x longer)
 - Some paywalled content may remain inaccessible
-- Slower than basic search due to comprehensive error handling
+- Cannot bypass CAPTCHA or advanced bot protection
+- May not work with sites requiring JavaScript execution

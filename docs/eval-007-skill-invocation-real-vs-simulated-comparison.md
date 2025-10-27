@@ -360,7 +360,7 @@ Based on official Claude Skills documentation, we should test **natural auto-inv
 ### 📝 Documentation
 
 Record all results in:
-- `test-results/natural-auto-invocation-test-results.md` (already created)
+- `docs/eval-009-skill-auto-invocation-testing.md` (moved from test-results/)
 - Update this eval-007 with final comparison and recommendations
 
 ## Technical Notes

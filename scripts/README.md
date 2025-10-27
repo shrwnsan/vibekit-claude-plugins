@@ -2,13 +2,18 @@
 
 This directory contains optimized testing infrastructure for all plugins in the Claude Code marketplace repository.
 
+📖 **For comprehensive testing methodology and detailed analysis, see [Testing Guide](../docs/TESTING-GUIDE.md)**
+
 ## Structure
 
 ```
 scripts/
-├── search-plus-status.mjs   # Quick plugin status check with settings.json detection
-├── test-search-plus.mjs     # Optimized comparative A/B testing framework
-└── README.md               # This file
+├── search-plus-status-check.mjs           # Quick plugin status check with settings.json detection
+├── test-search-plus.mjs                   # Optimized comparative A/B testing framework
+├── search-plus-automated-ab-testing.mjs   # Multi-component automated A/B testing framework
+├── search-plus-skill-ab-testing.mjs       # Specialized skill invocation A/B testing
+├── search-plus-service-matrix-testing.mjs # Service decision matrix testing
+└── README.md                              # This file
 ```
 
 ## Usage
@@ -16,7 +21,7 @@ scripts/
 ### Quick Plugin Status Check
 ```bash
 # Shows plugin installation status, command availability, and detection details
-node scripts/search-plus-status.mjs
+node scripts/search-plus-status-check.mjs
 ```
 
 ### Run Comparative A/B Tests
@@ -24,6 +29,34 @@ node scripts/search-plus-status.mjs
 # Smart testing based on actual plugin installation status
 node scripts/test-search-plus.mjs
 ```
+
+### Run Automated A/B Testing Framework
+```bash
+# Multi-component A/B testing with git change detection
+node scripts/search-plus-automated-ab-testing.mjs --all
+
+# Test specific components
+node scripts/search-plus-automated-ab-testing.mjs --skill
+node scripts/search-plus-automated-ab-testing.mjs --agent
+```
+
+🔧 **Features intelligent dynamic baseline detection** that automatically finds the previous version of each component from git history, eliminating hardcoded commit references.
+
+📚 **For detailed architecture and implementation**, see [Dynamic Baseline Detection System](../docs/TESTING-GUIDE.md#dynamic-baseline-detection-system)
+
+### Run Skill-Specific A/B Testing
+```bash
+# Specialized skill invocation testing
+node scripts/search-plus-skill-ab-testing.mjs
+```
+
+### Run Service Matrix Testing
+```bash
+# Service decision matrix testing
+node scripts/search-plus-service-matrix-testing.mjs
+```
+
+📋 **For detailed testing methodology, performance analysis, and troubleshooting, see [Testing Guide](../docs/TESTING-GUIDE.md)**
 
 ## Optimized Testing Framework
 
@@ -36,7 +69,7 @@ node scripts/test-search-plus.mjs
 
 ### Test Files Overview
 
-#### `search-plus-status.mjs` - Plugin Status Monitor
+#### `search-plus-status-check.mjs` - Plugin Status Monitor
 **Purpose**: Terminal-only status verification using definitive sources
 - Checks `~/.claude/settings.json` for plugin installation
 - Verifies command file exists in marketplace installation
@@ -77,132 +110,39 @@ node scripts/test-search-plus.mjs
 - **Real API calls**: Tests actual plugin functionality with Tavily
 - **Clean output**: Only creates necessary result files
 
-## Current Performance Results
+## Performance Highlights
 
-### Latest A/B Test Results (Production Validated)
+📊 **Current Performance Results (Production Validated)**:
+- ✅ **100% Overall Success Rate** vs 10% baseline (+900% improvement)
+- ✅ **Perfect 20/20 tests** across all error scenarios
+- ✅ **Complete Error Recovery**: 422, 429, 403, and connection issues
+- ✅ **1.1s average response time** with intelligent service selection
+- ✅ **Zero Silent Failures** - eliminated "Did 0 searches..." responses
 
-| Test Category | Success Rate | Response Time | Status |
-|---------------|-------------|---------------|---------|
-| **Overall Search Success** | **100%** | 1.1s average | ✅ Perfect |
-| **422 Schema Validation** | **100%** | 1.8s | ✅ Complete Fix |
-| **429 Rate Limiting** | **100%** | 2.3s | ✅ Complete Fix |
-| **403 Forbidden** | **100%** | Variable | ✅ Complete Fix |
-| **ECONNREFUSED** | **100%** | Variable | ✅ Complete Fix |
-| **Silent Failures** | **0%** | N/A | ✅ Eliminated |
+📈 **For detailed performance metrics, benchmark analysis, and test results breakdown, see [Testing Guide](../docs/TESTING-GUIDE.md#current-performance-metrics)**
 
-### Detailed Test Results
+## Test Coverage Overview
 
-**Successful Search Queries (15/16 tests)**:
-- ✅ "Claude Code plugin development best practices" (930ms)
-- ✅ "complex query with special characters @#$%" (344ms)
-- ✅ "JavaScript async await documentation examples" (366ms)
-- ✅ "Claude Skills best practices documentation" (340-386ms)
-- ✅ Framework and database port queries (381-489ms)
-- ✅ All rate limiting and error recovery scenarios including httpbin.org predictable API testing (479-2324ms)
+🧪 **Comprehensive Test Scenarios**:
+- **Plugin Status Detection**: 100% accurate plugin verification
+- **Search Query Testing**: 14 scenarios covering complex queries, documentation, domain restrictions
+- **URL Content Extraction**: 7 scenarios including problematic sites and frameworks
+- **Error Recovery**: Complete validation of 422, 429, 403, and connection issues
+- **Edge Cases**: Empty queries, special characters, and boundary conditions
 
-**URL Extractions (All 7 tests working)**:
-- ✅ https://docs.anthropic.com/en/docs/claude-code/plugins (2384ms)
-- ✅ https://foundationcenter.org/ (524ms)
-- ✅ https://developer.mozilla.org/en-US/docs/Web/JavaScript (479ms)
-- ✅ https://create-react-app.dev/docs/getting-started/ (308ms)
-- ✅ https://nextjs.org/docs/api-reference/create-next-app (1759ms)
-- ✅ https://vitejs.dev/guide/ (314ms)
-- ✅ https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices (705ms)
+📁 **Test Output Files**:
+- **Enhanced Mode**: `enhanced-{timestamp}.json` + execution logs
+- **Baseline Mode**: `baseline-{timestamp}.json` + failure analysis
+- **Optimization**: 33-50% reduction in file overhead
 
-**Test Framework Validation**:
-- ✅ Empty query validation (properly fails as designed)
-- ✅ All error scenarios working correctly
-- ✅ **Perfect 20/20 tests (100% success rate)**
-
-### Performance Improvements vs Baseline
-
-| Metric | Baseline (Native Claude) | With Search Plus | Improvement |
-|--------|-------------------------|------------------|-------------|
-| **Overall Success Rate** | 10% | **100%** | ✅ +900% |
-| **Search Success Rate** | 0% | **100%** | ✅ +100% |
-| **Silent Failures** | 100% occurrence | **0%** | ✅ Eliminated |
-| **Schema Validation** | 0% | **100%** | ✅ Complete Fix |
-| **Rate Limiting** | 0% | **100%** | ✅ Complete Fix |
-| **Access Blocking** | 0% | **100%** | ✅ Complete Fix |
-
-## Test Coverage
-
-### Search-Plus Plugin Test Scenarios
-
-#### 1. Plugin Status Detection
-- **Settings.json Detection**: 100% accurate plugin status verification
-- **Command File Verification**: Marketplace installation validation
-- **Local File Integrity**: Plugin structure completeness check
-
-#### 2. Search Query Testing (14 scenarios)
-- **Basic Web Search**: General research and documentation queries
-- **Schema Validation**: Complex queries with special characters (@#$%)
-- **Documentation Research**: Technical documentation access
-- **Domain Restrictions**: Queries targeting blocked domains (docs.claude.com)
-- **Rate Limiting**: Multiple rapid search scenarios
-- **Framework Information**: React, Vue, Angular, Next.js, Vite development queries
-- **Database Information**: PostgreSQL, MySQL, MongoDB, Redis port queries
-
-#### 3. httpbin.org API Testing (6 scenarios)
-- **Predictable Error Testing**: Uses httpbin.org for reliable error simulation
-- **Status Code Tests**: /status/403, /status/429, /status/404 for consistent error handling validation
-- **Header Validation**: /headers endpoint for request header testing
-- **User-Agent Testing**: /user-agent endpoint for client identification validation
-- **Delay Testing**: /delay/5 for timeout handling and performance testing
-- **Reliable Testing**: Eliminates randomness from external site availability
-
-#### 4. URL Content Extraction (7 scenarios)
-- **Documentation Sites**: Anthropic docs, MDN, Node.js documentation
-- **Framework Sites**: Create React App, Next.js, Vite documentation
-- **Problematic Sites**: Foundation Center (historical 403 scenarios)
-
-#### 5. Edge Cases
-- **Empty/Invalid Queries**: Error handling for malformed input
-- **Complex Special Characters**: Schema validation edge cases
-
-### Test Output Files
-
-**Enhanced Mode (Plugin Installed)**:
-- `enhanced-{timestamp}.json` - Complete test results with performance metrics
-- `comparative-test-{timestamp}.log` - Detailed execution log with flow tracing
-
-**Baseline Mode (Plugin Not Installed)**:
-- `baseline-{timestamp}.json` - Baseline performance documentation
-- `comparative-test-{timestamp}.log` - Execution log with failure analysis
-
-### File Creation Efficiency
-- **Before Optimization**: 3-4 files per test run
-- **After Optimization**: 2 files per test run
-- **Improvement**: 33-50% reduction in file overhead
-
-## Error Recovery Validation
-
-### 422 Schema Validation Errors
-**Problem**: `{"detail":[{"type":"missing","loc":["body","tools",0,"input_schema"],"msg":"Field required"}]}`
-**Plugin Solution**: Query reformulation, schema repair, parameter adjustment
-**Test Result**: **100% success rate** - Complete elimination of schema validation failures
-
-### 429 Rate Limiting
-**Problem**: "429 Too Many Requests: Rate limited"
-**Plugin Solution**: Exponential backoff, retry-After header respect, jitter, multi-service fallback
-**Test Result**: **100% success rate** - Complete rate limiting recovery
-
-### 403 Forbidden Errors
-**Problem**: "403 Forbidden: Access denied"
-**Plugin Solution**: Header rotation, user-agent variation, retry logic, intelligent service selection
-**Test Result**: **100% success rate** - Complete access control bypass
-
-### Silent Failures
-**Problem**: "Did 0 searches..." responses with no error indication
-**Plugin Solution**: Comprehensive error detection and retry strategies
-**Test Result**: **0% occurrence** - Complete elimination of silent failures
+🔧 **For complete test coverage details, error recovery methodology, and output file analysis, see [Testing Guide](../docs/TESTING-GUIDE.md#test-coverage)**
 
 ## Development Workflow
 
 ### Quick Status Verification
 ```bash
 # Always run this first to verify plugin status
-node scripts/search-plus-status.mjs
+node scripts/search-plus-status-check.mjs
 ```
 
 ### Full Testing Suite
@@ -232,7 +172,7 @@ The optimized framework works excellently in CI/CD environments:
 ```yaml
 # GitHub Actions example
 - name: Check Plugin Status
-  run: node scripts/search-plus-status.mjs
+  run: node scripts/search-plus-status-check.mjs
 
 - name: Run Comparative Tests
   run: node scripts/test-search-plus.mjs
@@ -289,35 +229,38 @@ Plugin source files are ready. Install with:
 claude plugin install search-plus@vibekit
 ```
 
-## Troubleshooting
+## Troubleshooting Quick Reference
 
-### Status Check Issues
-- **Settings File Not Found**: Check `~/.claude/settings.json` exists
-- **Plugin Not Enabled**: Verify `"search-plus@vibekit": true` in settings
-- **Command File Missing**: Check marketplace installation path
-
-### Test Failures
+🔧 **Common Issues**:
+- **Status Check Failures**: Check `~/.claude/settings.json` and marketplace installation
 - **API Key Issues**: Set `TAVILY_API_KEY` environment variable
-- **Network Connectivity**: Verify internet connection for API calls
-- **Plugin Installation**: Run status check first to verify installation
+- **Network Problems**: Verify internet connectivity for API calls
+- **Performance Regression**: Monitor success rates and response times
 
-### Performance Regression
-- **Success Rate Drop**: Check for API service issues
-- **Response Time Increase**: Monitor network latency
-- **Detection Failures**: Verify settings.json format
+📚 **For detailed troubleshooting guides, error resolution steps, and advanced debugging, see [Testing Guide](../docs/TESTING-GUIDE.md#troubleshooting)**
+
+## Development Workflow
+
+1. **Status Check**: `node scripts/search-plus-status-check.mjs`
+2. **Run Tests**: `node scripts/test-search-plus.mjs`
+3. **Automated A/B**: `node scripts/search-plus-automated-ab-testing.mjs --all`
+4. **Validate**: Ensure no performance regressions
 
 ## Best Practices
 
-1. **Status First**: Always run `search-plus-status.mjs` before testing
-2. **Environment Setup**: Ensure TAVILY_API_KEY is configured for full functionality
-3. **Performance Monitoring**: Track success rates and response times over time
-4. **File Management**: Clean up old test result files periodically
-5. **CI Integration**: Use status check for quick validation in pipelines
+✅ **Always run status check first** before testing
+✅ **Configure TAVILY_API_KEY** for full functionality
+✅ **Monitor performance metrics** over time
+✅ **Clean up test result files** periodically
+✅ **Use CI integration** for automated validation
 
-## Architecture Benefits
+🏗️ **Architecture Benefits**:
+- 100% accurate plugin detection using settings.json
+- Smart A/B testing reduces unnecessary runs
+- Optimized file creation (33-50% reduction)
+- Real-world performance metrics tracking
+- Maintainable codebase with dead code removed
 
-- **Definitive Detection**: Uses Claude's own settings.json for 100% accuracy
-- **Efficient Testing**: Smart A/B approach reduces unnecessary test runs
-- **Clean Output**: Optimized file creation with 33-50% reduction
-- **Performance Focus**: Real-world metrics and success rate tracking
-- **Maintainable**: Removed ~175 lines of dead code for simpler maintenance
+---
+
+📖 **For complete testing methodology, advanced framework documentation, and in-depth analysis, see the full [Testing Guide](../docs/TESTING-GUIDE.md)**

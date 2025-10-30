@@ -20,6 +20,375 @@ const __dirname = dirname(__filename);
 const resultsDir = join(__dirname, '..', 'test-results');
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
+/**
+ * Secure Claude Code command execution using spawn
+ * @param {string} command - Command to execute
+ * @param {Object} options - Execution options
+ * @returns {Promise<string>} Command output
+ */
+async function executeClaudeCommand(command, options = {}) {
+  // Validate input to prevent command injection
+  if (!validateInput(command, 'prompt')) {
+    throw new Error('Invalid command: command contains potentially dangerous characters');
+  }
+
+  return await retryWithBackoff(async () => {
+    return new Promise((resolve, reject) => {
+      const { spawn } = require('child_process');
+
+      const args = [command];
+      const child = spawn('claude', args, {
+        cwd: options.cwd || process.cwd(),
+        timeout: options.timeout || 30000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: false // Critical: Prevent shell injection
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      // Handle timeout
+      const timeout = setTimeout(() => {
+        child.kill('SIGTERM');
+        const error = new Error(`Command timed out after ${options.timeout || 30000}ms`);
+        error.code = 'ETIMEDOUT';
+        reject(error);
+      }, options.timeout || 30000);
+
+      child.on('close', (code) => {
+        clearTimeout(timeout);
+
+        if (code === 0) {
+          resolve(stdout);
+        } else {
+          const error = new Error(`Command failed with exit code ${code}`);
+          error.code = code;
+          error.stdout = stdout;
+          error.stderr = stderr;
+          reject(error);
+        }
+      });
+
+      child.on('error', (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+    });
+  }, {
+    maxRetries: 2,
+    baseDelay: 2000,
+    maxDelay: 15000,
+    retryCondition: (error) => {
+      // Retry on timeouts and network issues, but not validation errors
+      return error.code === 'ETIMEDOUT' ||
+             error.code === 'ECONNREFUSED' ||
+             error.code === 'ENOTFOUND' ||
+             error.message.includes('Command timed out') ||
+             error.stderr?.includes('timed out');
+    }
+  });
+}
+
+/**
+ * Validate user input to prevent injection attacks
+ * @param {string} input - Input string to validate
+ * @param {string} type - Type of input ('prompt', 'url', 'filename')
+ * @returns {boolean} True if input is safe
+ */
+function validateInput(input, type = 'prompt') {
+  if (typeof input !== 'string') {
+    return false;
+  }
+
+  // Check for null bytes
+  if (input.includes('\0')) {
+    return false;
+  }
+
+  // Check for dangerous shell characters
+  const dangerousChars = /[;|&`$(){}[\]<>]/;
+  if (dangerousChars.test(input)) {
+    return false;
+  }
+
+  // Length validation
+  const maxLengths = {
+    prompt: 10000,
+    url: 2048,
+    filename: 255
+  };
+
+  if (input.length > (maxLengths[type] || 1000)) {
+    return false;
+  }
+
+  // URL-specific validation
+  if (type === 'url') {
+    try {
+      new URL(input);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Filename-specific validation
+  if (type === 'filename') {
+    // Prevent path traversal
+    if (input.includes('..') || input.includes('/') || input.includes('\\')) {
+      return false;
+    }
+
+    // Only allow alphanumeric, hyphens, underscores, and dots
+    if (!/^[a-zA-Z0-9._-]+$/.test(input)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Sanitize input string
+ * @param {string} input - Input to sanitize
+ * @returns {string} Sanitized input
+ */
+function sanitizeInput(input) {
+  if (typeof input !== 'string') {
+    return '';
+  }
+
+  return input
+    .replace(/\0/g, '') // Remove null bytes
+    .replace(/[;|&`$(){}[\]<>]/g, '') // Remove dangerous characters
+    .trim()
+    .substring(0, 10000); // Limit length
+}
+
+/**
+ * Retry mechanism with exponential backoff for transient failures
+ * @param {Function} operation - Async operation to retry
+ * @param {Object} options - Retry options
+ * @returns {Promise<any>} Operation result
+ */
+async function retryWithBackoff(operation, options = {}) {
+  const {
+    maxRetries = 3,
+    baseDelay = 1000,
+    maxDelay = 10000,
+    backoffFactor = 2,
+    retryCondition = (error) => {
+      // Retry on transient errors but not on validation errors
+      const transientErrors = [
+        'ETIMEDOUT',
+        'ECONNREFUSED',
+        'ENOTFOUND',
+        'ECONNRESET',
+        'Command timed out',
+        'Request failed with status code 429',
+        'Request failed with status code 503',
+        'Request failed with status code 502'
+      ];
+
+      return transientErrors.some(transientError =>
+        error.message.includes(transientError) ||
+        error.code === transientError ||
+        error.stderr?.includes(transientError)
+      );
+    }
+  } = options;
+
+  let lastError;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      // Don't retry on non-transient errors
+      if (!retryCondition(error) || attempt === maxRetries) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff + jitter
+      const delay = Math.min(
+        baseDelay * Math.pow(backoffFactor, attempt) + Math.random() * 1000,
+        maxDelay
+      );
+
+      console.log(`⚠️  Operation failed (attempt ${attempt + 1}/${maxRetries + 1}): ${error.message}`);
+      console.log(`🔄 Retrying in ${Math.round(delay)}ms...`);
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Common simulation utilities for reducing code duplication
+ */
+class TestSimulator {
+  /**
+   * Generate realistic execution time
+   * @param {number} min - Minimum time in ms
+   * @param {number} max - Maximum time in ms
+   * @returns {number} Execution time in ms
+   */
+  static generateExecutionTime(min = 1000, max = 6000) {
+    return Math.floor(Math.random() * (max - min)) + min;
+  }
+
+  /**
+   * Generate structured output for successful operations
+   * @param {string} url - Source URL (if applicable)
+   * @param {Object} options - Customization options
+   * @returns {Object} Structured output object
+   */
+  static generateSuccessOutput(url = null, options = {}) {
+    const sources = [];
+
+    if (url) {
+      sources.push({
+        url: url,
+        title: "Extracted Content",
+        service: "Jina.ai",
+        status: "success",
+        contentLength: 2000 + Math.floor(Math.random() * 1000),
+        confidence: Math.random() > 0.3 ? "high" : "medium"
+      });
+    }
+
+    return {
+      summary: "Comprehensive research results",
+      sources: sources,
+      details: "Key findings from content analysis",
+      confidence: Math.random() > 0.2 ? "high" : "medium",
+      notes: options.notes || "Used fallback service after primary attempt",
+      ...options.customFields
+    };
+  }
+
+  /**
+   * Generate structured output for failed operations
+   * @param {string} errorType - Type of error ('timeout', 'unavailable', 'rate_limit')
+   * @param {Object} options - Customization options
+   * @returns {Object} Structured output object
+   */
+  static generateFailureOutput(errorType = 'timeout', options = {}) {
+    const errorTemplates = {
+      timeout: {
+        error: "Service timeout",
+        details: "Request timed out after 30 seconds. In real mode, this would trigger automatic retry with exponential backoff.",
+        retryable: true
+      },
+      unavailable: {
+        error: "Service unavailable",
+        details: "Unable to complete request due to service outage",
+        retryable: false
+      },
+      rate_limit: {
+        error: "Rate limit exceeded",
+        details: "Too many requests. In real mode, this would trigger automatic backoff and retry.",
+        retryable: true
+      }
+    };
+
+    return {
+      ...errorTemplates[errorType],
+      ...options.customFields
+    };
+  }
+
+  /**
+   * Simulate failure/success outcome with realistic probabilities
+   * @param {Object} options - Success rate options
+   * @returns {Object} { success: boolean, failureType?: string }
+   */
+  static simulateOutcome(options = {}) {
+    const {
+      baseSuccessRate = 0.85,
+      complexity = 'medium' // 'low', 'medium', 'high'
+    } = options;
+
+    // Adjust success rate based on complexity
+    const complexityAdjustment = {
+      low: 0.05,
+      medium: 0,
+      high: -0.15
+    };
+
+    const adjustedSuccessRate = Math.max(0.3, Math.min(0.95,
+      baseSuccessRate + complexityAdjustment[complexity]
+    ));
+
+    const outcome = Math.random();
+
+    if (outcome < adjustedSuccessRate) {
+      return { success: true };
+    } else {
+      // Determine failure type
+      const failureRand = Math.random();
+      let failureType;
+
+      if (failureRand < 0.4) {
+        failureType = 'timeout';
+      } else if (failureRand < 0.7) {
+        failureType = 'unavailable';
+      } else {
+        failureType = 'rate_limit';
+      }
+
+      return { success: false, failureType };
+    }
+  }
+
+  /**
+   * Generate complete simulation result
+   * @param {string} prompt - Test prompt
+   * @param {string} mode - Execution mode
+   * @param {Object} options - Additional options
+   * @returns {Object} Complete test result
+   */
+  static generateResult(prompt, mode = 'simulated', options = {}) {
+    const executionTime = this.generateExecutionTime();
+    const outcome = this.simulateOutcome(options);
+
+    let structuredOutput, error, success;
+
+    if (outcome.success) {
+      success = true;
+      structuredOutput = this.generateSuccessOutput(options.url, options);
+      error = null;
+    } else {
+      success = false;
+      structuredOutput = this.generateFailureOutput(outcome.failureType, options);
+      error = "Simulated execution error";
+    }
+
+    return {
+      prompt,
+      timestamp: new Date().toISOString(),
+      executionTime,
+      success,
+      output: success ? JSON.stringify(structuredOutput, null, 2) : null,
+      structuredOutput,
+      error,
+      mode,
+      testNumber: options.testNumber
+    };
+  }
+}
+
 // Dynamic baseline detection
 function findPreviousCommit(filePath, maxCommits = 10) {
   try {
@@ -51,13 +420,13 @@ function findPreviousCommit(filePath, maxCommits = 10) {
   }
 }
 
-// Component paths
+// Component paths (without immediate baseline detection)
 const COMPONENTS = {
   skill: {
     name: 'SKILL.md',
     path: 'plugins/search-plus/skills/search-plus/SKILL.md',
     backupPath: 'plugins/search-plus/skills/search-plus/SKILL.md',
-    previousCommit: findPreviousCommit('plugins/search-plus/skills/search-plus/SKILL.md'), // Dynamic detection
+    get previousCommit() { return findPreviousCommit(this.path); }, // Lazy detection
     scenarios: [
       "I need to extract content from https://httpbin.org/status/403 but getting 403 errors",
       "Research React best practices from https://react.dev but getting 403 errors",
@@ -68,7 +437,7 @@ const COMPONENTS = {
     name: 'Search-Plus Agent',
     path: 'plugins/search-plus/agents/search-plus.md',
     backupPath: 'plugins/search-plus/agents/search-plus.md',
-    previousCommit: findPreviousCommit('plugins/search-plus/agents/search-plus.md'), // Dynamic detection
+    get previousCommit() { return findPreviousCommit(this.path); }, // Lazy detection
     scenarios: [
       "Extract content from https://reddit.com/r/programming/comments/abc123/best_practices",
       "Research Claude Code plugin marketplaces and list key differences",
@@ -83,7 +452,7 @@ const COMPONENTS = {
     name: 'Search-Plus Command',
     path: 'commands/search-plus.md',
     backupPath: 'commands/search-plus.md',
-    previousCommit: 'HEAD~1',
+    get previousCommit() { return findPreviousCommit(this.path); }, // Lazy detection
     scenarios: [
       "Test basic command execution with single URL",
       "Test command with multiple URLs and options",
@@ -188,15 +557,29 @@ async function runClaudeCodeSessionReal(prompt, sessionType = 'standard') {
 
   const startTime = Date.now();
 
-  try {
-    const { execSync } = require('child_process');
+  // Validate input before execution
+  if (!validateInput(prompt, 'prompt')) {
+    const executionTime = Date.now() - startTime;
+    return {
+      prompt,
+      sessionType,
+      timestamp: new Date().toISOString(),
+      autoInvoked: false,
+      taskToolUsed: false,
+      error: 'Invalid input: prompt contains potentially dangerous characters',
+      executionTime,
+      success: false,
+      responseQuality: 1,
+      mode: 'real'
+    };
+  }
 
-    // Execute Claude Code with the prompt
-    const result = execSync(`claude "${prompt}"`, {
-      encoding: 'utf8',
+  try {
+    // Execute Claude Code securely using spawn
+    const sanitizedPrompt = sanitizeInput(prompt);
+    const result = await executeClaudeCommand(sanitizedPrompt, {
       cwd: process.cwd(),
-      timeout: 60000, // 60 second timeout
-      stdio: 'pipe'
+      timeout: 60000 // 60 second timeout
     });
 
     const executionTime = Date.now() - startTime;
@@ -271,14 +654,28 @@ async function runSearchPlusAgentReal(prompt) {
 
   const startTime = Date.now();
 
+  // Validate input before execution
+  if (!validateInput(prompt, 'prompt')) {
+    const executionTime = Date.now() - startTime;
+    return {
+      prompt,
+      timestamp: new Date().toISOString(),
+      executionTime,
+      success: false,
+      output: null,
+      structuredOutput: null,
+      error: 'Invalid input: prompt contains potentially dangerous characters',
+      mode: 'real'
+    };
+  }
+
   try {
-    // Execute real search-plus command
-    const { execSync } = require('child_process');
-    const output = execSync(`claude '/search-plus:search-plus "${prompt.replace(/"/g, '\\"')}"'`, {
-      encoding: 'utf8',
+    // Execute real search-plus command securely
+    const sanitizedPrompt = sanitizeInput(prompt);
+    const searchPlusPrompt = `/search-plus:search-plus "${sanitizedPrompt}"`;
+    const output = await executeClaudeCommand(searchPlusPrompt, {
       cwd: process.cwd(),
-      timeout: 60000, // 60 second timeout
-      stdio: 'pipe'
+      timeout: 60000 // 60 second timeout
     });
 
     const executionTime = Date.now() - startTime;
@@ -319,47 +716,27 @@ async function runSearchPlusAgentSimulated(prompt) {
   console.log(`🟡 Running SIMULATED search-plus agent...`);
   console.log(`📝 Prompt: "${prompt}"`);
 
-  const executionTime = 2000 + Math.random() * 4000; // 2-6 seconds
-
   // Simulate processing delay
+  const executionTime = TestSimulator.generateExecutionTime(2000, 6000);
   await new Promise(resolve => setTimeout(resolve, executionTime));
 
-  // Simulate different outcomes based on prompt characteristics
-  let success = true;
-  let structuredOutput = {
-    summary: "Comprehensive research results",
-    sources: [{
-      url: "https://example.com/content",
-      title: "Extracted Content",
-      service: "Jina.ai",
-      status: "success",
-      contentLength: 2500,
-      confidence: "high"
-    }],
-    details: "Key findings from content analysis",
-    confidence: "high",
-    notes: "Used fallback service after primary attempt"
-  };
+  // Use the centralized simulation generator
+  const result = TestSimulator.generateResult(prompt, 'simulated', {
+    complexity: 'medium',
+    notes: 'Used fallback service after primary attempt',
+    customFields: {
+      sources: [{
+        url: "https://example.com/content",
+        title: "Extracted Content",
+        service: "Jina.ai",
+        status: "success",
+        contentLength: 2500,
+        confidence: "high"
+      }]
+    }
+  });
 
-  // Simulate occasional failures for realism
-  if (Math.random() < 0.1) { // 10% failure rate
-    success = false;
-    structuredOutput = {
-      error: "Simulated service timeout",
-      details: "Unable to complete request due to simulated network issues"
-    };
-  }
-
-  return {
-    prompt,
-    timestamp: new Date().toISOString(),
-    executionTime: Math.round(executionTime),
-    success,
-    output: JSON.stringify(structuredOutput, null, 2),
-    structuredOutput,
-    error: success ? null : "Simulated execution error",
-    mode: 'simulated'
-  };
+  return result;
 }
 
 /**

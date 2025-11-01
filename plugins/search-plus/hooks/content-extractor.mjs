@@ -93,6 +93,43 @@ function isProblematicDomain(url) {
 }
 
 /**
+ * Validates Tavily API key with a simple test call
+ */
+async function validateTavilyAPIKey() {
+  if (!TAVILY_API_KEY || TAVILY_API_KEY === 'YOUR_TAVILY_API_KEY_HERE') {
+    return { valid: false, reason: 'API key not configured' };
+  }
+
+  try {
+    const testResponse = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: TAVILY_API_KEY,
+        query: 'test',
+        max_results: 1
+      }),
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (testResponse.status === 401 || testResponse.status === 403) {
+      const errorData = await testResponse.json().catch(() => ({}));
+      return {
+        valid: false,
+        reason: `Invalid API key: ${errorData.detail?.error || 'Unauthorized'}`
+      };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return {
+      valid: false,
+      reason: `API key validation failed: ${error.message}`
+    };
+  }
+}
+
+/**
  * Extracts content using Tavily Extract API
  */
 async function extractWithTavily(url, options = {}, timeoutMs = 15000) {
@@ -315,6 +352,62 @@ function extractErrorCode(errorMessage) {
 }
 
 /**
+ * Performs comprehensive service health check
+ */
+async function performServiceHealthCheck() {
+  const healthStatus = {
+    tavily: { available: false, error: null },
+    jinaPublic: { available: false, error: null },
+    jinaAPI: { available: false, error: null }
+  };
+
+  // Check Tavily API
+  const tavilyValidation = await validateTavilyAPIKey();
+  healthStatus.tavily.available = tavilyValidation.valid;
+  healthStatus.tavily.error = tavilyValidation.reason;
+
+  // Check Jina Public
+  try {
+    const jinaTest = await fetch('https://r.jina.ai/http://example.com', {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+    healthStatus.jinaPublic.available = jinaTest.ok;
+    if (!jinaTest.ok) {
+      healthStatus.jinaPublic.error = `HTTP ${jinaTest.status}`;
+    }
+  } catch (error) {
+    healthStatus.jinaPublic.error = error.message;
+  }
+
+  // Check Jina API (if key is available)
+  if (JINA_API_KEY) {
+    try {
+      const jinaAPITest = await fetch('https://r.jina.ai/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${JINA_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url: 'http://example.com' }),
+        signal: AbortSignal.timeout(5000)
+      });
+      healthStatus.jinaAPI.available = jinaAPITest.ok;
+      if (!jinaAPITest.ok) {
+        healthStatus.jinaAPI.error = `HTTP ${jinaAPITest.status}`;
+      }
+    } catch (error) {
+      healthStatus.jinaAPI.error = error.message;
+    }
+  } else {
+    healthStatus.jinaAPI.available = false;
+    healthStatus.jinaAPI.error = 'API key not configured';
+  }
+
+  return healthStatus;
+}
+
+/**
  * Enhanced content extraction with optimal service selection strategy
  *
  * Strategy based on comprehensive research:
@@ -325,6 +418,37 @@ function extractErrorCode(errorMessage) {
 export async function extractContent(url, options = {}) {
   const startTime = Date.now();
   const results = [];
+
+  // Perform service health check at the start
+  if (options.performHealthCheck !== false) {
+    log(`🔍 Performing service health check...`);
+    const healthStatus = await performServiceHealthCheck();
+
+    log(`📊 Service Health Status:`);
+    log(`   Tavily: ${healthStatus.tavily.available ? '✅ Available' : '❌ Unavailable - ' + healthStatus.tavily.error}`);
+    log(`   Jina Public: ${healthStatus.jinaPublic.available ? '✅ Available' : '❌ Unavailable - ' + healthStatus.jinaPublic.error}`);
+    log(`   Jina API: ${healthStatus.jinaAPI.available ? '✅ Available' : '❌ Unavailable - ' + healthStatus.jinaAPI.error}`);
+
+    // If no services are available, fail early
+    if (!healthStatus.tavily.available && !healthStatus.jinaPublic.available && !healthStatus.jinaAPI.available) {
+      return {
+        success: false,
+        error: { code: 'ALL_SERVICES_DOWN', message: 'All extraction services are unavailable' },
+        content: '',
+        contentLength: 0,
+        service: 'none',
+        url,
+        responseTime: Date.now() - startTime,
+        totalAttempts: 0,
+        totalResponseTime: Date.now() - startTime,
+        healthStatus,
+        metadata: {
+          extractionStrategy: 'all_services_failed',
+          timestamp: new Date().toISOString()
+        }
+      };
+    }
+  }
 
   // Determine optimal strategy based on URL characteristics
   const isDoc = isDocumentationSite(url);
@@ -340,10 +464,24 @@ export async function extractContent(url, options = {}) {
 
   // Strategy 1: Always start with Tavily (research shows it's fastest and most reliable)
   log(`🚀 Using Tavily first (100% success rate, 863ms avg)...`);
-  result = await extractWithTavily(url, options);
-  results.push(result);
+  try {
+    result = await extractWithTavily(url, options);
+    results.push(result);
+  } catch (error) {
+    result = {
+      success: false,
+      error: { code: 'EXCEPTION', message: error.message },
+      service: 'tavily',
+      url,
+      responseTime: Date.now() - startTime,
+      content: '',
+      contentLength: 0
+    };
+    results.push(result);
+    log(`❌ Tavily extraction failed with exception: ${error.message}`);
+  }
 
-  // Determine fallback service based on specific needs
+  // Determine fallback service based on specific needs and service availability
   let fallbackService = 'jinaPublic'; // Default fallback
   let fallbackReason = 'default';
 
@@ -355,44 +493,79 @@ export async function extractContent(url, options = {}) {
     fallbackReason = 'documentation site';
   }
 
-  // Fallback if Tavily fails OR returns empty content (except for cost tracking where empty is OK)
+  // Enhanced fallback logic with better error detection
   const needsFallback = !result.success ||
+                       result.error?.code === '401' ||  // Invalid API key
+                       result.error?.code === '403' ||  // Forbidden
+                       result.error?.code === '429' ||  // Rate limited
+                       result.error?.code === 'EXCEPTION' || // Exception occurred
                        (result.contentLength === 0 && !options.skipEmptyFallback) ||
                        (useCostTracking && !result.success);
 
   if (needsFallback) {
     log(`⚠️ Tavily failed or returned empty, trying ${fallbackService} (${fallbackReason})...`);
+    log(`   Failure reason: ${result.error?.code || result.error?.message || 'Empty content'}`);
 
     let fallbackResult;
-    if (fallbackService === 'jinaAPI' && JINA_API_KEY) {
-      fallbackResult = await extractWithJinaAPI(url, options);
-    } else {
-      fallbackResult = await extractWithJinaPublic(url, options);
-    }
+    try {
+      if (fallbackService === 'jinaAPI' && JINA_API_KEY) {
+        fallbackResult = await extractWithJinaAPI(url, options);
+      } else {
+        fallbackResult = await extractWithJinaPublic(url, options);
+      }
+      results.push(fallbackResult);
 
-    results.push(fallbackResult);
-
-    // Use fallback if it succeeded
-    if (fallbackResult.success && (fallbackResult.contentLength > 0 || useCostTracking)) {
-      result = fallbackResult;
-      log(`✅ Fallback to ${fallbackService} successful`);
+      // Use fallback if it succeeded
+      if (fallbackResult.success && (fallbackResult.contentLength > 0 || useCostTracking)) {
+        result = fallbackResult;
+        log(`✅ Fallback to ${fallbackService} successful`);
+      } else {
+        log(`❌ Fallback to ${fallbackService} failed: ${fallbackResult.error?.message || 'Empty content'}`);
+      }
+    } catch (error) {
+      log(`❌ Fallback to ${fallbackService} failed with exception: ${error.message}`);
+      fallbackResult = {
+        success: false,
+        error: { code: 'EXCEPTION', message: error.message },
+        service: fallbackService,
+        url,
+        responseTime: Date.now() - startTime,
+        content: '',
+        contentLength: 0
+      };
+      results.push(fallbackResult);
     }
   }
 
   // Final fallback if needed (try the remaining service)
-  if (!result.success && !useCostTracking && JINA_API_KEY) {
+  if ((!result.success || result.contentLength === 0) && !useCostTracking && JINA_API_KEY) {
     const finalService = fallbackService === 'jinaPublic' ? 'jinaAPI' : 'jinaPublic';
     log(`🔄 Final fallback to ${finalService}...`);
 
-    const finalFallback = finalService === 'jinaAPI' ?
-      await extractWithJinaAPI(url, options) :
-      await extractWithJinaPublic(url, options);
+    try {
+      const finalFallback = finalService === 'jinaAPI' ?
+        await extractWithJinaAPI(url, options) :
+        await extractWithJinaPublic(url, options);
 
-    results.push(finalFallback);
+      results.push(finalFallback);
 
-    if (finalFallback.success) {
-      result = finalFallback;
-      log(`✅ Final fallback to ${finalService} successful`);
+      if (finalFallback.success && finalFallback.contentLength > 0) {
+        result = finalFallback;
+        log(`✅ Final fallback to ${finalService} successful`);
+      } else {
+        log(`❌ Final fallback to ${finalService} failed`);
+      }
+    } catch (error) {
+      log(`❌ Final fallback to ${finalService} failed with exception: ${error.message}`);
+      results.push({
+        success: false,
+        error: { code: 'EXCEPTION', message: error.message },
+        service: finalService,
+        url,
+        responseTime: Date.now() - startTime,
+        content: '',
+        contentLength: 0
+      });
     }
   }
 

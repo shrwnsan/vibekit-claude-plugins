@@ -966,7 +966,7 @@ async function runEnhancedTests() {
 // Import detection functions
 async function importDetectionFunctions() {
   try {
-    const { runQuickStatusCheck } = await import('./search-plus-status.mjs');
+    const { runQuickStatusCheck } = await import('./search-plus-status-check.mjs');
     return { runQuickStatusCheck };
   } catch (error) {
     console.error('Could not import detection functions:', error.message);

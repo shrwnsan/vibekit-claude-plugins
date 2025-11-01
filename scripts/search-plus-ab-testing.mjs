@@ -33,8 +33,8 @@ async function executeClaudeCommand(command, options = {}) {
   }
 
   return await retryWithBackoff(async () => {
+    const { spawn } = await import('child_process');
     return new Promise((resolve, reject) => {
-      const { spawn } = require('child_process');
 
       const args = [command];
       const child = spawn('claude', args, {
@@ -1278,6 +1278,24 @@ async function runSpecificTest(componentKey, options = {}) {
 
 // Function to generate final report
 function generateFinalReport(results, comparisons, timestamp, executionMode = 'simulate') {
+  // Calculate accurate test counts
+  let totalIndividualTests = 0;
+  let totalSuccessfulTests = 0;
+  let totalFailedTests = 0;
+
+  results.forEach(result => {
+    if (result.currentVersion && result.currentVersion.results) {
+      totalIndividualTests += result.currentVersion.results.length;
+      totalSuccessfulTests += result.currentVersion.results.filter(r => r.success).length;
+      totalFailedTests += result.currentVersion.results.filter(r => !r.success).length;
+    }
+    if (result.previousVersion && result.previousVersion.results) {
+      totalIndividualTests += result.previousVersion.results.length;
+      totalSuccessfulTests += result.previousVersion.results.filter(r => r.success).length;
+      totalFailedTests += result.previousVersion.results.filter(r => !r.success).length;
+    }
+  });
+
   const reportData = {
     timestamp: timestamp,
     frameworkVersion: '1.0.0',
@@ -1285,7 +1303,9 @@ function generateFinalReport(results, comparisons, timestamp, executionMode = 's
     results: results,
     comparisons: comparisons,
     summary: {
-      totalTests: results.length,
+      totalComponents: results.length,
+      totalIndividualTests: totalIndividualTests,
+      totalTestScenarios: totalIndividualTests / 2, // Each scenario tested twice (current + previous)
       successCount: results.filter(r => r.status !== 'failed').length,
       failedCount: results.filter(r => r.status === 'failed').length,
       executionModeStats: calculateExecutionModeStats(results)
@@ -1317,22 +1337,33 @@ function calculateExecutionModeStats(results) {
   };
 
   results.forEach(result => {
-    if (result.testResults) {
-      // Component-level results
-      ['currentVersion', 'previousVersion'].forEach(version => {
-        if (result.testResults[version] && result.testResults[version].results) {
-          result.testResults[version].results.forEach(testResult => {
-            const mode = testResult.mode || 'simulated';
-            if (stats[mode]) {
-              stats[mode].count++;
-              if (testResult.success) {
-                stats[mode].successRate = (stats[mode].successRate * (stats[mode].count - 1) + 100) / stats[mode].count;
-              } else {
-                stats[mode].successRate = (stats[mode].successRate * (stats[mode].count - 1) + 0) / stats[mode].count;
-              }
-              stats[mode].avgExecutionTime = (stats[mode].avgExecutionTime * (stats[mode].count - 1) + (testResult.executionTime || 0)) / stats[mode].count;
-            }
-          });
+    // Check for component-level results with correct structure
+    if (result.currentVersion && result.currentVersion.results) {
+      result.currentVersion.results.forEach(testResult => {
+        const mode = testResult.mode || 'simulated';
+        if (stats[mode]) {
+          stats[mode].count++;
+          if (testResult.success) {
+            stats[mode].successRate = (stats[mode].successRate * (stats[mode].count - 1) + 100) / stats[mode].count;
+          } else {
+            stats[mode].successRate = (stats[mode].successRate * (stats[mode].count - 1) + 0) / stats[mode].count;
+          }
+          stats[mode].avgExecutionTime = (stats[mode].avgExecutionTime * (stats[mode].count - 1) + (testResult.executionTime || 0)) / stats[mode].count;
+        }
+      });
+    }
+
+    if (result.previousVersion && result.previousVersion.results) {
+      result.previousVersion.results.forEach(testResult => {
+        const mode = testResult.mode || 'simulated';
+        if (stats[mode]) {
+          stats[mode].count++;
+          if (testResult.success) {
+            stats[mode].successRate = (stats[mode].successRate * (stats[mode].count - 1) + 100) / stats[mode].count;
+          } else {
+            stats[mode].successRate = (stats[mode].successRate * (stats[mode].count - 1) + 0) / stats[mode].count;
+          }
+          stats[mode].avgExecutionTime = (stats[mode].avgExecutionTime * (stats[mode].count - 1) + (testResult.executionTime || 0)) / stats[mode].count;
         }
       });
     }
@@ -1370,10 +1401,25 @@ function getUniqueExecutionModes(results) {
 
 // Function to display summary
 function displaySummary(results, comparisons, report) {
-  console.log('\n📊 Test Summary:');
-  console.log(`   Total Tests: ${report.data.summary.totalTests}`);
-  console.log(`   Successful: ${report.data.summary.successCount}`);
-  console.log(`   Failed: ${report.data.summary.failedCount}`);
+  const summary = report.data.summary;
+  const stats = summary.executionModeStats;
+
+  console.log('\n📊 A/B Test Summary:');
+  console.log(`   Components Tested: ${summary.totalComponents}`);
+  console.log(`   Individual Test Runs: ${summary.totalIndividualTests} (${summary.totalTestScenarios} scenarios × 2 versions)`);
+  console.log(`   Component Success: ${summary.successCount}/${summary.totalComponents}`);
+
+  if (summary.failedCount > 0) {
+    console.log(`   Component Failures: ${summary.failedCount}`);
+  }
+
+  // Show execution mode stats
+  console.log('\n🔧 Execution Mode Statistics:');
+  Object.entries(stats).forEach(([mode, stat]) => {
+    if (stat.count > 0) {
+      console.log(`   ${mode.toUpperCase()}: ${stat.count} tests, ${stat.successRate}% success, ${stat.avgExecutionTime}ms avg time`);
+    }
+  });
 
   console.log('\n🔍 Component Results:');
   results.forEach(result => {
@@ -1382,7 +1428,23 @@ function displaySummary(results, comparisons, report) {
     } else if (result.status === 'skipped') {
       console.log(`   ⚠️  ${result.component}: ${result.reason}`);
     } else {
-      console.log(`   ✅ ${result.component}: Test completed`);
+      // Show detailed component stats
+      const currentStats = result.currentVersion?.summary || {};
+      const previousStats = result.previousVersion?.summary || {};
+      const improvement = result.comparison;
+
+      console.log(`   ✅ ${result.component}:`);
+      if (currentStats.totalTests) {
+        console.log(`      Current: ${currentStats.successRate || 0}% success, ${currentStats.avgQuality || 0}/5 quality`);
+      }
+      if (previousStats.totalTests) {
+        console.log(`      Previous: ${previousStats.successRate || 0}% success, ${previousStats.avgQuality || 0}/5 quality`);
+      }
+      if (improvement && improvement.overall) {
+        const improvementEmoji = improvement.overall.includes('improvement') ? '📈' :
+                                improvement.overall.includes('regression') ? '📉' : '➡️';
+        console.log(`      Overall: ${improvementEmoji} ${improvement.overall.replace('_', ' ')}`);
+      }
     }
   });
 
@@ -1393,38 +1455,57 @@ function displaySummary(results, comparisons, report) {
 // Function to show help
 function showHelp() {
   console.log(`
-🤖 Search-Plus Automated A/B Testing Framework
+🤖 Search-Plus A/B Testing Framework (Hybrid Architecture)
 
 USAGE:
-  node search-plus-automated-ab-testing.mjs [component-option] [execution-mode]
+  node search-plus-ab-testing.mjs [component] [options]
 
-COMPONENT OPTIONS:
-  --skill     Test SKILL.md changes
-  --agent     Test agent changes
-  --command   Test command changes
-  --all       Run all applicable tests (default)
+COMPONENTS:
+  skill       Test SKILL.md component
+  agent       Test Search-Plus Agent
+  command     Test Search-Plus Command
+  all         Test all components (default)
 
 EXECUTION MODES:
-  --simulate  Run simulated tests (default - safe, no real API calls)
-  --real      Run real tests with actual Claude Code execution
-  --both      Run both simulated and real tests for comparison
+  (no flag)   Simulation mode - Fast, safe testing (default)
+  --real      Real testing with Docker (secure, isolated)
+  --both      Both simulation and real testing
+
+SMART FEATURES:
+  🚀 Auto-Docker delegation for real testing
+  🔒 Secure permissions in isolated containers
+  🟡 Fast simulation for development
+  🎯 Single script handles all scenarios
 
 EXAMPLES:
-  node search-plus-automated-ab-testing.mjs --skill              # Simulated skill test
-  node search-plus-automated-ab-testing.mjs --agent --real       # Real agent test
-  node search-plus-automated-ab-testing.mjs --all --both        # All components, both modes
-  node search-plus-automated-ab-testing.mjs                      # Default: all components, simulated
+  node search-plus-ab-testing.mjs skill                # Simulation skill test
+  node search-plus-ab-testing.mjs --real skill        # Real skill test (auto-Docker)
+  node search-plus-ab-testing.mjs --real all         # Real testing for all components
+  node search-plus-ab-testing.mjs                     # Default: all components, simulation
 
 EXECUTION MODES DETAILS:
-  🔴 --real     Makes actual API calls to Claude Code and services
-  🟡 --simulate Uses mock data for safe, fast testing (default)
-  🔄 --both     Compares simulated vs real execution side-by-side
+  🟡 Simulation    Fast, safe mock testing (default)
+  🔴 Real         Docker-secured API calls with actual Claude Code
+  🔄 Both          Compare simulation vs real results
 
-FRAMEWORK VERSION: 1.0.0
+FRAMEWORK VERSION: 1.1.0 (Hybrid Architecture)
 COMPONENTS SUPPORT:
   • SKILL.md (${COMPONENTS.skill.path})
   • Search-Plus Agent (${COMPONENTS.agent.path})
   • Search-Plus Command (${COMPONENTS.command.path})
+
+DOCKER REQUIREMENTS FOR REAL TESTING:
+  • Docker Desktop, OrbStack, or Docker Engine
+  • Claude API credentials (ANTHROPIC_* or CUSTOM_* variables)
+
+SMART AUTO-DETECTION:
+  ✅ Simulation runs directly (fast)
+  ✅ Real testing automatically uses Docker (secure)
+  ✅ No need to choose between different scripts
+
+NOTE: This hybrid approach provides the best of both worlds:
+  - Fast simulation for development
+  - Secure real testing with automatic Docker deployment
 `);
   process.exit(0);
 }
@@ -1443,15 +1524,13 @@ function parseArguments(args) {
 
     if (arg === '--real') {
       options.mode = 'real';
-    } else if (arg === '--simulate') {
-      options.mode = 'simulate';
     } else if (arg === '--both') {
       options.mode = 'both';
     } else if (arg === '--verbose') {
       options.verbose = true;
     } else if (arg === '--force') {
       options.force = true;
-    } else if (arg.startsWith('--') && !['real', 'simulate', 'both', 'verbose', 'force', 'help'].includes(arg.replace('--', ''))) {
+    } else if (arg.startsWith('--') && !['real', 'both', 'verbose', 'force', 'help'].includes(arg.replace('--', ''))) {
       options.component = arg.replace('--', '');
     }
   }
@@ -1462,13 +1541,65 @@ function parseArguments(args) {
 // Command line argument handling
 const args = process.argv.slice(2);
 const parsedArgs = parseArguments(args);
-const command = args.find(arg => arg.startsWith('--') && !['--real', '--simulate', '--both', '--verbose', '--force'].includes(arg))?.replace('--', '') || args[0];
+const command = args.find(arg => arg.startsWith('--') && !['--real', '--both', '--verbose', '--force'].includes(arg))?.replace('--', '') || args[0];
+
+// Smart orchestration: Handle real testing by delegating to Docker
+if (parsedArgs.mode === 'real') {
+  // Use an async self-executing function to handle the async operation
+  (async function handleRealTesting() {
+    try {
+      console.log('🔒 Real testing requires Docker for secure permissions');
+      console.log('🐳 Launching Docker container for safe A/B testing...');
+      console.log();
+
+      // Import child_process to execute Docker script
+      const { spawn } = await import('child_process');
+
+      // Build Docker command with same arguments
+      const dockerArgs = [parsedArgs.mode, command].filter(Boolean);
+      const remainingArgs = args.filter(arg =>
+        !['--real', '--simulate', '--both', '--verbose', '--force'].includes(arg) &&
+        !arg.startsWith('--') &&
+        arg !== command
+      );
+
+      const dockerScript = './scripts/docker-ab-entrypoint.sh';
+      const allArgs = [...dockerArgs, ...remainingArgs];
+
+      console.log(`📊 Executing: ${dockerScript} ${allArgs.join(' ')}`);
+      console.log();
+
+      // Execute Docker script and inherit stdout/stderr
+      const dockerProcess = spawn(dockerScript, allArgs, {
+        stdio: 'inherit',
+        cwd: process.cwd()
+      });
+
+      dockerProcess.on('exit', (code) => {
+        process.exit(code);
+      });
+
+      dockerProcess.on('error', (error) => {
+        console.error('❌ Failed to launch Docker:', error.message);
+        console.log('💡 Make sure Docker is installed and running');
+        console.log('💡 Alternative: Use simulation mode (no --real flag)');
+        process.exit(1);
+      });
+    } catch (error) {
+      console.error('❌ Error setting up Docker delegation:', error.message);
+      process.exit(1);
+    }
+  })();
+
+  // Don't continue with local execution - exit the script
+  process.exit(0);
+}
 
 if (parsedArgs.mode !== 'simulate') {
   console.log(`🔍 Running in ${parsedArgs.mode.toUpperCase()} mode (${parsedArgs.mode === 'real' ? 'comprehensive, actual Claude Code execution' : 'compare real vs simulation'})`);
   if (parsedArgs.mode === 'real') {
     console.log(`⚠️  This will make real API calls and take longer (2-5 minutes per test)`);
-    console.log(`💡 Use --simulate for quick infrastructure testing`);
+    console.log(`💡 Run without --real for quick simulation testing (default)`);
     console.log();
   }
 }

@@ -1,0 +1,38 @@
+services:
+  search-plus-test:
+    build:
+      context: ../../
+      dockerfile: scripts/docker/Dockerfile
+    container_name: search-plus-testing
+    volumes:
+      - ../../test-results:/app/test-results:rw
+      - ../../backups:/app/backups:rw
+    env_file:
+      - .env
+      - .env.local
+      - .env.docker
+
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
+    # Resource limits
+    mem_limit: 512m
+    cpus: 1.0
+
+    # Network isolation
+    networks:
+      - search-plus-test-network
+
+networks:
+  search-plus-test-network:
+    driver: bridge

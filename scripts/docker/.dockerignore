@@ -1,0 +1,27 @@
+# Exclude unnecessary files from Docker build
+node_modules
+.git
+.gitignore
+*.log
+.DS_Store
+.vscode
+.idea
+
+# Exclude test results and backups (mounted as volumes)
+test-results/
+backups/
+
+# Exclude OS-specific files
+Thumbs.db
+*.swp
+*.swo
+
+# Exclude temp files
+*.tmp
+*.temp
+
+# Exclude development files
+.env.local
+.env.development
+.env.docker
+docker/search-plus-test/  # Exclude old docker setup

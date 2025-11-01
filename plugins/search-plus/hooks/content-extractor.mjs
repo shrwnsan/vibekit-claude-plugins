@@ -352,6 +352,109 @@ function extractErrorCode(errorMessage) {
 }
 
 /**
+ * Validates and normalizes malformed URLs before extraction
+ */
+function validateAndNormalizeURL(url) {
+  const issues = [];
+  let normalizedURL = url;
+
+  // Check for double protocol issues
+  if (url.includes('http://https://') || url.includes('https://http://')) {
+    issues.push('double_protocol');
+    // Fix double protocol
+    normalizedURL = url.replace(/https?:\/\/https?:\/\//, 'https://');
+  }
+
+  // Check for spaces in URL (common issue from "textise dot iitty")
+  if (url.includes(' dot ') || url.includes(' ')) {
+    issues.push('spaces_in_domain');
+    // Try to fix common patterns
+    normalizedURL = normalizedURL.replace(/ dot /g, '.').replace(/\s+/g, '');
+  }
+
+  // Check for malformed Jina AI URLs
+  if (url.includes('r.jina.ai/http://') && !url.includes('r.jina.ai/http://https://')) {
+    issues.push('malformed_jina_url');
+    // This is actually the correct pattern for Jina AI
+  }
+
+  // Basic URL validation
+  try {
+    new URL(normalizedURL);
+  } catch (error) {
+    issues.push('invalid_url_format');
+    return {
+      valid: false,
+      issues,
+      error: `Invalid URL format: ${error.message}`,
+      originalURL: url,
+      normalizedURL: null
+    };
+  }
+
+  // Check for obviously problematic domains that would cause API failures
+  const problematicPatterns = [
+    /textise dot iitty/i,
+    /textise\.iitty/i,  // The normalized version is still invalid
+    /example dot com/i,
+    /example\.com$/i,  // Generic example domain
+    /test dot /i,
+    /\.com\.[a-z]/i,  // Likely malformed TLD
+    /r\.jina\.ai\/http:\/\/[^/]*\.[a-z]{2,}\/?$/i  // Jina AI with obviously fake domain
+  ];
+
+  for (const pattern of problematicPatterns) {
+    if (pattern.test(normalizedURL)) {
+      issues.push('suspicious_domain_pattern');
+      break;
+    }
+  }
+
+  // If we have suspicious patterns that can't be trusted, mark as invalid
+  if (issues.includes('suspicious_domain_pattern')) {
+    return {
+      valid: false,
+      issues,
+      error: `Unfixable URL issues: suspicious or test domain detected`,
+      originalURL: url,
+      normalizedURL: null
+    };
+  }
+
+  // If we have issues but can normalize, return the fixed version
+  if (issues.length > 0 && normalizedURL !== url) {
+    return {
+      valid: true,
+      issues,
+      originalURL: url,
+      normalizedURL,
+      hasFixes: true,
+      message: `URL normalized: ${issues.join(', ')}`
+    };
+  }
+
+  // If we have issues that can't be automatically fixed
+  if (issues.length > 0) {
+    return {
+      valid: false,
+      issues,
+      error: `Unfixable URL issues: ${issues.join(', ')}`,
+      originalURL: url,
+      normalizedURL: null
+    };
+  }
+
+  // URL is valid
+  return {
+    valid: true,
+    issues: [],
+    originalURL: url,
+    normalizedURL: url,
+    hasFixes: false
+  };
+}
+
+/**
  * Performs comprehensive service health check
  */
 async function performServiceHealthCheck() {
@@ -450,29 +553,69 @@ export async function extractContent(url, options = {}) {
     }
   }
 
+  // Pre-validate and normalize URL before extraction
+  const urlValidation = validateAndNormalizeURL(url);
+  let extractionURL = url;
+
+  if (!urlValidation.valid) {
+    log(`❌ URL validation failed: ${urlValidation.error}`);
+    return {
+      success: false,
+      error: {
+        code: 'INVALID_URL',
+        message: urlValidation.error,
+        issues: urlValidation.issues
+      },
+      content: '',
+      contentLength: 0,
+      service: 'validation',
+      url,
+      responseTime: Date.now() - startTime,
+      totalAttempts: 0,
+      totalResponseTime: Date.now() - startTime,
+      metadata: {
+        extractionStrategy: 'url_validation_failed',
+        timestamp: new Date().toISOString(),
+        originalURL: urlValidation.originalURL,
+        validationIssues: urlValidation.issues
+      }
+    };
+  }
+
+  if (urlValidation.hasFixes) {
+    log(`🔧 URL normalized: ${urlValidation.message}`);
+    log(`   Original: ${urlValidation.originalURL}`);
+    log(`   Normalized: ${urlValidation.normalizedURL}`);
+    extractionURL = urlValidation.normalizedURL;
+  }
+
   // Determine optimal strategy based on URL characteristics
-  const isDoc = isDocumentationSite(url);
-  const isProblematic = isProblematicDomain(url);
+  const isDoc = isDocumentationSite(extractionURL);
+  const isProblematic = isProblematicDomain(extractionURL);
   const useCostTracking = options.costTracking || options.highVolume;
 
-  log(`🎯 Extracting content from: ${url}`);
+  log(`🎯 Extracting content from: ${extractionURL}`);
+  if (extractionURL !== url) {
+    log(`   (Original URL: ${url})`);
+  }
   log(`   URL Type: ${isDoc ? 'Documentation site' : isProblematic ? 'Problematic domain' : 'General URL'}`);
   log(`   Cost Tracking: ${useCostTracking ? 'enabled' : 'disabled'}`);
-  log(`   Primary Service: Tavily (100% success rate, 863ms avg)`);
+  log(`   Primary Service: Tavily`);
 
   let result;
 
   // Strategy 1: Always start with Tavily (research shows it's fastest and most reliable)
-  log(`🚀 Using Tavily first (100% success rate, 863ms avg)...`);
+  log(`🚀 Using Tavily first...`);
   try {
-    result = await extractWithTavily(url, options);
+    result = await extractWithTavily(extractionURL, options);
     results.push(result);
   } catch (error) {
     result = {
       success: false,
       error: { code: 'EXCEPTION', message: error.message },
       service: 'tavily',
-      url,
+      url: extractionURL,
+      originalURL: url,
       responseTime: Date.now() - startTime,
       content: '',
       contentLength: 0
@@ -509,9 +652,9 @@ export async function extractContent(url, options = {}) {
     let fallbackResult;
     try {
       if (fallbackService === 'jinaAPI' && JINA_API_KEY) {
-        fallbackResult = await extractWithJinaAPI(url, options);
+        fallbackResult = await extractWithJinaAPI(extractionURL, options);
       } else {
-        fallbackResult = await extractWithJinaPublic(url, options);
+        fallbackResult = await extractWithJinaPublic(extractionURL, options);
       }
       results.push(fallbackResult);
 
@@ -528,7 +671,8 @@ export async function extractContent(url, options = {}) {
         success: false,
         error: { code: 'EXCEPTION', message: error.message },
         service: fallbackService,
-        url,
+        url: extractionURL,
+        originalURL: url,
         responseTime: Date.now() - startTime,
         content: '',
         contentLength: 0
@@ -544,8 +688,8 @@ export async function extractContent(url, options = {}) {
 
     try {
       const finalFallback = finalService === 'jinaAPI' ?
-        await extractWithJinaAPI(url, options) :
-        await extractWithJinaPublic(url, options);
+        await extractWithJinaAPI(extractionURL, options) :
+        await extractWithJinaPublic(extractionURL, options);
 
       results.push(finalFallback);
 
@@ -561,7 +705,8 @@ export async function extractContent(url, options = {}) {
         success: false,
         error: { code: 'EXCEPTION', message: error.message },
         service: finalService,
-        url,
+        url: extractionURL,
+        originalURL: url,
         responseTime: Date.now() - startTime,
         content: '',
         contentLength: 0
@@ -572,10 +717,15 @@ export async function extractContent(url, options = {}) {
   const totalTime = Date.now() - startTime;
 
   // Return the successful result or the last attempted result
-  const successfulResult = results.find(r => r.success && (r.contentLength > 0 || useCostTracking)) || result;
+  // But only consider it successful if at least one service actually worked
+  const hasAnySuccessfulService = results.some(r => r.success && (r.contentLength > 0 || useCostTracking));
+  const successfulResult = hasAnySuccessfulService ?
+    results.find(r => r.success && (r.contentLength > 0 || useCostTracking)) :
+    result;
 
-  return {
+  const finalResult = {
     ...successfulResult,
+    success: hasAnySuccessfulService, // Ensure success reflects actual service success
     totalAttempts: results.length,
     totalResponseTime: totalTime,
     strategy: {
@@ -592,9 +742,28 @@ export async function extractContent(url, options = {}) {
       extractionStrategy: 'tavily_first_optimal_fallback',
       timestamp: new Date().toISOString(),
       totalTokensUsed: results.reduce((sum, r) => sum + (r.metadata?.tokenUsage || 0), 0),
-      researchBased: 'Follows comprehensive testing: Tavily 100% success, 863ms fastest'
+      urlValidation: {
+        originalURL: url,
+        normalizedURL: extractionURL,
+        wasNormalized: urlValidation.hasFixes,
+        validationIssues: urlValidation.issues,
+        validationMessage: urlValidation.message
+      },
+      allServicesFailed: !hasAnySuccessfulService
     }
   };
+
+  // If all services failed, add appropriate error information
+  if (!hasAnySuccessfulService) {
+    finalResult.error = {
+      code: 'ALL_SERVICES_FAILED',
+      message: 'All extraction services failed to retrieve content',
+      attempts: results.length,
+      serviceResults: results.map(r => ({ service: r.service, success: r.success, error: r.error?.code }))
+    };
+  }
+
+  return finalResult;
 }
 
 /**

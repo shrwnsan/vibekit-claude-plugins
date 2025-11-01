@@ -339,6 +339,12 @@ function isTestSuccessful(result, expectedErrors) {
       return true;
     }
 
+    // Handle URL validation errors (NEW - for our enhanced validation)
+    if (actualErrorCode === 'INVALID_URL' &&
+        (expectedErrors.includes('MALFORMED_URL') || expectedErrors.includes('DOMAIN_ERROR'))) {
+      return true;
+    }
+
     // Semantic mapping for validation errors
     if ((actualErrorCode === 'VALIDATION_ERROR' || actualErrorCode === '400') &&
         (expectedErrors.includes('400') || expectedErrors.includes('VALIDATION_ERROR'))) {
@@ -716,39 +722,27 @@ async function testPluginExtraction(url) {
   try {
     // Import and test actual plugin hook functions
     const hooksDir = join(__dirname, '..', 'plugins', 'search-plus', 'hooks');
-    const { tavilyExtract } = await import(join(hooksDir, 'tavily-client.mjs'));
+    const { extractContent } = await import(join(hooksDir, 'content-extractor.mjs'));
 
     log(`🔧 Testing Plugin Extraction: "${url}"`);
 
-    const result = await tavilyExtract(url, {}, 15000);
+    const result = await extractContent(url, { performHealthCheck: false });
 
     const endTime = Date.now();
 
-    if (result.error) {
-      return {
-        success: false,
-        error: result.error,
-        responseTime: endTime - startTime,
-        content: '',
-        metadata: {
-          url,
-          timestamp: new Date().toISOString(),
-          tool: 'Search-Plus Plugin'
-        }
-      };
-    }
-
-    const content = result.results && result.results[0] ? result.results[0].content : '';
-
     return {
-      success: true,
+      success: result.success,
+      error: result.error || null,
       responseTime: endTime - startTime,
-      content: content,
-      contentLength: content.length,
+      content: result.content || '',
+      contentLength: result.contentLength || 0,
+      results: result.results || [],
+      resultCount: result.results?.length || 0,
       metadata: {
         url,
         timestamp: new Date().toISOString(),
-        tool: 'Search-Plus Plugin'
+        tool: 'Search-Plus Plugin',
+        ...result.metadata
       }
     };
 

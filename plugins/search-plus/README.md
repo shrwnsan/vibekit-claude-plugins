@@ -128,6 +128,16 @@ The plugin works out of the box with free-tier capabilities. For full functional
 - Used only when cost tracking is explicitly requested
 - Plugin works perfectly without this key using the free Jina.ai public endpoint
 
+### Optional for 404 Enhancement
+**404 Mode Configuration** (for customizing 404 error handling behavior):
+- Set the `SEARCH_PLUS_404_MODE` environment variable to one of:
+  - `disabled`: Disables 404 enhancement completely
+  - `conservative`: Conservative mode (30% archive probability, 1 attempt max)
+  - `normal`: Normal mode (70% archive probability, 2 attempts max) - **default**
+  - `aggressive`: Aggressive mode (100% archive probability, 3 attempts max)
+- If not set, defaults to `normal` mode
+- Example: `export SEARCH_PLUS_404_MODE=aggressive`
+
 ### Free Tier Usage
 The plugin automatically falls back to free services when API keys are not configured:
 - **Without Tavily API**: Uses Jina.ai Public Reader (75% success rate)

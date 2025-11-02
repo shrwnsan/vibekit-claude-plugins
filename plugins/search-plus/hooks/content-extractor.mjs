@@ -10,6 +10,130 @@ import { setTimeout } from 'timers/promises';
  * Optional: Jina.ai API (88% success rate, 2,331ms avg) - Slower, for cost tracking only
  */
 
+// Scalable fallback service definitions
+const FALLBACK_SERVICES = {
+  cacheServices: [
+    {
+      name: 'Google Web Cache',
+      pattern: (url) => `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`,
+      timeout: 15000,
+      priority: 1,
+      notes: 'Google web cache - fastest but sometimes blocked'
+    },
+    {
+      name: 'Internet Archive JSON API',
+      pattern: async (url) => {
+        try {
+          const response = await fetch(`https://archive.org/wayback/available?url=${encodeURIComponent(url)}`, {
+            timeout: 10000,
+            headers: { 'Accept': 'application/json' }
+          });
+          const data = await response.json();
+          if (data.archived_snapshots?.closest?.available) {
+            return data.archived_snapshots.closest.url;
+          }
+          return null;
+        } catch (error) {
+          return null;
+        }
+      },
+      timeout: 15000,
+      priority: 2,
+      notes: 'Archive.org official API - most reliable for older content'
+    },
+    {
+      name: 'Internet Archive Direct',
+      pattern: (url) => `https://web.archive.org/web/2/${encodeURIComponent(url)}`,
+      timeout: 20000,
+      priority: 3,
+      notes: 'Direct archive.org access'
+    },
+    {
+      name: 'Bing Cache',
+      pattern: (url) => `https://cc.bingj.com/cache.aspx?d=&w=${encodeURIComponent(url)}`,
+      timeout: 20000,
+      priority: 4,
+      notes: 'Microsoft Bing cache - alternative to Google'
+    },
+    {
+      name: 'Yandex Turbo',
+      pattern: (url) => `https://yandex.com/turbo?text=${encodeURIComponent(url)}`,
+      timeout: 15000,
+      priority: 5,
+      notes: 'Yandex turbo mode - often good for news/blog content'
+    }
+  ],
+  jinaFormats: [
+    {
+      name: 'Standard',
+      pattern: (url) => url,
+      timeout: 10000
+    },
+    {
+      name: 'Double Redirect',
+      pattern: (url) => `https://r.jina.ai/http://${encodeURIComponent(url)}`,
+      timeout: 12000
+    },
+    {
+      name: 'Triple Redirect',
+      pattern: (url) => `https://r.jina.ai/http://r.jina.ai/http://${encodeURIComponent(url)}`,
+      timeout: 15000
+    },
+    {
+      name: 'Text Extractor',
+      pattern: (url) => `https://r.jina.ai/http://r.jina.ai/http://textise dot iitty?url=${encodeURIComponent(url)}`,
+      timeout: 10000
+    }
+  ],
+  userAgents: [
+    {
+      name: 'Chrome Browser',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0'
+      },
+      timeout: 30000
+    },
+    {
+      name: 'cURL',
+      headers: {
+        'User-Agent': 'curl/8.0.0',
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive'
+      },
+      timeout: 20000
+    },
+    {
+      name: 'Python Requests',
+      headers: {
+        'User-Agent': 'python-requests/2.31.0',
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive'
+      },
+      timeout: 15000
+    },
+    {
+      name: 'Wget',
+      headers: {
+        'User-Agent': 'Wget/1.21.3',
+        'Accept': '*/*',
+        'Accept-Encoding': 'identity'
+      },
+      timeout: 25000
+    }
+  ]
+};
+
 // Service configuration
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY || 'YOUR_TAVILY_API_KEY_HERE';
 const JINA_API_KEY = process.env.JINA_API_KEY || null;
@@ -335,6 +459,143 @@ async function extractWithJinaAPI(url, options = {}, timeoutMs = 10000) {
 }
 
 /**
+ * Scalable ultra-resilient fallback using pattern-based services
+ */
+async function tryUltraResilientFallbacks(url, originalOptions, results) {
+  log(`🚨 All standard services failed, trying ultra-resilient fallbacks...`);
+
+  // Try 1: Enhanced Tavily with different user agents
+  if (!originalOptions.triedEnhancedParams && (!results.find(r => r.error?.message?.includes('Unauthorized')))) {
+    log(`🔧 Trying enhanced Tavily with different user agents...`);
+
+    for (const userAgent of FALLBACK_SERVICES.userAgents.slice(0, 2)) { // Try top 2 user agents
+      try {
+        const enhancedResult = await extractWithTavily(url, {
+          ...originalOptions,
+          triedEnhancedParams: true,
+          ...userAgent
+        });
+
+        results.push(enhancedResult);
+        if (enhancedResult.success && enhancedResult.contentLength > 0) {
+          log(`✅ Enhanced Tavily (${userAgent.name}) extraction successful!`);
+          return { success: true, result: enhancedResult };
+        }
+      } catch (error) {
+        log(`❌ Enhanced Tavily (${userAgent.name}) failed: ${error.message}`);
+      }
+    }
+  }
+
+  // Try 2: Enhanced cache services (with async pattern support and prioritization)
+  if (!originalOptions.triedCacheServices) {
+    log(`🕐️ Trying enhanced cache services...`);
+
+    // Get max archive attempts from configuration (default to all if not specified)
+    const maxAttempts = originalOptions.maxArchiveAttempts || FALLBACK_SERVICES.cacheServices.length;
+
+    // Sort by priority and limit attempts
+    const sortedCacheServices = [...FALLBACK_SERVICES.cacheServices]
+      .sort((a, b) => a.priority - b.priority)
+      .slice(0, maxAttempts);
+
+    log(`   Will try up to ${maxAttempts} cache services out of ${FALLBACK_SERVICES.cacheServices.length} available`);
+
+    for (const cacheService of sortedCacheServices) {
+      try {
+        let cacheURL;
+
+        // Handle async pattern functions (like Internet Archive API)
+        if (typeof cacheService.pattern === 'function' && cacheService.constructor.name === 'AsyncFunction') {
+          cacheURL = await cacheService.pattern(url);
+          if (!cacheURL) {
+            log(`⚠️ ${cacheService.name}: No cached version available`);
+            continue;
+          }
+        } else {
+          cacheURL = cacheService.pattern(url);
+        }
+
+        log(`🔍 Trying ${cacheService.name}: ${cacheURL.substring(0, 100)}...`);
+
+        const cacheResult = await extractWithJinaPublic(cacheURL, {
+          ...originalOptions,
+          triedCacheServices: true,
+          timeout: cacheService.timeout
+        });
+
+        // Override service name to correctly identify which cache service was used
+        if (cacheResult.success) {
+          cacheResult.service = cacheService.name;
+          cacheResult.metadata.service = cacheService.name;
+        }
+
+        results.push(cacheResult);
+        if (cacheResult.success && cacheResult.contentLength > 100) {
+          log(`✅ ${cacheService.name} extraction successful!`);
+          return { success: true, result: cacheResult };
+        }
+      } catch (error) {
+        log(`❌ ${cacheService.name} failed: ${error.message}`);
+      }
+    }
+  }
+
+  // Try 3: Alternative Jina formats (pattern-based)
+  if (!originalOptions.triedAltJina) {
+    log(`🔄 Trying alternative Jina AI formats...`);
+
+    for (const jinaFormat of FALLBACK_SERVICES.jinaFormats) {
+      try {
+        const altURL = jinaFormat.pattern(url);
+        const altResult = await extractWithJinaPublic(altURL, {
+          ...originalOptions,
+          triedAltJina: true,
+          timeout: jinaFormat.timeout
+        });
+
+        results.push(altResult);
+        if (altResult.success && altResult.contentLength > 50) {
+          log(`✅ Jina AI (${jinaFormat.name}) extraction successful!`);
+          return { success: true, result: altResult };
+        }
+      } catch (error) {
+        log(`❌ Jina AI (${jinaFormat.name}) failed: ${error.message}`);
+      }
+    }
+  }
+
+  // Try 4: Connection/SSL workarounds with remaining user agents
+  const lastResult = results[results.length - 1];
+  if (!originalOptions.triedSSLWorkaround &&
+      (lastResult?.error?.message?.includes('certificate') || lastResult?.error?.message?.includes('SSL') ||
+       lastResult?.error?.message?.includes('ECONNREFUSED') || lastResult?.error?.message?.includes('timeout'))) {
+    log(`🔐 Trying connection/SSL workarounds with remaining user agents...`);
+
+    for (const userAgent of FALLBACK_SERVICES.userAgents.slice(2)) { // Skip first 2 as they were tried above
+      try {
+        const workaroundResult = await extractWithJinaPublic(url, {
+          ...originalOptions,
+          triedSSLWorkaround: true,
+          ...userAgent
+        });
+
+        results.push(workaroundResult);
+        if (workaroundResult.success && workaroundResult.contentLength > 0) {
+          log(`✅ SSL/Connection workaround (${userAgent.name}) extraction successful!`);
+          return { success: true, result: workaroundResult };
+        }
+      } catch (error) {
+        log(`❌ SSL/Connection workaround (${userAgent.name}) failed: ${error.message}`);
+      }
+    }
+  }
+
+  log(`🏁 Ultra-resilient fallback attempts completed (${results.length - 3} additional attempts)`);
+  return { success: false, result: lastResult };
+}
+
+/**
  * Extracts error code from error message for classification
  */
 function extractErrorCode(errorMessage) {
@@ -349,6 +610,342 @@ function extractErrorCode(errorMessage) {
   if (errorMessage.includes('SecurityCompromiseError')) return 'SECURITY_COMPROMISE';
   if (errorMessage.includes('Forbidden')) return 'FORBIDDEN';
   return 'UNKNOWN';
+}
+
+/**
+ * Smart 404 Configuration System
+ * Provides intelligent 404 handling with user-configurable modes
+ */
+
+// Mode presets for different 404 handling strategies
+const MODE_PRESETS = {
+  disabled: {
+    enabled: false,
+    archiveProbability: 0.0,
+    maxArchiveAttempts: 0,
+    description: 'Skip all archive attempts for 404 errors (fastest)'
+  },
+  conservative: {
+    enabled: true,
+    archiveProbability: 0.3,
+    maxArchiveAttempts: 1,
+    description: 'Try archives for 30% of 404s, high-value domains only'
+  },
+  normal: {
+    enabled: true,
+    archiveProbability: 0.7,
+    maxArchiveAttempts: 2,
+    description: 'Balanced approach for most use cases'
+  },
+  aggressive: {
+    enabled: true,
+    archiveProbability: 1.0,
+    maxArchiveAttempts: 3,
+    description: 'Try all archives for every 404 (maximum recovery)'
+  }
+};
+
+/**
+ * Creates 404 configuration from user options
+ */
+function create404Config(options = {}) {
+  // Check environment variable first, then options, then default to normal mode
+  let mode = process.env.SEARCH_PLUS_404_MODE || options.mode || 'normal';
+
+  // Log if environment variable is being used
+  if (process.env.SEARCH_PLUS_404_MODE) {
+    log(`🌍 404 mode from environment variable: ${process.env.SEARCH_PLUS_404_MODE}`);
+  }
+
+  // Validate mode
+  if (!MODE_PRESETS[mode]) {
+    log(`⚠️ Invalid 404 mode "${mode}", falling back to "normal"`);
+    mode = 'normal';
+  }
+
+  // Start with preset configuration
+  let config = { ...MODE_PRESETS[mode] };
+
+  // Override with specific options (power user customization)
+  if (options.archiveProbability !== undefined) {
+    config.archiveProbability = Math.max(0.0, Math.min(1.0, options.archiveProbability));
+  }
+
+  if (options.maxArchiveAttempts !== undefined) {
+    config.maxArchiveAttempts = Math.max(0, Math.min(5, options.maxArchiveAttempts));
+  }
+
+  if (options.enabled !== undefined) {
+    config.enabled = options.enabled;
+  }
+
+  // Add domain classifications
+  config.highValueDomains = options.highValueDomains || [
+    'docs.', 'documentation.', 'help.', 'support.',
+    'news.', 'blog.', 'article.', 'research.',
+    'wikipedia.', 'github.', 'stackoverflow.',
+    'medium.', 'dev.to', 'hashnode.'
+  ];
+
+  config.lowValuePatterns = options.lowValuePatterns || [
+    'api.', 'analytics.', 'ads.', 'tracking.',
+    'cdn.', 'static.', 'assets.', 'temp-',
+    'cache-', 'session-', 'token-'
+  ];
+
+  config.customRules = options.customRules || {};
+
+  return config;
+}
+
+/**
+ * Detects 404 status from URL patterns (when content extraction fails)
+ */
+function detect404FromURL(url) {
+  if (!url || typeof url !== 'string') return {
+    detected: false,
+    patterns: [],
+    source: 'url'
+  };
+
+  const urlLower = url.toLowerCase();
+
+  // URL patterns that strongly indicate 404 status
+  const urlPatterns = [
+    '/status/404',
+    '/error/404',
+    '/404.html',
+    '/not-found',
+    '/page-not-found'
+  ];
+
+  const detectedPatterns = urlPatterns.filter(pattern => urlLower.includes(pattern));
+
+  return {
+    detected: detectedPatterns.length > 0,
+    patterns: detectedPatterns,
+    source: 'url',
+    confidence: detectedPatterns.length > 0 ? 0.8 : 0.0
+  };
+}
+
+/**
+ * Detects if content contains 404 error patterns
+ * Now used for intelligent decision-making instead of blocking
+ */
+function detect404Error(content) {
+  if (!content || typeof content !== 'string') return {
+    detected: false,
+    patterns: []
+  };
+
+  const contentLower = content.toLowerCase();
+
+  // 404 indicator patterns
+  const patterns404 = [
+    '404: not found',
+    'error 404: not found',
+    'this page can\'t be found',
+    'page not found',
+    'lost in space',
+    'the page you\'re seeking might no longer exist',
+    'target url returned error 404',
+    'http 404',
+    'status: 404',
+    'this httpbin.org page can\'t be found'
+  ];
+
+  const detectedPatterns = [];
+
+  // Check for 404 patterns
+  for (const pattern of patterns404) {
+    if (contentLower.includes(pattern)) {
+      detectedPatterns.push(pattern);
+    }
+  }
+
+  return {
+    detected: detectedPatterns.length > 0,
+    patterns: detectedPatterns,
+    confidence: Math.min(detectedPatterns.length / 3, 1.0)
+  };
+}
+
+/**
+ * Determines if a URL should get archive recovery attempts
+ */
+function shouldTryArchives(url, detectionResult, config) {
+  // Quick disable checks
+  if (!config.enabled) return false;
+  if (!detectionResult.detected) return true; // Not a 404, always try
+
+  // Probability check
+  if (Math.random() > config.archiveProbability) return false;
+
+  // High-value domain check (always try for these)
+  if (isHighValueDomain(url, config)) return true;
+
+  // Low-value pattern check (skip these unless aggressive mode)
+  if (isLowValueContent(url, config) && config.archiveProbability < 1.0) return false;
+
+  // Custom rules check
+  for (const [domain, rule] of Object.entries(config.customRules)) {
+    if (url.includes(domain)) {
+      return rule === 'always' || (rule === 'try' && Math.random() < 0.5);
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Checks if URL is from a high-value domain that deserves archive recovery
+ */
+function isHighValueDomain(url, config) {
+  const urlLower = url.toLowerCase();
+  return config.highValueDomains.some(domain => urlLower.includes(domain));
+}
+
+/**
+ * Checks if URL is low-value content that doesn't need archive recovery
+ */
+function isLowValueContent(url, config) {
+  const urlLower = url.toLowerCase();
+  return config.lowValuePatterns.some(pattern => urlLower.includes(pattern));
+}
+
+/**
+ * Validates if extracted content is meaningful or just service error pages
+ */
+function validateMeaningfulContent(content, source = 'unknown') {
+  if (!content || typeof content !== 'string' || content.trim().length === 0) {
+    return {
+      isMeaningful: false,
+      reason: 'empty_content',
+      source
+    };
+  }
+
+  const contentLower = content.toLowerCase();
+
+  // Patterns that indicate non-meaningful content (error pages, "no results" pages, etc.)
+  const uselessPatterns = [
+    // Google Cache/Search error patterns
+    'did not match any documents',
+    'no cached version available',
+    'accessibility links',
+    'google apps',
+    'your search -',
+    'suggestions:',
+    'make sure all words are spelled correctly',
+    'footer links',
+
+    // Jina.ai error patterns
+    'jina ai reader',
+    'failed to extract content',
+    'extraction failed',
+    'unable to access',
+    'error 404',
+    'error 403',
+    'error 429',
+    'error 451',
+    'timeouterror',
+    'navigation timeout',
+
+    // Generic error patterns
+    'page not found',
+    'access denied',
+    'forbidden',
+    'rate limit',
+    'service unavailable',
+    'connection refused',
+
+    // Cache service error patterns
+    'wayback machine',
+    'archive.org',
+    'this page is not available',
+    'cached page',
+    'webcache.googleusercontent.com',
+
+    // Minimal content patterns
+    'title: cache:',
+    'url source:',
+    'markdown content:'
+  ];
+
+  // Check for useless patterns
+  for (const pattern of uselessPatterns) {
+    if (contentLower.includes(pattern)) {
+      return {
+        isMeaningful: false,
+        reason: 'useless_pattern_detected',
+        pattern: pattern,
+        source
+      };
+    }
+  }
+
+  // Check for extremely short content (likely error pages)
+  const contentLength = content.trim().length;
+  if (contentLength < 100) {
+    return {
+      isMeaningful: false,
+      reason: 'content_too_short',
+      length: contentLength,
+      source
+    };
+  }
+
+  // Check for content that's mostly HTML/structure without meaningful text
+  const textContent = content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  if (textContent.length < 50) {
+    return {
+      isMeaningful: false,
+      reason: 'insufficient_text_content',
+      textLength: textContent.length,
+      source
+    };
+  }
+
+  // Check for repetitive content (indicates error pages or broken extraction)
+  const words = textContent.split(' ').filter(w => w.length > 3);
+  const uniqueWords = new Set(words);
+  if (words.length > 10 && uniqueWords.size / words.length < 0.3) {
+    return {
+      isMeaningful: false,
+      reason: 'repetitive_content',
+      uniqueWordsRatio: uniqueWords.size / words.length,
+      source
+    };
+  }
+
+  return {
+    isMeaningful: true,
+    reason: 'meaningful_content_detected',
+    contentLength: contentLength,
+    textLength: textContent.length,
+    source
+  };
+}
+
+/**
+ * Determines the fallback level based on service used and number of attempts
+ */
+function determineFallbackLevel(service, totalAttempts) {
+  if (service === 'tavily') return 'primary';
+  if (service === 'jinaPublic') return 'secondary';
+  if (service === 'jinaAPI') return 'tertiary';
+  if (totalAttempts > 4) return 'ultra_resilient';
+  return 'unknown';
+}
+
+/**
+ * Determines the extraction strategy used
+ */
+function determineStrategy(isDoc, useCostTracking) {
+  if (useCostTracking) return 'tavily_first_cost_tracking';
+  if (isDoc) return 'tavily_first_optimal_fallback';
+  return 'tavily_first_default';
 }
 
 /**
@@ -553,6 +1150,10 @@ export async function extractContent(url, options = {}) {
     }
   }
 
+  // Initialize 404 configuration for smart handling
+  const config404 = create404Config(options.config404 || { mode: 'normal' });
+  log(`🎯 404 Handling: ${config404.description}`);
+
   // Pre-validate and normalize URL before extraction
   const urlValidation = validateAndNormalizeURL(url);
   let extractionURL = url;
@@ -662,6 +1263,13 @@ export async function extractContent(url, options = {}) {
       if (fallbackResult.success && (fallbackResult.contentLength > 0 || useCostTracking)) {
         result = fallbackResult;
         log(`✅ Fallback to ${fallbackService} successful`);
+
+        // Smart 404 detection for logging and metrics
+        const detection404 = detect404Error(result.content);
+        if (detection404.detected) {
+          log(`🔍 404 patterns detected: ${detection404.patterns.join(', ')}`);
+          result.fallback404Detection = detection404;
+        }
       } else {
         log(`❌ Fallback to ${fallbackService} failed: ${fallbackResult.error?.message || 'Empty content'}`);
       }
@@ -696,6 +1304,13 @@ export async function extractContent(url, options = {}) {
       if (finalFallback.success && finalFallback.contentLength > 0) {
         result = finalFallback;
         log(`✅ Final fallback to ${finalService} successful`);
+
+        // Smart 404 detection for logging and metrics
+        const detection404 = detect404Error(result.content);
+        if (detection404.detected) {
+          log(`🔍 404 patterns detected: ${detection404.patterns.join(', ')}`);
+          result.finalFallback404Detection = detection404;
+        }
       } else {
         log(`❌ Final fallback to ${finalService} failed`);
       }
@@ -714,6 +1329,48 @@ export async function extractContent(url, options = {}) {
     }
   }
 
+  // Ultra-resilient fallback: Try pattern-based alternative approaches if all standard services failed
+  // Use smart 404 configuration to decide whether to attempt recovery
+  if (!result.success || result.contentLength === 0) {
+    // Get the best 404 detection result we have
+    let detection404 = result.fallback404Detection || result.finalFallback404Detection || { detected: false };
+
+    // If no content-based detection worked, try URL-based detection
+    if (!detection404.detected) {
+      detection404 = detect404FromURL(extractionURL);
+    }
+
+    // Determine if we should try archive recovery
+    const shouldTry = shouldTryArchives(extractionURL, detection404, config404);
+
+    if (shouldTry) {
+      log(`🚨 Trying ultra-resilient fallbacks with 404 configuration...`);
+      log(`   404 detected: ${detection404.detected} (source: ${detection404.source || 'content'}), Archive probability: ${config404.archiveProbability}`);
+
+      // Pass 404 config to the ultra-resilient fallback system
+      const ultraResilientOptions = {
+        ...options,
+        config404,
+        maxArchiveAttempts: config404.maxArchiveAttempts
+      };
+
+      const ultraResilientResult = await tryUltraResilientFallbacks(extractionURL, ultraResilientOptions, results);
+      if (ultraResilientResult.success) {
+        result = ultraResilientResult.result;
+        results.push(ultraResilientResult.result);
+        log(`✅ Ultra-resilient fallback successful via ${ultraResilientResult.result.service}`);
+      } else {
+        log(`❌ Ultra-resilient fallbacks also failed`);
+      }
+    } else {
+      if (detection404.detected) {
+        log(`⏭️ Skipping ultra-resilient fallbacks (404 detected, configuration: ${config404.mode})`);
+      } else {
+        log(`⏭️ Skipping ultra-resilient fallbacks (disabled by configuration)`);
+      }
+    }
+  }
+
   const totalTime = Date.now() - startTime;
 
   // Return the successful result or the last attempted result
@@ -723,9 +1380,37 @@ export async function extractContent(url, options = {}) {
     results.find(r => r.success && (r.contentLength > 0 || useCostTracking)) :
     result;
 
+  // Validate if the content is actually meaningful
+  const contentValidation = validateMeaningfulContent(successfulResult.content, successfulResult.service);
+
+  // Detect 404 patterns for metrics and intelligent handling
+  const detection404 = detect404Error(successfulResult.content);
+
+  // Determine honest success metrics
+  const technicalSuccess = successfulResult.success && successfulResult.contentLength > 0;
+  const meaningfulSuccess = technicalSuccess && contentValidation.isMeaningful;
+  const fallbackLevel = determineFallbackLevel(successfulResult.service, results.length);
+
+  // Log content validation results for debugging
+  if (technicalSuccess && !meaningfulSuccess) {
+    log(`⚠️ Technical success but content validation failed:`);
+    log(`   Reason: ${contentValidation.reason}${contentValidation.pattern ? ` (${contentValidation.pattern})` : ''}`);
+    log(`   Source: ${contentValidation.source}`);
+  } else if (meaningfulSuccess) {
+    log(`✅ Meaningful content extracted successfully (${contentValidation.contentLength} chars)`);
+  }
+
   const finalResult = {
     ...successfulResult,
-    success: hasAnySuccessfulService, // Ensure success reflects actual service success
+    // Legacy success field (for backwards compatibility)
+    success: hasAnySuccessfulService,
+
+    // Enhanced success reporting
+    technicalSuccess,
+    meaningfulSuccess,
+    contentValidation,
+    fallbackLevel,
+
     totalAttempts: results.length,
     totalResponseTime: totalTime,
     strategy: {
@@ -749,7 +1434,34 @@ export async function extractContent(url, options = {}) {
         validationIssues: urlValidation.issues,
         validationMessage: urlValidation.message
       },
-      allServicesFailed: !hasAnySuccessfulService
+      allServicesFailed: !hasAnySuccessfulService,
+      ultraResilientAttempts: results.length > 3 ? results.length - 3 : 0,
+      attemptedServices: results.map(r => r.service),
+      successfulService: hasAnySuccessfulService ? results.find(r => r.success && (r.contentLength > 0 || useCostTracking))?.service : null,
+      // New meaningful content metrics
+      honestSuccessMetrics: {
+        technicalSuccess,
+        meaningfulSuccess,
+        fallbackLevel,
+        contentQuality: contentValidation.isMeaningful ? 'meaningful' : 'useless',
+        contentIssues: contentValidation.isMeaningful ? null : {
+          reason: contentValidation.reason,
+          pattern: contentValidation.pattern,
+          source: contentValidation.source
+        },
+        // 404 handling metrics
+        handling404: {
+          detected404: detection404?.detected || false,
+          fourOFourPatterns: (detection404 && detection404.patterns) ? detection404.patterns : [],
+          fourOFourConfidence: detection404?.confidence || 0,
+          attemptedArchives: shouldTryArchives(extractionURL, detection404 || { detected: false }, config404),
+          archiveMode: config404.mode,
+          archiveProbability: config404.archiveProbability,
+          maxArchiveAttempts: config404.maxArchiveAttempts,
+          isHighValueDomain: isHighValueDomain(extractionURL, config404),
+          isLowValueContent: isLowValueContent(extractionURL, config404)
+        }
+      }
     }
   };
 
@@ -759,7 +1471,8 @@ export async function extractContent(url, options = {}) {
       code: 'ALL_SERVICES_FAILED',
       message: 'All extraction services failed to retrieve content',
       attempts: results.length,
-      serviceResults: results.map(r => ({ service: r.service, success: r.success, error: r.error?.code }))
+      serviceResults: results.map(r => ({ service: r.service, success: r.success, error: r.error?.code })),
+      ultraResilientAttempts: results.length > 3 ? results.length - 3 : 0
     };
   }
 

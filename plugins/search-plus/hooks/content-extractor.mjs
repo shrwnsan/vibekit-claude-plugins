@@ -1,5 +1,7 @@
 // hooks/content-extractor.mjs
 import { setTimeout } from 'timers/promises';
+import { promises as dns } from 'dns';
+import net from 'net';
 
 /**
  * Enhanced Content Extractor with Service Selection Strategy
@@ -949,9 +951,32 @@ function determineStrategy(isDoc, useCostTracking) {
 }
 
 /**
+ * Checks if an IP address is in a private or reserved range.
+ * @param {string} ip - The IP address to check.
+ * @returns {boolean} - True if the IP is private, false otherwise.
+ */
+function isPrivateIP(ip) {
+  if (net.isIPv4(ip)) {
+    const parts = ip.split('.').map(part => parseInt(part, 10));
+    // 127.0.0.0/8 - Loopback
+    if (parts[0] === 127) return true;
+    // 10.0.0.0/8 - Private
+    if (parts[0] === 10) return true;
+    // 172.16.0.0/12 - Private
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    // 192.168.0.0/16 - Private
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    // 169.254.0.0/16 - Link-local (includes AWS metadata service)
+    if (parts[0] === 169 && parts[1] === 254) return true;
+  }
+  // No IPv6 checks for now as per requirements, but can be added.
+  return false;
+}
+
+/**
  * Validates and normalizes malformed URLs before extraction
  */
-function validateAndNormalizeURL(url) {
+async function validateAndNormalizeURL(url) {
   const issues = [];
   let normalizedURL = url;
 
@@ -975,9 +1000,10 @@ function validateAndNormalizeURL(url) {
     // This is actually the correct pattern for Jina AI
   }
 
-  // Basic URL validation
+  // Basic URL validation and SSRF Protection
+  let parsedURL;
   try {
-    new URL(normalizedURL);
+    parsedURL = new URL(normalizedURL);
   } catch (error) {
     issues.push('invalid_url_format');
     return {
@@ -988,6 +1014,64 @@ function validateAndNormalizeURL(url) {
       normalizedURL: null
     };
   }
+
+  // SSRF Protection Step 1: Protocol check
+  if (parsedURL.protocol !== 'http:' && parsedURL.protocol !== 'https:') {
+    issues.push('invalid_protocol');
+    return {
+        valid: false,
+        issues,
+        error: `SSRF attack detected: Invalid protocol '${parsedURL.protocol}'. Only HTTP and HTTPS are allowed.`,
+        originalURL: url,
+        normalizedURL
+    };
+  }
+
+  const { hostname } = parsedURL;
+
+  // SSRF Protection Step 2: Hostname check
+  if (hostname === 'localhost' || hostname.endsWith('.local')) {
+      issues.push('forbidden_hostname');
+      return {
+          valid: false,
+          issues,
+          error: `SSRF attack detected: Hostname '${hostname}' is forbidden.`,
+          originalURL: url,
+          normalizedURL
+      };
+  }
+
+  // SSRF Protection Step 3: Resolve hostname to IP and check
+  let ipAddress;
+  if (net.isIP(hostname)) {
+      ipAddress = hostname;
+  } else {
+      try {
+          const { address } = await dns.lookup(hostname);
+          ipAddress = address;
+      } catch (error) {
+          issues.push('dns_lookup_failed');
+          return {
+              valid: false,
+              issues,
+              error: `DNS lookup failed for hostname: ${hostname}. ${error.message}`,
+              originalURL: url,
+              normalizedURL: null
+          };
+      }
+  }
+
+  if (isPrivateIP(ipAddress)) {
+      issues.push('private_ip_detected');
+      return {
+          valid: false,
+          issues,
+          error: `SSRF attack detected: IP address ${ipAddress} is in a forbidden range.`,
+          originalURL: url,
+          normalizedURL
+      };
+  }
+
 
   // Check for obviously problematic domains that would cause API failures
   const problematicPatterns = [
@@ -1155,7 +1239,7 @@ export async function extractContent(url, options = {}) {
   log(`🎯 404 Handling: ${config404.description}`);
 
   // Pre-validate and normalize URL before extraction
-  const urlValidation = validateAndNormalizeURL(url);
+  const urlValidation = await validateAndNormalizeURL(url);
   let extractionURL = url;
 
   if (!urlValidation.valid) {

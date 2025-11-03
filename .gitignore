@@ -62,3 +62,6 @@ temp/
 *.*-backup
 *.bak
 backups/*
+
+# Social media content (private marketing materials)
+social-*.md

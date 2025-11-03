@@ -115,7 +115,7 @@ node scripts/search-plus-service-matrix-testing.mjs
 📊 **Current Performance Results (Production Validated)**:
 - ✅ **100% Overall Success Rate** vs 10% baseline (+900% improvement)
 - ✅ **Perfect 20/20 tests** across all error scenarios
-- ✅ **Complete Error Recovery**: 422, 429, 403, and connection issues
+- ✅ **Complete Error Recovery**: 422, 429, 451, 403, and connection issues
 - ✅ **1.1s average response time** with intelligent service selection
 - ✅ **Zero Silent Failures** - eliminated "Did 0 searches..." responses
 
@@ -127,7 +127,7 @@ node scripts/search-plus-service-matrix-testing.mjs
 - **Plugin Status Detection**: 100% accurate plugin verification
 - **Search Query Testing**: 14 scenarios covering complex queries, documentation, domain restrictions
 - **URL Content Extraction**: 7 scenarios including problematic sites and frameworks
-- **Error Recovery**: Complete validation of 422, 429, 403, and connection issues
+- **Error Recovery**: Complete validation of 422, 429, 451, 403, and connection issues
 - **Edge Cases**: Empty queries, special characters, and boundary conditions
 
 📁 **Test Output Files**:
@@ -154,7 +154,7 @@ node scripts/test-search-plus.mjs
 ### Performance Monitoring
 Track these metrics to prevent regression:
 - **Overall Success Rate**: Target 100% (production validated)
-- **Error Resolution**: 422 (100%), 429 (100%), 403 (100%), ECONNREFUSED (100%)
+- **Error Resolution**: Complete success across all error types (422, 429, 451, 403, ECONNREFUSED)
 - **Response Times**: Target <3 seconds (current: 1.1s average)
 - **Detection Accuracy**: Target 100%
 

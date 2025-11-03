@@ -83,7 +83,7 @@ export async function handleWebSearch(params) {
     } catch (error) {
       console.error(`Search attempt ${attempt + 1} failed:`, error.message);
 
-      // Use enhanced error handling for all errors, including 422
+      // Use enhanced error handling for all errors, including 422 and 451
       const errorResult = await handleWebSearchError(error, {
         query,
         maxResults: params.maxResults || 5,
@@ -91,7 +91,8 @@ export async function handleWebSearch(params) {
         includeRawContent: params.includeRawContent || false,
         headers: generateRandomHeaders(),
         timeout,
-        attempt: attempt + 1
+        attempt: attempt + 1,
+        error: error  // Pass the original error for 451 handling
       });
 
       // If error handling succeeded, return the results
@@ -149,18 +150,22 @@ function generateRandomHeaders() {
  * @returns {boolean} True if the error is retryable
  */
 function isRetryableError(error) {
-  // 403, 422, 429, ECONNREFUSED, ETIMEDOUT are retryable
+  // 403, 422, 429, 451, ECONNREFUSED, ETIMEDOUT are retryable
   const errorMessage = error.message || '';
   const errorString = JSON.stringify(error);
 
   return error.code === 403 ||
          error.code === 422 ||
          error.code === 429 ||
+         error.code === 451 ||
          error.code === 'ECONNREFUSED' ||
          error.code === 'ETIMEDOUT' ||
          errorMessage.includes('403') ||
          errorMessage.includes('422') ||
          errorMessage.includes('429') ||
+         errorMessage.includes('451') ||
+         errorMessage.includes('SecurityCompromiseError') ||
+         errorMessage.includes('blocked until') ||
          errorMessage.includes('ECONNREFUSED') ||
          errorMessage.includes('ETIMEDOUT') ||
          // Check for schema validation patterns

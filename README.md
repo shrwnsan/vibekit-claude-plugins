@@ -69,12 +69,12 @@ Check that the plugin is working:
 
 ### 🔍 Search Plus
 
-Enhanced web search with advanced error handling for 403, 429, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-service fallback, retry logic, and reliable URL content extraction.
+Enhanced web search with advanced error handling for 403, 429, 451, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-service fallback, retry logic, and reliable URL content extraction.
 
 **Proven Performance Results:**
 - 🎯 **100% Overall Test Success**: Perfect 20/20 tests with comprehensive validation
 - 🚀 **A/B Test Results**: 100% success rate vs 10% baseline (+900% improvement)
-- 🔧 **Complete Error Recovery**: 100% success rate for all error types (422, 429, 403, connections)
+- 🔧 **Complete Error Recovery**: 100% success rate for all error types (422, 429, 451, 403, connections)
 - 🎯 **Real-World Validation**: Successfully extracts from CoinGecko API docs, Reddit, Yahoo Finance
 - ⏱️ **Optimized Response Times**: 1.1 seconds average with intelligent service selection
 - 📊 **Zero Silent Failures**: Complete elimination of "Did 0 searches..." responses

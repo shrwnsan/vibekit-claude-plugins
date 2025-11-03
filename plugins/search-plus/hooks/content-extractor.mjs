@@ -1201,7 +1201,6 @@ export async function extractContent(url, options = {}) {
   }
   log(`   URL Type: ${isDoc ? 'Documentation site' : isProblematic ? 'Problematic domain' : 'General URL'}`);
   log(`   Cost Tracking: ${useCostTracking ? 'enabled' : 'disabled'}`);
-  log(`   Primary Service: Tavily`);
 
   let result;
 

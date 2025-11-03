@@ -15,6 +15,9 @@ export async function handleWebSearchError(error, options) {
   if (error.code === 403 || error.message.includes('403') || error.message.toLowerCase().includes('forbidden')) {
     return await handle403Error(error, options);
   }
+  else if (error.code === 451 || error.message.includes('451') || error.message.toLowerCase().includes('securitycompromise') || error.message.toLowerCase().includes('blocked until')) {
+    return await handle451SecurityError(error, options);
+  }
   else if (error.code === 422 || error.message.includes('422') || is422SchemaError(error)) {
     return await handle422Error(error, options);
   }
@@ -83,6 +86,182 @@ async function handle403Error(error, options) {
       };
     }
   }
+}
+
+/**
+ * Handles 451 SecurityCompromiseError (domain blocked due to abuse)
+ * @param {Object} error - The 451 error
+ * @param {Object} options - Search options
+ * @returns {Object} Recovery results
+ */
+async function handle451SecurityError(error, options) {
+  const blockedDomain = extractBlockedDomain(error.message);
+  console.log(`🚫 451 SecurityCompromiseError encountered - domain ${blockedDomain || 'unknown'} blocked due to abuse`);
+  console.log('🔄 Attempting alternative search strategies...');
+
+  if (blockedDomain) {
+    console.log(`Domain ${blockedDomain} is blocked. Attempting alternative strategies...`);
+  }
+
+  // Try multiple recovery strategies for blocked domains
+  const strategies = [
+    () => tryAlternativeSearchSources(options),
+    () => searchWithExcludedDomain(options, blockedDomain),
+    () => reformulateQueryAvoidingBlockedDomain(options, blockedDomain),
+    () => useCachedOrArchiveResults(options, blockedDomain)
+  ];
+
+  for (const strategy of strategies) {
+    try {
+      console.log('Attempting 451 error recovery strategy...');
+      const results = await strategy();
+      if (results && !results.error) {
+        return {
+          success: true,
+          data: results,
+          message: `Successfully retrieved results using alternative strategy for blocked domain ${blockedDomain || 'unknown'}`
+        };
+      }
+    } catch (strategyError) {
+      console.log('451 recovery strategy failed:', strategyError.message);
+      continue;
+    }
+  }
+
+  return {
+    error: true,
+    message: `Failed to retrieve results after handling 451 SecurityCompromiseError. Domain ${blockedDomain || 'unknown'} is blocked due to previous abuse.`,
+    blockedUntil: extractBlockUntilDate(error.message),
+    suggestion: blockedDomain ? `Try searching for information from sources other than ${blockedDomain} or use web archive services.` : 'Try using different search terms or alternative sources.'
+  };
+}
+
+/**
+ * Extracts the blocked domain from error message
+ * @param {string} errorMessage - The error message
+ * @returns {string|null} The blocked domain or null if not found
+ */
+function extractBlockedDomain(errorMessage) {
+  const domainMatch = errorMessage.match(/domain (\S+) blocked/i) ||
+                      errorMessage.match(/access to (\S+) blocked/i);
+  return domainMatch ? domainMatch[1] : null;
+}
+
+/**
+ * Extracts the block expiration date from error message
+ * @param {string} errorMessage - The error message
+ * @returns {string|null} The block expiration date or null if not found
+ */
+function extractBlockUntilDate(errorMessage) {
+  // Look for "blocked until" followed by a date, capturing until the next reason or end
+  const dateMatch = errorMessage.match(/blocked until (.+?)(?:\s+due|$)/i);
+  return dateMatch ? dateMatch[1].trim() : null;
+}
+
+/**
+ * Tries alternative search sources when a domain is blocked
+ * @param {Object} options - Original search options (contains error field)
+ * @returns {Object} Search results from alternative sources
+ */
+async function tryAlternativeSearchSources(options) {
+  console.log('Trying alternative search sources...');
+
+  // Extract blocked domain from the error message
+  const blockedDomain = options.error ? extractBlockedDomain(options.error.message || '') : null;
+  const domainFilter = blockedDomain ? `-site:${blockedDomain}` : '';
+
+  // Modify search to exclude the problematic domain and focus on alternatives
+  const modifiedQuery = `${options.query} ${domainFilter} alternative OR substitute OR replacement`.trim();
+
+  const modifiedParams = {
+    ...options,
+    query: modifiedQuery,
+    include_answer: true,
+    max_results: Math.min(options.max_results || 10, 8)
+  };
+
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  return await tavilySearch(modifiedParams);
+}
+
+/**
+ * Searches while explicitly excluding the blocked domain
+ * @param {Object} options - Original search options
+ * @param {string} blockedDomain - The blocked domain
+ * @returns {Object} Search results
+ */
+async function searchWithExcludedDomain(options, blockedDomain) {
+  if (!blockedDomain) return { error: 'No blocked domain to exclude' };
+
+  console.log(`Searching while excluding domain: ${blockedDomain}`);
+
+  const exclusionQuery = `${options.query} -site:${blockedDomain}`;
+
+  const modifiedParams = {
+    ...options,
+    query: exclusionQuery,
+    headers: generateDiverseHeaders()
+  };
+
+  await new Promise(resolve => setTimeout(resolve, 3000));
+  return await tavilySearch(modifiedParams);
+}
+
+/**
+ * Reformulates query to avoid references to blocked domains
+ * @param {Object} options - Original search options
+ * @param {string} blockedDomain - The blocked domain
+ * @returns {Object} Search results
+ */
+async function reformulateQueryAvoidingBlockedDomain(options, blockedDomain) {
+  console.log('Reformulating query to avoid blocked domain references...');
+
+  let reformulatedQuery = options.query;
+
+  if (blockedDomain) {
+    // Remove domain references and replace with generic terms
+    const domainMappings = {
+      'httpbin.org': 'HTTP testing API endpoint service',
+      'github.com': 'code repository platform',
+      'stackoverflow.com': 'programming Q&A website',
+      'medium.com': 'blogging platform'
+    };
+
+    const genericTerm = domainMappings[blockedDomain] || 'online service';
+    reformulatedQuery = options.query.replace(new RegExp(blockedDomain, 'gi'), genericTerm);
+  }
+
+  const modifiedParams = {
+    ...options,
+    query: reformulatedQuery,
+    search_depth: "basic"
+  };
+
+  await new Promise(resolve => setTimeout(resolve, 2500));
+  return await tavilySearch(modifiedParams);
+}
+
+/**
+ * Attempts to use cached or archived results for blocked content
+ * @param {Object} options - Original search options
+ * @param {string} blockedDomain - The blocked domain
+ * @returns {Object} Search results
+ */
+async function useCachedOrArchiveResults(options, blockedDomain) {
+  console.log('Searching for archived or cached content...');
+
+  const archiveQuery = blockedDomain ?
+    `${options.query} web archive OR wayback machine OR cached version "site:${blockedDomain}"` :
+    `${options.query} archived OR cached OR mirror`;
+
+  const modifiedParams = {
+    ...options,
+    query: archiveQuery,
+    max_results: Math.min(options.max_results || 10, 5)
+  };
+
+  await new Promise(resolve => setTimeout(resolve, 4000));
+  return await tavilySearch(modifiedParams);
 }
 
 /**

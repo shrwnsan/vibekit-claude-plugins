@@ -47,51 +47,51 @@ const testScenarios = [
     description: 'Instant 400 empty query error'
   },
 
-  // httpbin.org predictable API tests - fast and reliable
+  // httpbingo.org predictable API tests - fast and reliable
   {
-    name: 'httpbin 403 Status Test',
+    name: 'httpbingo 403 Status Test',
     type: 'url',
-    query: 'https://httpbin.org/status/403',
+    query: 'https://httpbingo.org/status/403',
     expectedErrors: ['403'],
     tier: 'httpbin',
-    description: 'Predictable 403 error from httpbin'
+    description: 'Predictable 403 error from httpbingo'
   },
   {
-    name: 'httpbin 429 Status Test',
+    name: 'httpbingo 429 Status Test',
     type: 'url',
-    query: 'https://httpbin.org/status/429',
+    query: 'https://httpbingo.org/status/429',
     expectedErrors: ['429'],
     tier: 'httpbin',
-    description: 'Predictable 429 rate limit from httpbin'
+    description: 'Predictable 429 rate limit from httpbingo'
   },
   {
-    name: 'httpbin 404 Status Test',
+    name: 'httpbingo 404 Status Test',
     type: 'url',
-    query: 'https://httpbin.org/status/404',
+    query: 'https://httpbingo.org/status/404',
     expectedErrors: ['404'],
     tier: 'httpbin',
-    description: 'Predictable 404 not found from httpbin'
+    description: 'Predictable 404 not found from httpbingo'
   },
   {
-    name: 'httpbin 451 Status Test',
+    name: 'httpbingo 451 Status Test',
     type: 'url',
-    query: 'https://httpbin.org/status/451',
+    query: 'https://httpbingo.org/status/451',
     expectedErrors: ['451'],
     tier: 'httpbin',
-    description: 'Predictable 451 unavailable for legal reasons from httpbin'
+    description: 'Predictable 451 unavailable for legal reasons from httpbingo'
   },
   {
-    name: 'httpbin Headers Test',
+    name: 'httpbingo Headers Test',
     type: 'url',
-    query: 'https://httpbin.org/headers',
+    query: 'https://httpbingo.org/headers',
     expectedErrors: [],
     tier: 'httpbin',
     description: 'Header validation test endpoint'
   },
   {
-    name: 'httpbin User-Agent Test',
+    name: 'httpbingo User-Agent Test',
     type: 'url',
-    query: 'https://httpbin.org/user-agent',
+    query: 'https://httpbingo.org/user-agent',
     expectedErrors: [],
     tier: 'httpbin',
     description: 'User agent validation test endpoint'
@@ -315,9 +315,9 @@ const testScenarios = [
     description: 'Intentionally slow rate limit test'
   },
   {
-    name: 'httpbin Delay Test',
+    name: 'httpbingo Delay Test',
     type: 'url',
-    query: 'https://httpbin.org/delay/5',
+    query: 'https://httpbingo.org/delay/5',
     expectedErrors: [],
     tier: 'slow',
     description: 'Intentionally slow 5-second delay test'
@@ -501,8 +501,8 @@ async function testWebFetch(url) {
   try {
     log(`📄 Testing WebFetch: "${url}"`);
 
-    // Handle httpbin.org special cases
-    if (url.includes('httpbin.org')) {
+    // Handle httpbin.org and httpbingo.org special cases
+    if (url.includes('httpbin.org') || url.includes('httpbingo.org')) {
       const endTime = Date.now();
 
       if (url.includes('/status/')) {
@@ -522,7 +522,7 @@ async function testWebFetch(url) {
             url,
             timestamp: new Date().toISOString(),
             tool: 'WebFetch (Standard Claude Code)',
-            note: `Simulated ${delay}s delay from httpbin`
+            note: `Simulated ${delay}s delay from http service`
           }
         };
       } else {
@@ -537,7 +537,7 @@ async function testWebFetch(url) {
             url,
             timestamp: new Date().toISOString(),
             tool: 'WebFetch (Standard Claude Code)',
-            note: 'httpbin API endpoint response'
+            note: 'HTTP API endpoint response'
           }
         };
       }
@@ -761,12 +761,12 @@ async function testPluginExtraction(url) {
     if (error.message.includes('Cannot find module')) {
       log(`⚠️ Plugin not installed, simulating enhanced extraction`);
 
-      // Handle httpbin.org scenarios
-      if (url.includes('httpbin.org')) {
+      // Handle httpbin.org and httpbingo.org scenarios
+      if (url.includes('httpbin.org') || url.includes('httpbingo.org')) {
         if (url.includes('/status/')) {
           const statusCode = url.split('/status/')[1];
           // Plugin would successfully extract status code information
-          const mockContent = `{"status_code": ${statusCode}, "message": "Status ${statusCode} successfully retrieved via Search-Plus plugin", "source": "httpbin.org"}`;
+          const mockContent = `{"status_code": ${statusCode}, "message": "Status ${statusCode} successfully retrieved via Search-Plus plugin", "source": "http service"}`;
           return {
             success: true,
             responseTime: endTime - startTime,
@@ -782,7 +782,7 @@ async function testPluginExtraction(url) {
         } else if (url.includes('/delay/')) {
           const delay = url.split('/delay/')[1];
           // Plugin would handle the delay efficiently
-          const mockContent = `{"delay": ${delay}, "message": "Enhanced extraction after ${delay}s delay via Search-Plus plugin", "source": "httpbin.org"}`;
+          const mockContent = `{"delay": ${delay}, "message": "Enhanced extraction after ${delay}s delay via Search-Plus plugin", "source": "http service"}`;
           return {
             success: true,
             responseTime: endTime - startTime,
@@ -807,7 +807,7 @@ async function testPluginExtraction(url) {
               url,
               timestamp: new Date().toISOString(),
               tool: 'Search-Plus Plugin (Simulated)',
-              note: 'Plugin would enhance httpbin API responses'
+              note: 'Plugin would enhance HTTP API responses'
             }
           };
         }

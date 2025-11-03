@@ -135,7 +135,7 @@ const FALLBACK_SERVICES = {
 };
 
 // Service configuration
-const TAVILY_API_KEY = process.env.TAVILY_API_KEY || 'YOUR_TAVILY_API_KEY_HERE';
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY || null;
 const JINA_API_KEY = process.env.JINA_API_KEY || null;
 const TAVILY_EXTRACT_URL = 'https://api.tavily.com/extract';
 const JINA_READER_PUBLIC_URL = 'https://r.jina.ai/';
@@ -220,7 +220,7 @@ function isProblematicDomain(url) {
  * Validates Tavily API key with a simple test call
  */
 async function validateTavilyAPIKey() {
-  if (!TAVILY_API_KEY || TAVILY_API_KEY === 'YOUR_TAVILY_API_KEY_HERE') {
+  if (!TAVILY_API_KEY) {
     return { valid: false, reason: 'API key not configured' };
   }
 
@@ -259,7 +259,7 @@ async function validateTavilyAPIKey() {
 async function extractWithTavily(url, options = {}, timeoutMs = 15000) {
   const startTime = Date.now();
 
-  if (!TAVILY_API_KEY || TAVILY_API_KEY === 'YOUR_TAVILY_API_KEY_HERE') {
+  if (!TAVILY_API_KEY) {
     throw new Error('Tavily API key not configured');
   }
 
@@ -1487,7 +1487,7 @@ export async function extractContent(url, options = {}) {
 export async function tavilySearch(params, timeoutMs = 15000) {
   const startTime = Date.now();
 
-  if (!TAVILY_API_KEY || TAVILY_API_KEY === 'YOUR_TAVILY_API_KEY_HERE') {
+  if (!TAVILY_API_KEY) {
     throw new Error('Tavily API key not configured');
   }
 

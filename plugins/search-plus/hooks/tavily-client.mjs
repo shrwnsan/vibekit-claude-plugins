@@ -2,7 +2,7 @@
 import { setTimeout } from 'timers/promises';
 
 // Tavily API configuration - in a real implementation, this would come from environment/config
-const TAVILY_API_KEY = process.env.TAVILY_API_KEY || 'YOUR_TAVILY_API_KEY_HERE';
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY || null;
 const TAVILY_SEARCH_URL = 'https://api.tavily.com/search';
 const TAVILY_EXTRACT_URL = 'https://api.tavily.com/extract';
 
@@ -13,6 +13,10 @@ const TAVILY_EXTRACT_URL = 'https://api.tavily.com/extract';
  * @returns {Object} Search results
  */
 export async function tavilySearch(params, timeoutMs = 15000) {
+  if (!TAVILY_API_KEY) {
+    throw new Error('Tavily API key not configured');
+  }
+
   // Construct the request payload
   const requestBody = {
     api_key: TAVILY_API_KEY,
@@ -73,6 +77,11 @@ export async function tavilySearch(params, timeoutMs = 15000) {
  * @returns {Object} Extracted content
  */
 export async function tavilyExtract(url, options = {}, timeoutMs = 15000) {
+  // Validate API key
+  if (!TAVILY_API_KEY) {
+    throw new Error('Tavily API key not configured');
+  }
+
   // Validate URL
   if (!url || typeof url !== 'string') {
     throw new Error('Valid URL is required for content extraction');

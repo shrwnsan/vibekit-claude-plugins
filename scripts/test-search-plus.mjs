@@ -73,6 +73,14 @@ const testScenarios = [
     description: 'Predictable 404 not found from httpbin'
   },
   {
+    name: 'httpbin 451 Status Test',
+    type: 'url',
+    query: 'https://httpbin.org/status/451',
+    expectedErrors: ['451'],
+    tier: 'httpbin',
+    description: 'Predictable 451 unavailable for legal reasons from httpbin'
+  },
+  {
     name: 'httpbin Headers Test',
     type: 'url',
     query: 'https://httpbin.org/headers',
@@ -978,6 +986,7 @@ function extractErrorCode(errorMessage) {
   if (errorMessage.includes('429')) return '429';
   if (errorMessage.includes('400')) return '400';
   if (errorMessage.includes('404')) return '404';
+  if (errorMessage.includes('451')) return '451';
   if (errorMessage.includes('SILENT_FAILURE')) return 'SILENT_FAILURE';
   if (errorMessage.includes('ECONNREFUSED')) return 'ECONNREFUSED';
   if (errorMessage.includes('ETIMEDOUT')) return 'ETIMEDOUT';

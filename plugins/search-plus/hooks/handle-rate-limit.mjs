@@ -1,5 +1,5 @@
 // hooks/handle-rate-limit.mjs
-import { tavilySearch } from './content-extractor.mjs';
+import contentExtractor from './content-extractor.mjs';
 
 /**
  * Handles rate limiting scenarios
@@ -37,7 +37,7 @@ export async function handleRateLimit(error, options) {
       maxResults: Math.max(1, Math.floor((options.maxResults || 5) / 2)) // Reduce number of results
     };
     
-    const results = await tavilySearch(modifiedParams);
+    const results = await contentExtractor.tavily.search(modifiedParams);
     return {
       success: true,
       data: results,
@@ -57,7 +57,7 @@ export async function handleRateLimit(error, options) {
         query: simplifyQuery(options.query)
       };
       
-      const results = await tavilySearch(conservativeParams);
+      const results = await contentExtractor.tavily.search(conservativeParams);
       return {
         success: true,
         data: results,

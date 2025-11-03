@@ -1,5 +1,5 @@
 // hooks/handle-search-error.mjs
-import { tavilySearch } from './content-extractor.mjs';
+import contentExtractor from './content-extractor.mjs';
 import { handleRateLimit } from './handle-rate-limit.mjs';
 
 /**
@@ -59,7 +59,7 @@ async function handle403Error(error, options) {
     // Add a delay before retrying
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const results = await tavilySearch(modifiedParams);
+    const results = await contentExtractor.tavily.search(modifiedParams);
     return {
       success: true,
       data: results,
@@ -72,7 +72,7 @@ async function handle403Error(error, options) {
     // Try with a different search query formulation
     try {
       const reformulatedQuery = reformulateQuery(options.query);
-      const results = await tavilySearch({ ...options, query: reformulatedQuery });
+      const results = await contentExtractor.tavily.search({ ...options, query: reformulatedQuery });
       
       return {
         success: true,
@@ -112,19 +112,20 @@ async function handle451SecurityError(error, options) {
   ];
 
   for (const strategy of strategies) {
-    try {
-      console.log('Attempting 451 error recovery strategy...');
-      const results = await strategy();
-      if (results && !results.error) {
-        return {
-          success: true,
-          data: results,
-          message: `Successfully retrieved results using alternative strategy for blocked domain ${blockedDomain || 'unknown'}`
-        };
-      }
-    } catch (strategyError) {
-      console.log('451 recovery strategy failed:', strategyError.message);
-      continue;
+    const startTime = Date.now();
+    console.log(`Attempting 451 recovery strategy: ${strategy.name}...`);
+    const results = await strategy();
+
+    if (results && results.success) {
+      return {
+        success: true,
+        data: results.data,
+        message: `Successfully retrieved results using ${results.strategy} for blocked domain ${blockedDomain || 'unknown'}`,
+        strategy: results.strategy,
+        responseTime: Date.now() - startTime
+      };
+    } else {
+      console.log(`451 recovery strategy ${strategy.name} failed: ${results.error}`);
     }
   }
 
@@ -164,24 +165,31 @@ function extractBlockUntilDate(errorMessage) {
  * @returns {Object} Search results from alternative sources
  */
 async function tryAlternativeSearchSources(options) {
-  console.log('Trying alternative search sources...');
+  const startTime = Date.now();
+  const strategyName = 'alternative-search-sources';
 
-  // Extract blocked domain from the error message
-  const blockedDomain = options.error ? extractBlockedDomain(options.error.message || '') : null;
-  const domainFilter = blockedDomain ? `-site:${blockedDomain}` : '';
+  const strategyPromise = (async () => {
+    try {
+      console.log('Trying alternative search sources...');
+      const blockedDomain = options.error ? extractBlockedDomain(options.error.message || '') : null;
+      const domainFilter = blockedDomain ? `-site:${blockedDomain}` : '';
+      const modifiedQuery = `${options.query} ${domainFilter} alternative OR substitute OR replacement`.trim();
+      const modifiedParams = { ...options, query: modifiedQuery, include_answer: true, max_results: Math.min(options.max_results || 10, 8) };
 
-  // Modify search to exclude the problematic domain and focus on alternatives
-  const modifiedQuery = `${options.query} ${domainFilter} alternative OR substitute OR replacement`.trim();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const results = await contentExtractor.tavily.search(modifiedParams);
 
-  const modifiedParams = {
-    ...options,
-    query: modifiedQuery,
-    include_answer: true,
-    max_results: Math.min(options.max_results || 10, 8)
-  };
+      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
+    } catch (error) {
+      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
+    }
+  })();
 
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  return await tavilySearch(modifiedParams);
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => resolve({ success: false, error: 'Strategy timed out after 5s', strategy: strategyName, responseTime: Date.now() - startTime }), 5000);
+  });
+
+  return Promise.race([strategyPromise, timeoutPromise]);
 }
 
 /**
@@ -191,20 +199,33 @@ async function tryAlternativeSearchSources(options) {
  * @returns {Object} Search results
  */
 async function searchWithExcludedDomain(options, blockedDomain) {
-  if (!blockedDomain) return { error: 'No blocked domain to exclude' };
+  const startTime = Date.now();
+  const strategyName = 'excluded-domain-search';
 
-  console.log(`Searching while excluding domain: ${blockedDomain}`);
+  const strategyPromise = (async () => {
+    if (!blockedDomain) {
+      return { success: false, error: 'No blocked domain to exclude', strategy: strategyName, responseTime: Date.now() - startTime };
+    }
 
-  const exclusionQuery = `${options.query} -site:${blockedDomain}`;
+    try {
+      console.log(`Searching while excluding domain: ${blockedDomain}`);
+      const exclusionQuery = `${options.query} -site:${blockedDomain}`;
+      const modifiedParams = { ...options, query: exclusionQuery, headers: generateDiverseHeaders() };
 
-  const modifiedParams = {
-    ...options,
-    query: exclusionQuery,
-    headers: generateDiverseHeaders()
-  };
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const results = await contentExtractor.tavily.search(modifiedParams);
 
-  await new Promise(resolve => setTimeout(resolve, 3000));
-  return await tavilySearch(modifiedParams);
+      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
+    } catch (error) {
+      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
+    }
+  })();
+
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => resolve({ success: false, error: 'Strategy timed out after 5s', strategy: strategyName, responseTime: Date.now() - startTime }), 5000);
+  });
+
+  return Promise.race([strategyPromise, timeoutPromise]);
 }
 
 /**
@@ -214,31 +235,39 @@ async function searchWithExcludedDomain(options, blockedDomain) {
  * @returns {Object} Search results
  */
 async function reformulateQueryAvoidingBlockedDomain(options, blockedDomain) {
-  console.log('Reformulating query to avoid blocked domain references...');
+  const startTime = Date.now();
+  const strategyName = 'reformulate-query';
 
-  let reformulatedQuery = options.query;
+  const strategyPromise = (async () => {
+    try {
+      console.log('Reformulating query to avoid blocked domain references...');
+      let reformulatedQuery = options.query;
+      if (blockedDomain) {
+        const domainMappings = {
+          'httpbin.org': 'HTTP testing API endpoint service',
+          'github.com': 'code repository platform',
+          'stackoverflow.com': 'programming Q&A website',
+          'medium.com': 'blogging platform'
+        };
+        const genericTerm = domainMappings[blockedDomain] || 'online service';
+        reformulatedQuery = options.query.replace(new RegExp(blockedDomain, 'gi'), genericTerm);
+      }
+      const modifiedParams = { ...options, query: reformulatedQuery, search_depth: "basic" };
 
-  if (blockedDomain) {
-    // Remove domain references and replace with generic terms
-    const domainMappings = {
-      'httpbin.org': 'HTTP testing API endpoint service',
-      'github.com': 'code repository platform',
-      'stackoverflow.com': 'programming Q&A website',
-      'medium.com': 'blogging platform'
-    };
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      const results = await contentExtractor.tavily.search(modifiedParams);
 
-    const genericTerm = domainMappings[blockedDomain] || 'online service';
-    reformulatedQuery = options.query.replace(new RegExp(blockedDomain, 'gi'), genericTerm);
-  }
+      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
+    } catch (error) {
+      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
+    }
+  })();
 
-  const modifiedParams = {
-    ...options,
-    query: reformulatedQuery,
-    search_depth: "basic"
-  };
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => resolve({ success: false, error: 'Strategy timed out after 5s', strategy: strategyName, responseTime: Date.now() - startTime }), 5000);
+  });
 
-  await new Promise(resolve => setTimeout(resolve, 2500));
-  return await tavilySearch(modifiedParams);
+  return Promise.race([strategyPromise, timeoutPromise]);
 }
 
 /**
@@ -248,20 +277,31 @@ async function reformulateQueryAvoidingBlockedDomain(options, blockedDomain) {
  * @returns {Object} Search results
  */
 async function useCachedOrArchiveResults(options, blockedDomain) {
-  console.log('Searching for archived or cached content...');
+  const startTime = Date.now();
+  const strategyName = 'archive-search';
 
-  const archiveQuery = blockedDomain ?
-    `${options.query} web archive OR wayback machine OR cached version "site:${blockedDomain}"` :
-    `${options.query} archived OR cached OR mirror`;
+  const strategyPromise = (async () => {
+    try {
+      console.log('Searching for archived or cached content...');
+      const archiveQuery = blockedDomain
+        ? `${options.query} web archive OR wayback machine OR cached version "site:${blockedDomain}"`
+        : `${options.query} archived OR cached OR mirror`;
+      const modifiedParams = { ...options, query: archiveQuery, max_results: Math.min(options.max_results || 10, 5) };
 
-  const modifiedParams = {
-    ...options,
-    query: archiveQuery,
-    max_results: Math.min(options.max_results || 10, 5)
-  };
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      const results = await contentExtractor.tavily.search(modifiedParams);
 
-  await new Promise(resolve => setTimeout(resolve, 4000));
-  return await tavilySearch(modifiedParams);
+      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
+    } catch (error) {
+      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
+    }
+  })();
+
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => resolve({ success: false, error: 'Strategy timed out after 5s', strategy: strategyName, responseTime: Date.now() - startTime }), 5000);
+  });
+
+  return Promise.race([strategyPromise, timeoutPromise]);
 }
 
 /**
@@ -284,7 +324,7 @@ async function handleConnectionRefusedError(error, options) {
       timeout: (options.timeout || 10000) + 5000  // Increase timeout
     };
     
-    const results = await tavilySearch(modifiedParams);
+    const results = await contentExtractor.tavily.search(modifiedParams);
     return {
       success: true,
       data: results,
@@ -315,7 +355,7 @@ async function handleTimeoutError(error, options) {
       timeout: Math.min((options.timeout || 10000) * 2, 30000)  // Double timeout, max 30s
     };
     
-    const results = await tavilySearch(modifiedParams);
+    const results = await contentExtractor.tavily.search(modifiedParams);
     return {
       success: true,
       data: results,
@@ -450,7 +490,7 @@ async function repairSchemaAndRetry(options) {
   // Add delay before retry
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  return await tavilySearch(repairedParams);
+  return await contentExtractor.tavily.search(repairedParams);
 }
 
 /**
@@ -471,7 +511,7 @@ async function simplifyQueryAndRetry(options) {
 
   await new Promise(resolve => setTimeout(resolve, 1500));
 
-  return await tavilySearch(simplifiedParams);
+  return await contentExtractor.tavily.search(simplifiedParams);
 }
 
 /**
@@ -492,7 +532,7 @@ async function reformulateQueryForSchema(options) {
 
   await new Promise(resolve => setTimeout(resolve, 2000));
 
-  return await tavilySearch(reformulatedParams);
+  return await contentExtractor.tavily.search(reformulatedParams);
 }
 
 /**
@@ -512,7 +552,7 @@ async function tryAlternativeAPIFormat(options) {
 
   await new Promise(resolve => setTimeout(resolve, 3000));
 
-  return await tavilySearch(minimalParams);
+  return await contentExtractor.tavily.search(minimalParams);
 }
 
 /**

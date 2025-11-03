@@ -1568,10 +1568,11 @@ export async function extractContent(url, options = {}) {
  * @param {number} timeoutMs - Request timeout in milliseconds
  * @returns {Object} Search results
  */
-export async function tavilySearch(params, timeoutMs = 15000) {
-  const startTime = Date.now();
+export const tavily = {
+  search: async function tavilySearch(params, timeoutMs = 15000) {
+    const startTime = Date.now();
 
-  if (!TAVILY_API_KEY) {
+    if (!TAVILY_API_KEY) {
     throw new Error('Tavily API key not configured');
   }
 
@@ -1626,7 +1627,8 @@ export async function tavilySearch(params, timeoutMs = 15000) {
       throw error;
     }
   }
-}
+  }
+};
 
 /**
  * Simple logging function (can be replaced with proper logging)
@@ -1689,7 +1691,7 @@ export async function extractContentBatch(urls, options = {}) {
 export default {
   extractContent,
   extractContentBatch,
-  tavilySearch,
+  tavily,
   SERVICES,
   isDocumentationSite,
   isProblematicDomain

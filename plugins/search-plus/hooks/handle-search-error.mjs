@@ -2,21 +2,6 @@
 import contentExtractor from './content-extractor.mjs';
 import { handleRateLimit } from './handle-rate-limit.mjs';
 
-// ============================================================================
-// CONFIGURATION: Recovery strategy timeout
-// ============================================================================
-
-/**
- * Recovery strategy timeout in milliseconds
- * Environment variable: SEARCH_PLUS_RECOVERY_TIMEOUT_MS
- * Default: 5000ms (5 seconds) - based on project requirements for <5s average recovery
- */
-const RECOVERY_TIMEOUT_MS = parseInt(process.env.SEARCH_PLUS_RECOVERY_TIMEOUT_MS || '5000');
-
-// Log configuration in development mode
-if (process.env.NODE_ENV === 'development') {
-  console.log(`🔧 Search-Plus Recovery Timeout: ${RECOVERY_TIMEOUT_MS}ms`);
-}
 
 /**
  * Handles web search errors with advanced recovery strategies
@@ -106,6 +91,10 @@ async function handle403Error(error, options) {
 
 /**
  * Handles 451 SecurityCompromiseError (domain blocked due to abuse)
+ * This function implements an "Optimized Thorough Recovery" strategy. It runs the two
+ * most effective recovery strategies in parallel to maximize the chances of success
+ * while keeping the response time low. This approach provides a balance between the
+ * "Fast Recovery" and "Thorough Recovery" options.
  * @param {Object} error - The 451 error
  * @param {Object} options - Search options
  * @returns {Object} Recovery results
@@ -113,24 +102,20 @@ async function handle403Error(error, options) {
 async function handle451SecurityError(error, options) {
   const blockedDomain = extractBlockedDomain(error.message);
   console.log(`🚫 451 SecurityCompromiseError encountered - domain ${blockedDomain || 'unknown'} blocked due to abuse`);
-  console.log('🔄 Attempting alternative search strategies...');
+  console.log('🔄 Attempting optimized parallel recovery strategies...');
 
   if (blockedDomain) {
     console.log(`Domain ${blockedDomain} is blocked. Attempting alternative strategies...`);
   }
 
-  // Try multiple recovery strategies for blocked domains
+  // Optimized Thorough Recovery: Run the two most effective strategies in parallel
   const strategies = [
-    () => tryAlternativeSearchSources(options),
-    () => searchWithExcludedDomain(options, blockedDomain),
-    () => reformulateQueryAvoidingBlockedDomain(options, blockedDomain),
-    () => useCachedOrArchiveResults(options, blockedDomain)
+    searchWithExcludedDomain(options, blockedDomain),
+    tryAlternativeSearchSources(options)
   ];
 
-  for (const strategy of strategies) {
-    const startTime = Date.now();
-    console.log(`Attempting 451 recovery strategy: ${strategy.name}...`);
-    const results = await strategy();
+  try {
+    const results = await Promise.any(strategies);
 
     if (results && results.success) {
       return {
@@ -138,13 +123,14 @@ async function handle451SecurityError(error, options) {
         data: results.data,
         message: `Successfully retrieved results using ${results.strategy} for blocked domain ${blockedDomain || 'unknown'}`,
         strategy: results.strategy,
-        responseTime: Date.now() - startTime
+        responseTime: results.responseTime
       };
-    } else {
-      console.log(`451 recovery strategy ${strategy.name} failed: ${results.error}`);
     }
+  } catch (aggregateError) {
+    console.log('All 451 recovery strategies failed:', aggregateError);
   }
 
+  // Fallback if all strategies fail
   return {
     error: true,
     message: `Failed to retrieve results after handling 451 SecurityCompromiseError. Domain ${blockedDomain || 'unknown'} is blocked due to previous abuse.`,
@@ -184,7 +170,7 @@ async function tryAlternativeSearchSources(options) {
   const startTime = Date.now();
   const strategyName = 'alternative-search-sources';
 
-  const strategyPromise = (async () => {
+  return new Promise(async (resolve, reject) => {
     try {
       console.log('Trying alternative search sources...');
       const blockedDomain = options.error ? extractBlockedDomain(options.error.message || '') : null;
@@ -192,25 +178,18 @@ async function tryAlternativeSearchSources(options) {
       const modifiedQuery = `${options.query} ${domainFilter} alternative OR substitute OR replacement`.trim();
       const modifiedParams = { ...options, query: modifiedQuery, include_answer: true, max_results: Math.min(options.max_results || 10, 8) };
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const results = await contentExtractor.tavily.search(modifiedParams);
 
-      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
+      if (results) {
+        resolve({ success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime });
+      } else {
+        reject(new Error('Alternative search sources strategy failed'));
+      }
     } catch (error) {
-      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
+      reject(error);
     }
-  })();
-
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({
-      success: false,
-      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    }), RECOVERY_TIMEOUT_MS);
   });
-
-  return Promise.race([strategyPromise, timeoutPromise]);
 }
 
 /**
@@ -223,9 +202,9 @@ async function searchWithExcludedDomain(options, blockedDomain) {
   const startTime = Date.now();
   const strategyName = 'excluded-domain-search';
 
-  const strategyPromise = (async () => {
+  return new Promise(async (resolve, reject) => {
     if (!blockedDomain) {
-      return { success: false, error: 'No blocked domain to exclude', strategy: strategyName, responseTime: Date.now() - startTime };
+      return reject(new Error('No blocked domain to exclude'));
     }
 
     try {
@@ -233,25 +212,18 @@ async function searchWithExcludedDomain(options, blockedDomain) {
       const exclusionQuery = `${options.query} -site:${blockedDomain}`;
       const modifiedParams = { ...options, query: exclusionQuery, headers: generateDiverseHeaders() };
 
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       const results = await contentExtractor.tavily.search(modifiedParams);
 
-      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
+      if (results) {
+        resolve({ success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime });
+      } else {
+        reject(new Error('Excluded domain search strategy failed'));
+      }
     } catch (error) {
-      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
+      reject(error);
     }
-  })();
-
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({
-      success: false,
-      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    }), RECOVERY_TIMEOUT_MS);
   });
-
-  return Promise.race([strategyPromise, timeoutPromise]);
 }
 
 /**
@@ -260,85 +232,6 @@ async function searchWithExcludedDomain(options, blockedDomain) {
  * @param {string} blockedDomain - The blocked domain
  * @returns {Object} Search results
  */
-async function reformulateQueryAvoidingBlockedDomain(options, blockedDomain) {
-  const startTime = Date.now();
-  const strategyName = 'reformulate-query';
-
-  const strategyPromise = (async () => {
-    try {
-      console.log('Reformulating query to avoid blocked domain references...');
-      let reformulatedQuery = options.query;
-      if (blockedDomain) {
-        const domainMappings = {
-          'httpbin.org': 'HTTP testing API endpoint service',
-          'github.com': 'code repository platform',
-          'stackoverflow.com': 'programming Q&A website',
-          'medium.com': 'blogging platform'
-        };
-        const genericTerm = domainMappings[blockedDomain] || 'online service';
-        reformulatedQuery = options.query.replace(new RegExp(blockedDomain, 'gi'), genericTerm);
-      }
-      const modifiedParams = { ...options, query: reformulatedQuery, search_depth: "basic" };
-
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      const results = await contentExtractor.tavily.search(modifiedParams);
-
-      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
-    } catch (error) {
-      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
-    }
-  })();
-
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({
-      success: false,
-      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    }), RECOVERY_TIMEOUT_MS);
-  });
-
-  return Promise.race([strategyPromise, timeoutPromise]);
-}
-
-/**
- * Attempts to use cached or archived results for blocked content
- * @param {Object} options - Original search options
- * @param {string} blockedDomain - The blocked domain
- * @returns {Object} Search results
- */
-async function useCachedOrArchiveResults(options, blockedDomain) {
-  const startTime = Date.now();
-  const strategyName = 'archive-search';
-
-  const strategyPromise = (async () => {
-    try {
-      console.log('Searching for archived or cached content...');
-      const archiveQuery = blockedDomain
-        ? `${options.query} web archive OR wayback machine OR cached version "site:${blockedDomain}"`
-        : `${options.query} archived OR cached OR mirror`;
-      const modifiedParams = { ...options, query: archiveQuery, max_results: Math.min(options.max_results || 10, 5) };
-
-      await new Promise(resolve => setTimeout(resolve, 4000));
-      const results = await contentExtractor.tavily.search(modifiedParams);
-
-      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
-    } catch (error) {
-      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
-    }
-  })();
-
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({
-      success: false,
-      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    }), RECOVERY_TIMEOUT_MS);
-  });
-
-  return Promise.race([strategyPromise, timeoutPromise]);
-}
 
 /**
  * Handles connection refused errors

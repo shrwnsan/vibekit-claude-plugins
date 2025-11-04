@@ -2,6 +2,22 @@
 import contentExtractor from './content-extractor.mjs';
 import { handleRateLimit } from './handle-rate-limit.mjs';
 
+// ============================================================================
+// CONFIGURATION: Recovery strategy timeout
+// ============================================================================
+
+/**
+ * Recovery strategy timeout in milliseconds
+ * Environment variable: SEARCH_PLUS_RECOVERY_TIMEOUT_MS
+ * Default: 5000ms (5 seconds) - based on project requirements for <5s average recovery
+ */
+const RECOVERY_TIMEOUT_MS = parseInt(process.env.SEARCH_PLUS_RECOVERY_TIMEOUT_MS || '5000');
+
+// Log configuration in development mode
+if (process.env.NODE_ENV === 'development') {
+  console.log(`🔧 Search-Plus Recovery Timeout: ${RECOVERY_TIMEOUT_MS}ms`);
+}
+
 /**
  * Handles web search errors with advanced recovery strategies
  * @param {Object} error - The error object
@@ -186,7 +202,12 @@ async function tryAlternativeSearchSources(options) {
   })();
 
   const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({ success: false, error: 'Strategy timed out after 5s', strategy: strategyName, responseTime: Date.now() - startTime }), 5000);
+    setTimeout(() => resolve({
+      success: false,
+      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
+      strategy: strategyName,
+      responseTime: Date.now() - startTime
+    }), RECOVERY_TIMEOUT_MS);
   });
 
   return Promise.race([strategyPromise, timeoutPromise]);
@@ -222,7 +243,12 @@ async function searchWithExcludedDomain(options, blockedDomain) {
   })();
 
   const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({ success: false, error: 'Strategy timed out after 5s', strategy: strategyName, responseTime: Date.now() - startTime }), 5000);
+    setTimeout(() => resolve({
+      success: false,
+      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
+      strategy: strategyName,
+      responseTime: Date.now() - startTime
+    }), RECOVERY_TIMEOUT_MS);
   });
 
   return Promise.race([strategyPromise, timeoutPromise]);
@@ -264,7 +290,12 @@ async function reformulateQueryAvoidingBlockedDomain(options, blockedDomain) {
   })();
 
   const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({ success: false, error: 'Strategy timed out after 5s', strategy: strategyName, responseTime: Date.now() - startTime }), 5000);
+    setTimeout(() => resolve({
+      success: false,
+      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
+      strategy: strategyName,
+      responseTime: Date.now() - startTime
+    }), RECOVERY_TIMEOUT_MS);
   });
 
   return Promise.race([strategyPromise, timeoutPromise]);
@@ -298,7 +329,12 @@ async function useCachedOrArchiveResults(options, blockedDomain) {
   })();
 
   const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({ success: false, error: 'Strategy timed out after 5s', strategy: strategyName, responseTime: Date.now() - startTime }), 5000);
+    setTimeout(() => resolve({
+      success: false,
+      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
+      strategy: strategyName,
+      responseTime: Date.now() - startTime
+    }), RECOVERY_TIMEOUT_MS);
   });
 
   return Promise.race([strategyPromise, timeoutPromise]);

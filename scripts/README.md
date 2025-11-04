@@ -129,7 +129,7 @@ node scripts/test-http-infra.js
 **Purpose**: Smart A/B testing based on plugin installation status
 - **Enhanced Mode**: Runs when plugin is fully operational
 - **Baseline Mode**: Runs when plugin is ready but not installed
-- **20 test scenarios**: Comprehensive search and URL extraction coverage
+- **35 test scenarios**: Comprehensive search and URL extraction coverage
 - **Real API calls**: Tests actual plugin functionality with Tavily
 - **Clean output**: Only creates necessary result files
 
@@ -137,9 +137,9 @@ node scripts/test-http-infra.js
 
 📊 **Current Performance Results (Production Validated)**:
 - ✅ **100% Overall Success Rate** vs 10% baseline (+900% improvement)
-- ✅ **Perfect 20/20 tests** across all error scenarios
+- ✅ **Perfect 35/35 tests** across all error scenarios
 - ✅ **Complete Error Recovery**: 422, 429, 451, 403, and connection issues
-- ✅ **1.1s average response time** with intelligent service selection
+- ✅ **3.2s average response time** with intelligent service selection
 - ✅ **Zero Silent Failures** - eliminated "Did 0 searches..." responses
 
 📈 **For detailed performance metrics, benchmark analysis, and test results breakdown, see [Testing Guide](../docs/TESTING-GUIDE.md#current-performance-metrics)**

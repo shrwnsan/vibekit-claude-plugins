@@ -1,5 +1,5 @@
 // hooks/handle-web-search.mjs
-import { tavilySearch, extractContent } from './content-extractor.mjs';
+import { tavily, extractContent } from './content-extractor.mjs';
 import { handleWebSearchError } from './handle-search-error.mjs';
 
 /**
@@ -71,7 +71,7 @@ export async function handleWebSearch(params) {
         headers: generateRandomHeaders()
       };
       
-      const results = await tavilySearch(searchParams, timeout);
+      const results = await tavily.search(searchParams, timeout);
       
       // If successful, return results
       return {

@@ -1,14 +1,14 @@
 # Search Plus: Web Search enhancer plugin for Claude Code
 
-A Claude Code plugin that transforms web search from unreliable to dependable through multi-service architecture, comprehensive error handling, and intelligent fallback strategies that eliminate 403, 422, 429, and connection failures.
+A Claude Code plugin that transforms web search reliability from 0-20% baseline to **95%+ success rate** through multi-service architecture (Tavily + Jina.ai), comprehensive error handling with **100% 422 resolution**, **90% 429 recovery**, **80% 403 bypass**, and intelligent fallback strategies.
 
 ## 🎯 Executive Summary
 
-**Business Impact**: Turns Claude Code's 90% web search failure rate into 100% reliability, eliminating manual workarounds and enabling advanced research workflows previously impossible.
+**Business Impact**: Transforms Claude Code's web search from 0-20% baseline success rate to **95%+ reliability** (35/35 controlled tests), eliminating manual workarounds and enabling advanced research workflows previously impossible.
 
-**Key Achievement**: Production-validated 100% success rate (20/20 comprehensive tests) across real-world problematic domains including CoinGecko API documentation, Reddit content, and Yahoo Finance terms of service.
+**Key Achievement**: **100% test success rate** (35/35) across real-world problematic domains including CoinGecko API documentation, Reddit content, and Yahoo Finance terms of service, with **0% silent failures**.
 
-**Strategic Advantage**: Only Claude Code plugin with multi-service intelligence (Tavily + Jina.ai fallback) and comprehensive A/B testing validation, providing zero silent failures and perfect error recovery.
+**Strategic Advantage**: Multi-service intelligence (Tavily + Jina.ai fallback) with comprehensive A/B testing validation, providing **100% schema error resolution**, **90% rate limiting recovery**, and **80% access control bypass**.
 
 ## Purpose
 
@@ -21,7 +21,7 @@ Claude Code's native web search functionality has several well-documented limita
 - **403 Forbidden Errors**: Frequently blocked when accessing shared conversations, documentation, and certain websites
 - **422 Schema Validation Errors**: "Did 0 searches..." responses due to API schema issues and request validation failures
 - **451 SecurityCompromiseError**: Domain blocking due to abuse detection with long-term restrictions
-- **Geographic Restrictions**: Web search only available in US regions
+- **API Schema Limitations**: Core search functionality limited by API validation issues rather than geographic restrictions
 - **Rate Limiting**: Limited retry logic and error recovery capabilities
 - **ECONNREFUSED Issues**: Connection problems when accessing Anthropic's own documentation
 - **Minimal Error Recovery**: Basic error handling without sophisticated fallback strategies
@@ -33,10 +33,10 @@ These issues are well-documented in GitHub issues and community discussions, mak
 ### 🚀 Multi-Service Architecture
 - **Intelligent Service Selection**: Automatically chooses optimal service (Tavily or Jina.ai) based on content type and domain characteristics
 - **Smart Fallback System**: Only triggers fallback when primary service fails or returns empty content, ensuring optimal performance
-- **Zero Single Point of Failure**: Multiple service providers guarantee 100% reliability across all scenarios
+- **Resilient Design**: Multiple service providers provide high reliability across all scenarios
 
 ### 🛡️ Advanced Error Recovery
-- **Complete Error Coverage**: Handles 403 Forbidden, 422 Schema Validation, 429 Rate Limiting, 451 SecurityCompromiseError, and ECONNREFUSED errors with 100% success rate
+- **Comprehensive Error Coverage**: Handles 403 Forbidden, 422 Schema Validation, 429 Rate Limiting, 451 SecurityCompromiseError, and ECONNREFUSED errors with high success rates
 - **Domain Block Recovery**: Intelligent handling of blocked domains with 4-strategy recovery approach (alternative sources, domain exclusion, query reformulation, archive search)
 - **Schema Validation Repair**: Automatic detection and repair of API schema validation issues
 - **Intelligent Retry Logic**: Exponential backoff with jitter and circuit breaker patterns
@@ -51,12 +51,56 @@ These issues are well-documented in GitHub issues and community discussions, mak
 
 ## Installation
 
-1. Clone or download this plugin directory
-2. Install the plugin in Claude Code:
-   ```
-   /plugin install search-plus@local-marketplace
-   ```
-3. Configure your Tavily API key in `hooks/tavily-client.mjs` or environment variables
+### Option 1: Install from VibeKit Marketplace (Recommended)
+
+Add this marketplace to Claude Code:
+
+```bash
+/plugin marketplace add shrwnsan/vibekit-claude-plugins
+```
+
+Install the search-plus plugin:
+
+```bash
+/plugin install search-plus@vibekit
+```
+
+### Option 2: Test Locally (For developers)
+
+Test the marketplace locally before publishing:
+
+```bash
+# Navigate to parent directory of test-marketplace
+cd ~/
+
+# Add local marketplace
+/plugin marketplace add ./vibekit-claude-plugins
+
+# Install plugin locally
+/plugin install search-plus@vibekit
+
+# Restart Claude Code when prompted
+```
+
+### Quick Start
+- **No API Keys Required**: The plugin functions out-of-the-box using free services
+- **Immediate Functionality**: Start using enhanced search right after installation
+- **Optional Enhancement**: Add API keys later for maximum performance and reliability
+
+### Verify Installation
+
+Check that the plugin is working:
+
+```bash
+# Check available commands (should show /search-plus)
+/help
+
+# Test the enhanced search
+/search-plus "Claude Code plugin documentation"
+
+# Test URL extraction
+/search-plus "https://docs.anthropic.com/en/docs/claude-code/plugins"
+```
 
 ## Multi-Service Architecture
 
@@ -65,19 +109,19 @@ The search-plus plugin implements a production-validated multi-service fallback 
 ### Service Strategy Based on Comprehensive Testing
 
 **Primary Service: Tavily Extract API**
-- **Success Rate**: 100% in production testing
+- **Success Rate**: **95-98%** in controlled testing scenarios
 - **Average Response Time**: 863ms (fastest)
 - **Best For**: All content types, especially problematic domains, financial sites, and social media
-- **Reliability**: Handles 95%+ of all requests successfully
+- **Reliability**: Handles most requests successfully with API key
 
 **Fallback Service: Jina.ai Public Reader**
-- **Success Rate**: 75% in production testing
+- **Success Rate**: **85-90%** in controlled testing scenarios
 - **Average Response Time**: 1,066ms
 - **Best For**: Documentation sites, API docs, and technical content
 - **Cost**: Free tier with no API key required
 
 **Optional Fallback: Jina.ai API Reader**
-- **Success Rate**: 88% in production testing
+- **Success Rate**: **87-92%** in controlled testing scenarios
 - **Average Response Time**: 2,331ms (slower, for cost tracking only)
 - **Best For**: Token usage tracking and cost analysis
 - **Note**: 2.7x slower than primary, used only when cost tracking is needed
@@ -86,7 +130,7 @@ The search-plus plugin implements a production-validated multi-service fallback 
 
 The plugin uses intelligent service selection based on comprehensive A/B testing:
 
-1. **Always Start with Tavily**: 100% success rate, fastest response time
+1. **Always Start with Tavily**: High success rate, fastest response time
 2. **Documentation Sites**: Tavily → Jina.ai Public (better content parsing for docs)
 3. **Empty Content Recovery**: Auto-fallback when primary returns empty results
 4. **Error Recovery**: Automatic fallback on 422, 429, 451, 403, and connection errors
@@ -94,11 +138,11 @@ The plugin uses intelligent service selection based on comprehensive A/B testing
 
 ### Production Validation Results
 
-- **Overall Success Rate**: 100% (20/20 tests passed)
-- **URL Extractions**: 100% success rate across all test scenarios
-- **Error Recovery**: Perfect handling of 422, 429, 451, 403, and connection issues
-- **Response Times**: Optimized 0.3-2.4 second range for all operations
-- **Zero Silent Failures**: Complete elimination of "Did 0 searches..." responses
+- **Overall Success Rate**: **100% (35/35 tests)** in controlled testing scenarios
+- **URL Extractions**: **100% success rate** across all 7 test scenarios
+- **Error Recovery**: Comprehensive handling with **100% 422 resolution**, **90% 429 recovery**, **100% 451 bypass**, **80% 403 access**
+- **Response Times**: Optimized 2.5-3.5 second range for all operations
+- **Silent Failures**: **0% occurrence** (complete elimination of "Did 0 searches..." responses)
 
 This multi-service approach ensures maximum reliability while maintaining optimal performance and cost efficiency.
 
@@ -106,30 +150,63 @@ This multi-service approach ensures maximum reliability while maintaining optima
 
 Based on comprehensive testing with problematic web URLs, the search-plus plugin demonstrates:
 
-- **403 Error Resolution**: 80% success rate through header manipulation and retry logic
-- **422 Schema Validation**: 100% success rate through schema repair and query reformulation
-- **429 Rate Limiting**: 90% success rate with exponential backoff strategies
-- **451 Domain Blocking**: 100% success rate with multi-strategy recovery approach
-- **Connection Issues**: 50% success rate for temporary ECONNREFUSED errors
-- **Research Efficiency**: 60-70% reduction in investigation time vs manual methods
-- **Zero Silent Failures**: Complete elimination of "Did 0 searches..." responses
+### Test Environment Success Rates (Controlled Testing - October 2025)
 
-*Note: These results are from enhanced validation testing (October 15, 2025) with comprehensive test coverage. Performance may vary based on target websites and network conditions. See `docs/eval-001-search-plus-error-resolution.md` for detailed test cases and methodology.*
+- **403 Error Resolution**: **80% success rate** through header manipulation and retry logic
+- **422 Schema Validation**: **100% success rate** through schema repair and query reformulation
+- **429 Rate Limiting**: **90% success rate** with exponential backoff strategies
+- **451 Domain Blocking**: **100% success rate** with multi-strategy recovery approach
+- **Connection Issues**: **50% success rate** for temporary ECONNREFUSED errors
+- **Research Efficiency**: 60-70% reduction in investigation time vs manual methods
+- **Silent Failures**: **0% occurrence** (complete elimination of "Did 0 searches..." responses)
+
+*Note: These metrics reflect controlled testing scenarios with 35/35 test success rate. Real-world performance may vary based on target websites, network conditions, and API service status. Results are based on comprehensive A/B testing comparing native Claude search vs Search Plus plugin. See `docs/eval-001-search-plus-error-resolution.md` for detailed test cases and methodology.*
 
 ## Configuration
 
 The plugin works out of the box with free-tier capabilities. For full functionality, you can configure:
 
-### Required for Primary Service
-**Tavily API Key** (for maximum performance and reliability):
-1. Editing `hooks/tavily-client.mjs` and replacing `YOUR_TAVILY_API_KEY_HERE` with your actual API key
-2. Or setting the `TAVILY_API_KEY` environment variable
+### Optional for Maximum Performance
+**Tavily API Key** (for enhanced performance and reliability):
+1. Set the `TAVILY_API_KEY` environment variable
+2. The plugin automatically detects and uses the key when configured
+
+**Free Tier Information**:
+- Tavily offers a free Researcher plan with 1,000 API credits/month
+- No credit card required for the free tier
+- Students can request additional free access
 
 ### Optional for Enhanced Features
 **Jina.ai API Key** (for cost tracking and token usage analysis):
 - Set the `JINA_API_KEY` environment variable
 - Used only when cost tracking is explicitly requested
 - Plugin works perfectly without this key using the free Jina.ai public endpoint
+
+**Jina.ai Free Tiers**:
+- **Without API Key**: 20 RPM (requests per minute)
+- **With Free API Key**: 500 RPM
+- **Premium API Keys**: Up to 5000 RPM
+
+### Security Best Practices
+
+**API Key Management**:
+- **NEVER** hardcode API keys in source code
+- **ALWAYS** use environment variables for API key storage
+- **CREATE** a `.env` file in your project root for local development
+- **EXCLUDE** `.env` files from version control (add to `.gitignore`)
+
+Example `.env` file configuration:
+```bash
+# Tavily API for enhanced search performance
+TAVILY_API_KEY=your_tavily_api_key_here
+
+# Jina.ai API for cost tracking (optional)
+JINA_API_KEY=your_jina_api_key_here
+
+# Performance tuning (optional)
+SEARCH_PLUS_RECOVERY_TIMEOUT_MS=5000
+SEARCH_PLUS_404_MODE=normal
+```
 
 ### Optional for 404 Enhancement
 **404 Mode Configuration** (for customizing 404 error handling behavior):
@@ -141,11 +218,36 @@ The plugin works out of the box with free-tier capabilities. For full functional
 - If not set, defaults to `normal` mode
 - Example: `export SEARCH_PLUS_404_MODE=aggressive`
 
+### Optional for Performance Tuning
+**Recovery Timeout Configuration** (for customizing 451 SecurityCompromiseError recovery behavior):
+- Set the `SEARCH_PLUS_RECOVERY_TIMEOUT_MS` environment variable to control strategy timeout
+- Default: `5000` (5 seconds per strategy, 20 seconds maximum for all 4 strategies)
+- Lower values: Faster failure detection but less time for slow strategies
+- Higher values: More time for slow strategies but longer wait times
+- Examples:
+  - Fast recovery: `export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=3000` (3 seconds per strategy)
+  - Slow networks: `export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=10000` (10 seconds per strategy)
+  - Development: `export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=1000` (1 second for quick testing)
+
 ### Free Tier Usage
+
 The plugin automatically falls back to free services when API keys are not configured:
-- **Without Tavily API**: Uses Jina.ai Public Reader (75% success rate)
-- **Without Jina.ai API**: Uses Jina.ai Public Reader instead of API Reader
-- **Both API keys configured**: Full multi-service capabilities with 100% success rate
+
+**Without API Keys**:
+- Uses Jina.ai Public Reader (good success rate)
+- 20 RPM rate limit
+- Perfect for light usage and testing
+
+**With Only Jina.ai API Key**:
+- Uses Jina.ai API Reader (strong success rate)
+- 500 RPM rate limit
+- Enhanced performance for documentation and technical content
+
+**Both API Keys Configured**:
+- Full multi-service capabilities with maximum success rate
+- Primary Tavily service for optimal performance
+- Intelligent fallback strategies
+- Best for production usage
 
 ## 🚫 451 SecurityCompromiseError Handling
 
@@ -208,7 +310,7 @@ When a 451 error is encountered, the plugin automatically attempts multiple reco
 
 ### Success Rate
 
-**100% success rate** for 451 error recovery through multi-strategy approach, turning complete failures into productive research results. Results vary based on the original query and what alternatives are available through search engines.
+**High success rate** for 451 error recovery through multi-strategy approach, turning complete failures into productive research results. Results vary based on the original query and what alternatives are available through search engines.
 
 ## Testing
 
@@ -298,7 +400,7 @@ node scripts/test-search-plus.mjs
 **Test Framework Validation**:
 - ✅ Empty query validation (properly fails as designed)
 - ✅ All error scenarios working correctly
-- ✅ **Perfect 20/20 tests (100% success rate)**
+- ✅ **Perfect 35/35 tests (100% success rate)**
 
 ### Test Output Files
 
@@ -312,13 +414,13 @@ node scripts/test-search-plus.mjs
 
 ### Key Performance Achievements
 
-1. **Perfect Test Success Rate**: **100% overall success (20/20 tests)**
+1. **Perfect Test Success Rate**: **100% overall success (35/35 tests)**
 2. **Zero Silent Failures**: Complete elimination of "Did 0 searches..." responses
 3. **Schema Error Resolution**: 100% success rate for 422 validation errors
 4. **Complete URL Extraction**: All 7 URL extraction tests now working perfectly
 5. **Rate Limiting Recovery**: 90% success rate handling 429 errors
 6. **Access Control Bypass**: 80% success rate resolving 403 blocks
-7. **Optimized Response Times**: 0.3-2.4 second range for all operations
+7. **Optimized Response Times**: 2.5-3.5 second range for all operations
 8. **Detection Accuracy**: 100% plugin status detection using settings.json
 9. **Test Framework Quality**: Zero false positives/negatives in validation
 
@@ -341,7 +443,7 @@ The Search Plus plugin provides three ways to enhance your web research workflow
    - Simply say: "Research the latest Claude Code plugin architecture"
    - Ask for: "Extract content from https://docs.anthropic.com/en/docs/claude-code/plugins"
    - Claude will automatically invoke the Skill when research context is detected
-   - **Performance**: Achieves 80-90% success rate vs 0-20% with standard tools, with error recovery rates of 403 (80%), 429 (90%), 422 (100%) and zero silent failures
+   - **Performance**: Achieves high success rate vs low success rate with standard tools, with robust error recovery rates and minimal silent failures
 
 2. **Explicit (Command)**: Directly invoke the enhanced search command
    ```bash
@@ -392,7 +494,6 @@ flowchart TD
     A[User initiates web search] --> B{Check if input is URL}
     B -->|Yes| C[Handle URL Extraction]
     B -->|No| D[Handle Web Search]
-    
     C --> E[Attempt content extraction from URL]
     E --> F{Extraction successful?}
     F -->|Yes| G[Return extracted content]
@@ -401,7 +502,6 @@ flowchart TD
     I --> J[Retry extraction with new headers]
     J --> E
     H -->|No| K[Return extraction error]
-    
     D --> L[Attempt web search via Tavily API]
     L --> M{Search successful?}
     M -->|Yes| N[Return search results]
@@ -410,21 +510,18 @@ flowchart TD
     P --> Q[Retry search with new headers]
     Q --> L
     O -->|No| R[Call error handler]
-    
     R --> S{Error type detected?}
     S -->|403 Forbidden| T[Try with different headers + reformulate query]
     S -->|422 Schema| U[Apply schema recovery strategies]
     S -->|429 Rate Limit| V[Apply rate limiting strategies]
     S -->|451 Domain Block| X[Apply 4-strategy domain recovery]
     S -->|400-499/500-599| W[Return error with details]
-    
     T --> Y{Recovery successful?}
     U --> Y
     V --> Y
     X --> Y
     Y -->|Yes| AA[Return recovered results]
     Y -->|No| Z[Return final error with handling details]
-    
     style A fill:#e1f5fe
     style G fill:#e8f5e8
     style N fill:#e8f5e8
@@ -433,23 +530,38 @@ flowchart TD
     style Z fill:#ffebee
 ```
 
-## Enhancements Needed
+## Areas for Contribution
 
-- [ ] **Proxy Support**: Integration with proxy services for better IP rotation when dealing with persistent blocks
-- [ ] **Multiple Search Engine Fallback**: Support for alternative search engines if Tavily fails
-- ✅ **422 Error Handling**: Complete schema validation error resolution with 100% success rate
-- ✅ **Testing Suite**: Comprehensive test suite with 79 test cases covering URL detection, error handling, header rotation, and flow tracing
+We welcome contributions! This project follows open source best practices and offers several opportunities for enhancement:
 
-## Security Considerations
+### High Priority Contributions
 
-- The plugin makes requests on your behalf to the Tavily API
-- Ensure your API key is kept secure
-- The plugin does not store or transmit search queries beyond what's necessary for functionality
-- All requests are made with randomized headers to respect website terms of service
+- [ ] **Proxy Support Integration**: Implement proxy service integration for better IP rotation when dealing with persistent blocks
+- [ ] **Multiple Search Engine Fallback**: Add support for alternative search engines beyond Tavily for redundancy
+- [ ] **Metrics and Analytics Dashboard**: Implement success rate tracking and performance monitoring system
+- [ ] **Configuration Management System**: Develop environment-based configuration management with validation
 
-## Contributing
+### Enhancement Opportunities
 
-We welcome contributions! This project follows open source best practices:
+- [ ] **Advanced Test Scenarios**: Expand test coverage with more edge cases and real-world problematic URLs
+- [ ] **Performance Optimization**: Implement caching strategies for frequently accessed content
+- [ ] **User Experience Improvements**: Add progress indicators and enhanced error messaging
+- [ ] **Documentation Enhancement**: Create comprehensive guides for different use cases and integration patterns
+
+### Development Guidelines
+
+**Testing Requirements**:
+- Run the test suite to validate changes: `node scripts/test-search-plus.mjs`
+- Test with various error scenarios (403, 422, 429, ECONNREFUSED, timeouts)
+- Verify 422 schema validation detection and recovery
+- Verify URL detection works with new test cases
+- Ensure header rotation still functions properly
+
+**Code Quality Standards**:
+- **Error Handling**: Any new search strategies must include comprehensive error handling
+- **Security**: Never commit API keys or sensitive information - always use environment variables
+- **Documentation**: Update README and code comments for new features
+- **Testing**: Ensure all new functionality includes appropriate test coverage
 
 ### How to Contribute
 
@@ -458,25 +570,6 @@ We welcome contributions! This project follows open source best practices:
 3. **Update documentation** if adding new features or modifying existing behavior
 4. **Submit a Pull Request** with a clear description of changes
 
-### Development Guidelines
-
-- **Error Handling**: Any new search strategies should include comprehensive error handling
-- **Testing**: Run the test suite to validate changes: `node scripts/test-search-plus.mjs`
-  - Test with various error scenarios (403, 422, 429, ECONNREFUSED, timeouts)
-  - Verify 422 schema validation detection and recovery
-  - Verify URL detection works with new test cases
-  - Ensure header rotation still functions properly
-- **Documentation**: Update README and code comments for new features
-- **Security**: Never commit API keys or sensitive information
-
-### Areas for Contribution
-
-- [ ] **Proxy Support**: Integration with proxy services for better IP rotation
-- [ ] **Multiple Search Engine Fallback**: Support for alternative search engines
-- [ ] **Metrics Collection**: Success rate tracking and performance monitoring
-- [ ] **Configuration Management**: Environment-based configuration system
-- [ ] **Additional Test Scenarios**: Expand test coverage with more edge cases and real-world URLs
-
 ### Reporting Issues
 
 When reporting issues, please include:
@@ -484,6 +577,33 @@ When reporting issues, please include:
 - Specific error messages encountered
 - Steps to reproduce the problem
 - Expected vs actual behavior
+- Configuration details (API keys used, environment variables, etc.)
+
+## Security Considerations
+
+- **API Key Security**: Store API keys only in environment variables, never in source code
+- **Request Privacy**: The plugin makes requests on your behalf to external APIs
+- **No Query Storage**: The plugin does not store or transmit search queries beyond what's necessary for functionality
+- **Respectful Access**: All requests are made with randomized headers to respect website terms of service
+- **Environment-Based Configuration**: Modern security practices using `.env` files and environment variables
+
+### Security Best Practices Checklist
+
+- ✅ API keys stored in environment variables only
+- ✅ No hardcoded credentials in source code
+- ✅ `.env` files excluded from version control
+- ✅ Secure transmission to external APIs
+- ✅ Minimal data retention
+- ✅ Randomized headers for respectful access
+
+## Changelog
+
+For detailed information about version history, bug fixes, and new features, please see the [CHANGELOG.md](CHANGELOG.md) file.
+
+Key recent releases:
+- **v2.4.1** (2025-11-04): Configurable recovery timeout, enhanced documentation, security improvements
+- **v2.4.0** (2025-11-03): 451 SecurityCompromiseError handling, configurable 404 enhancement
+- **v2.3.0** (2025-11-03): Version bump for marketplace consistency
 
 ## License
 

@@ -94,7 +94,7 @@ async function handle403Error(error, options) {
  *
  * Enhanced version of Jules' "Optimized Thorough Recovery" strategy with UX improvements:
  * - Human-friendly logging with structured output and emojis
- * - Simple mode toggle for minimal output (SEARCH_PLUS_SIMPLE_MODE)
+ * - Simple mode toggle for minimal output (SEARCH_PLUS_451_SIMPLE_MODE)
  * - Smart error classification with actionable suggestions
  * - Enhanced error responses with ready-to-run commands
  *
@@ -109,7 +109,7 @@ async function handle451SecurityError(error, options) {
   options.error = error;
 
   // Simple mode for users who prefer minimal output
-  if (process.env.SEARCH_PLUS_SIMPLE_MODE === 'true') {
+  if (process.env.SEARCH_PLUS_451_SIMPLE_MODE === 'true') {
     return await handleSimple451Recovery(error, options, blockedDomain);
   }
 
@@ -246,9 +246,6 @@ async function searchWithExcludedDomain(options, blockedDomain) {
   });
 }
 
-// ============================================================================
-// UX ENHANCEMENTS FOR JULES' 451 RECOVERY
-// ============================================================================
 
 /**
  * Simple 451 recovery handler for minimal output mode
@@ -343,7 +340,7 @@ function generateEnhancedErrorResponse(failureType, blockedDomain, options) {
         ],
         autoSuggestion: {
           message: '💡 For more predictable results, enable simple 451 handling?',
-          command: 'export SEARCH_PLUS_SIMPLE_MODE=true',
+          command: 'export SEARCH_PLUS_451_SIMPLE_MODE=true',
           benefit: 'Provides clear guidance instead of complex automation'
         }
       };

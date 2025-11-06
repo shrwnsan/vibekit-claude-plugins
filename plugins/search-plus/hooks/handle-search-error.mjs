@@ -11,11 +11,82 @@ import { handleRateLimit } from './handle-rate-limit.mjs';
  * Environment variable: SEARCH_PLUS_RECOVERY_TIMEOUT_MS
  * Default: 5000ms (5 seconds) - based on project requirements for <5s average recovery
  */
-const RECOVERY_TIMEOUT_MS = parseInt(process.env.SEARCH_PLUS_RECOVERY_TIMEOUT_MS || '5000');
+const RECOVERY_TIMEOUT_MS = validateRecoveryTimeout(process.env.SEARCH_PLUS_RECOVERY_TIMEOUT_MS || '5000');
+
+/**
+ * Validates recovery timeout configuration value
+ * @param {string} value - The timeout value to validate
+ * @returns {number} Validated timeout in milliseconds
+ */
+function validateRecoveryTimeout(value) {
+  const parsed = parseInt(value, 10);
+
+  // Check if value is a valid number
+  if (isNaN(parsed)) {
+    console.warn(`⚠️ Invalid SEARCH_PLUS_RECOVERY_TIMEOUT_MS: "${value}". Using default 5000ms.`);
+    return 5000;
+  }
+
+  // Check for reasonable bounds (100ms to 60s)
+  if (parsed < 100) {
+    console.warn(`⚠️ SEARCH_PLUS_RECOVERY_TIMEOUT_MS too low: ${parsed}ms. Minimum is 100ms. Using 100ms.`);
+    return 100;
+  }
+
+  if (parsed > 60000) {
+    console.warn(`⚠️ SEARCH_PLUS_RECOVERY_TIMEOUT_MS too high: ${parsed}ms. Maximum is 60000ms. Using 60000ms.`);
+    return 60000;
+  }
+
+  return parsed;
+}
 
 // Log configuration in development mode
 if (process.env.NODE_ENV === 'development') {
   console.log(`🔧 Search-Plus Recovery Timeout: ${RECOVERY_TIMEOUT_MS}ms`);
+}
+
+/**
+ * Standardized error response helper
+ * @param {string} strategy - Name of the strategy that failed
+ * @param {Error|string} error - The error that occurred
+ * @param {number} startTime - Strategy start timestamp
+ * @param {Object} additionalInfo - Additional context info
+ * @returns {Object} Standardized error response
+ */
+function createStandardErrorResponse(strategy, error, startTime, additionalInfo = {}) {
+  const responseTime = Date.now() - startTime;
+  const errorMessage = error instanceof Error ? error.message : error;
+
+  return {
+    success: false,
+    error: errorMessage,
+    strategy: strategy,
+    responseTime: responseTime,
+    timestamp: new Date().toISOString(),
+    ...additionalInfo
+  };
+}
+
+/**
+ * Standardized success response helper
+ * @param {string} strategy - Name of the strategy that succeeded
+ * @param {*} data - The data returned by the strategy
+ * @param {number} startTime - Strategy start timestamp
+ * @param {Object} additionalInfo - Additional context info
+ * @returns {Object} Standardized success response
+ */
+function createStandardSuccessResponse(strategy, data, startTime, additionalInfo = {}) {
+  const responseTime = Date.now() - startTime;
+
+  return {
+    success: true,
+    data: data,
+    strategy: strategy,
+    responseTime: responseTime,
+    timestamp: new Date().toISOString(),
+    ...additionalInfo
+  };
 }
 
 /**
@@ -128,8 +199,8 @@ async function handle451SecurityError(error, options) {
 
   // Optimized parallel execution using the two most effective strategies
   const strategies = [
-    searchWithExcludedDomainOptimized(options, blockedDomain),
-    tryAlternativeSearchSourcesOptimized(options)
+    searchWithExcludedDomainUnified(options, blockedDomain, true),
+    tryAlternativeSearchSources(options, true)
   ];
 
   try {
@@ -152,7 +223,7 @@ async function handle451SecurityError(error, options) {
 
   } catch (aggregateError) {
     // Enhanced error classification and user guidance
-    const failureType = classify451Failure(aggregateError, blockedDomain);
+    const failureType = classify451Failure(aggregateError, blockedDomain, options);
     console.log(`❌ All recovery strategies failed`);
     console.log(`🔍 Error type: ${failureType.type}`);
 
@@ -178,8 +249,8 @@ async function handleSimple451Recovery(error, options, blockedDomain) {
   console.log('⚡ 451 error - attempting recovery...');
 
   const strategies = [
-    searchWithExcludedDomainOptimized(options, blockedDomain),
-    tryAlternativeSearchSourcesOptimized(options)
+    searchWithExcludedDomainUnified(options, blockedDomain, true),
+    tryAlternativeSearchSources(options, true)
   ];
 
   try {
@@ -200,9 +271,10 @@ async function handleSimple451Recovery(error, options, blockedDomain) {
  * Classifies 451 failure types for enhanced error handling
  * @param {AggregateError} aggregateError - The combined error from failed strategies
  * @param {string} blockedDomain - The blocked domain
+ * @param {Object} options - Original search options
  * @returns {Object} Failure classification with suggestions
  */
-function classify451Failure(aggregateError, blockedDomain) {
+function classify451Failure(aggregateError, blockedDomain, options) {
   // Check for permanent block patterns
   if (aggregateError.errors.some(err => err.message.includes('blocked until'))) {
     return {
@@ -286,17 +358,19 @@ function extractBlockUntilDate(errorMessage) {
 }
 
 /**
- * Optimized alternative search sources with parallel execution support
+ * Alternative search sources with configurable optimization level
  * @param {Object} options - Original search options
+ * @param {boolean} optimized - Whether to use optimized timeouts for parallel execution
  * @returns {Promise<Object>} Search results from alternative sources
  */
-async function tryAlternativeSearchSourcesOptimized(options) {
+async function tryAlternativeSearchSources(options, optimized = false) {
   const startTime = Date.now();
   const strategyName = 'alternative-search-sources';
+  const timeout = optimized ? 1500 : RECOVERY_TIMEOUT_MS;
 
   try {
-    console.log('🔍 Trying alternative search sources...');
-    const blockedDomain = options.blockedDomain || null;
+    console.log(optimized ? '🔍 Trying alternative search sources...' : 'Trying alternative search sources...');
+    const blockedDomain = optimized ? (options.blockedDomain || null) : (options.error ? extractBlockedDomain(options.error.message || '') : null);
     const domainFilter = blockedDomain ? `-site:${blockedDomain}` : '';
     const modifiedQuery = `${options.query} ${domainFilter} alternative OR substitute OR replacement`.trim();
     const modifiedParams = {
@@ -306,89 +380,61 @@ async function tryAlternativeSearchSourcesOptimized(options) {
       max_results: Math.min(options.max_results || 10, 8)
     };
 
-    // Faster timeout for parallel execution
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Strategy timeout')), 1500);
-    });
+    if (optimized) {
+      // Create AbortController for proper timeout cleanup in optimized mode
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, timeout);
 
-    const searchPromise = contentExtractor.tavily.search(modifiedParams);
-    const results = await Promise.race([searchPromise, timeoutPromise]);
+      try {
+        const searchPromise = contentExtractor.tavily.search({
+          ...modifiedParams,
+          signal: abortController.signal
+        });
+        const results = await searchPromise;
+        clearTimeout(timeoutId);
 
-    return {
-      success: true,
-      data: results,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    };
+        return createStandardSuccessResponse(strategyName, results, startTime);
+      } catch (searchError) {
+        if (searchError.name === 'AbortError') {
+          throw new Error('Strategy timeout');
+        }
+        throw searchError;
+      }
+    } else {
+      // Standard mode with timeout promise
+      const strategyPromise = contentExtractor.tavily.search(modifiedParams);
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => resolve(createStandardErrorResponse(strategyName, `Strategy timed out after ${timeout}ms`, startTime)), timeout);
+      });
+
+      return await Promise.race([strategyPromise, timeoutPromise]);
+    }
   } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    };
+    return createStandardErrorResponse(strategyName, error, startTime);
   }
 }
 
-/**
- * Tries alternative search sources when a domain is blocked
- * @param {Object} options - Original search options (contains error field)
- * @returns {Object} Search results from alternative sources
- */
-async function tryAlternativeSearchSources(options) {
-  const startTime = Date.now();
-  const strategyName = 'alternative-search-sources';
-
-  const strategyPromise = (async () => {
-    try {
-      console.log('Trying alternative search sources...');
-      const blockedDomain = options.error ? extractBlockedDomain(options.error.message || '') : null;
-      const domainFilter = blockedDomain ? `-site:${blockedDomain}` : '';
-      const modifiedQuery = `${options.query} ${domainFilter} alternative OR substitute OR replacement`.trim();
-      const modifiedParams = { ...options, query: modifiedQuery, include_answer: true, max_results: Math.min(options.max_results || 10, 8) };
-
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const results = await contentExtractor.tavily.search(modifiedParams);
-
-      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
-    } catch (error) {
-      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
-    }
-  })();
-
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({
-      success: false,
-      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    }), RECOVERY_TIMEOUT_MS);
-  });
-
-  return Promise.race([strategyPromise, timeoutPromise]);
-}
 
 /**
- * Optimized domain exclusion search with parallel execution support
+ * Domain exclusion search with configurable optimization level
  * @param {Object} options - Original search options
  * @param {string} blockedDomain - The blocked domain
+ * @param {boolean} optimized - Whether to use optimized timeouts for parallel execution
  * @returns {Promise<Object>} Search results
  */
-async function searchWithExcludedDomainOptimized(options, blockedDomain) {
+async function searchWithExcludedDomainUnified(options, blockedDomain, optimized = false) {
   const startTime = Date.now();
   const strategyName = 'excluded-domain-search';
+  const timeout = optimized ? 1000 : RECOVERY_TIMEOUT_MS;
 
   try {
     if (!blockedDomain) {
-      return {
-        success: false,
-        error: 'No blocked domain to exclude',
-        strategy: strategyName,
-        responseTime: Date.now() - startTime
-      };
+      return createStandardErrorResponse(strategyName, 'No blocked domain to exclude', startTime);
     }
 
-    console.log(`🛡️ Excluding domain: ${blockedDomain}`);
+    console.log(optimized ? `🛡️ Excluding domain: ${blockedDomain}` : `Searching while excluding domain: ${blockedDomain}`);
     const exclusionQuery = `${options.query} -site:${blockedDomain}`;
     const modifiedParams = {
       ...options,
@@ -396,70 +442,47 @@ async function searchWithExcludedDomainOptimized(options, blockedDomain) {
       headers: generateDiverseHeaders()
     };
 
-    // Faster timeout for parallel execution
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Strategy timeout')), 1000);
-    });
+    if (optimized) {
+      // Create AbortController for proper timeout cleanup in optimized mode
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, timeout);
 
-    const searchPromise = contentExtractor.tavily.search(modifiedParams);
-    const results = await Promise.race([searchPromise, timeoutPromise]);
+      try {
+        const searchPromise = contentExtractor.tavily.search({
+          ...modifiedParams,
+          signal: abortController.signal
+        });
+        const results = await searchPromise;
+        clearTimeout(timeoutId);
 
-    return {
-      success: true,
-      data: results,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    };
+        return createStandardSuccessResponse(strategyName, results, startTime);
+      } catch (searchError) {
+        if (searchError.name === 'AbortError') {
+          throw new Error('Strategy timeout');
+        }
+        throw searchError;
+      }
+    } else {
+      // Standard mode with timeout promise and delay
+      const strategyPromise = (async () => {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const results = await contentExtractor.tavily.search(modifiedParams);
+        return createStandardSuccessResponse(strategyName, results, startTime);
+      })();
+
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => resolve(createStandardErrorResponse(strategyName, `Strategy timed out after ${timeout}ms`, startTime)), timeout);
+      });
+
+      return await Promise.race([strategyPromise, timeoutPromise]);
+    }
   } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    };
+    return createStandardErrorResponse(strategyName, error, startTime);
   }
 }
 
-/**
- * Searches while explicitly excluding the blocked domain
- * @param {Object} options - Original search options
- * @param {string} blockedDomain - The blocked domain
- * @returns {Object} Search results
- */
-async function searchWithExcludedDomain(options, blockedDomain) {
-  const startTime = Date.now();
-  const strategyName = 'excluded-domain-search';
-
-  const strategyPromise = (async () => {
-    if (!blockedDomain) {
-      return { success: false, error: 'No blocked domain to exclude', strategy: strategyName, responseTime: Date.now() - startTime };
-    }
-
-    try {
-      console.log(`Searching while excluding domain: ${blockedDomain}`);
-      const exclusionQuery = `${options.query} -site:${blockedDomain}`;
-      const modifiedParams = { ...options, query: exclusionQuery, headers: generateDiverseHeaders() };
-
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      const results = await contentExtractor.tavily.search(modifiedParams);
-
-      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
-    } catch (error) {
-      return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
-    }
-  })();
-
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => resolve({
-      success: false,
-      error: `Strategy timed out after ${RECOVERY_TIMEOUT_MS}ms`,
-      strategy: strategyName,
-      responseTime: Date.now() - startTime
-    }), RECOVERY_TIMEOUT_MS);
-  });
-
-  return Promise.race([strategyPromise, timeoutPromise]);
-}
 
 /**
  * Reformulates query to avoid references to blocked domains
@@ -854,3 +877,11 @@ function reformulateQuery(query) {
 
   return reformulated;
 }
+
+// Export additional functions for testing
+export {
+  classify451Failure,
+  validateRecoveryTimeout,
+  createStandardErrorResponse,
+  createStandardSuccessResponse
+};

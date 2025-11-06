@@ -1,5 +1,5 @@
 // hooks/handle-web-search.mjs
-import { tavily, extractContent } from './content-extractor.mjs';
+import { tavily, extractContent, mcp } from './content-extractor.mjs';
 import { handleWebSearchError } from './handle-search-error.mjs';
 
 /**
@@ -31,6 +31,16 @@ export async function handleWebSearch(params) {
       error: true,
       message: 'No search query or URL provided'
     };
+  }
+
+  // Try MCP first if configured (opt-in only)
+  if (process.env.SEARCH_PLUS_MCP_ENDPOINT) {
+    try {
+      const mcpResult = await mcp.search(query);
+      return { success: true, ...mcpResult, source: 'MCP' };
+    } catch (error) {
+      console.log('MCP search failed, falling back to plugin services');
+    }
   }
 
   // Check if the query is a URL and handle extraction

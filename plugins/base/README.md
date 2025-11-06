@@ -48,7 +48,7 @@ Automatically invoked for commit-related requests:
 plugins/base/
 ├── .claude-plugin/plugin.json
 ├── skills/
-│   └── git-commit-crafter/         # Professional commit crafting
+│   └── crafting-commits/           # Professional commit crafting
 ├── agents/
 │   └── workflow-orchestrator/     # Workflow coordination (WIP)
 └── README.md                      # This file

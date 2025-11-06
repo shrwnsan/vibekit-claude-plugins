@@ -1,6 +1,6 @@
 ---
-name: crafting-git-commits
-description: Professional git commit message drafting service with conventional standards, collaborative attribution, and quality validation. Automatically invoked for commit message creation, drafting, and formatting help.
+name: crafting-commits
+description: Automatically invoked when user requests git commit message creation, commit drafting, or needs help with conventional commit formatting. Use for phrases like "help me commit", "draft a commit message", "create a proper commit", "write commit message for [changes]", "I need to commit these changes". Handles conventional commit standards.
 allowed-tools:
   - bash
 ---
@@ -78,7 +78,7 @@ Use the appropriate validation checklist based on freedom level:
 
 **Level 3 Validation:**
 - [ ] All Level 2 checks
-- [ ] Breaking changes clearly identified with `!`
+- [ ] Breaking changes clearly identified with '!'
 - [ ] Migration considerations documented
 - [ ] Impact assessment completed
 
@@ -95,7 +95,7 @@ Use the appropriate validation checklist based on freedom level:
 - [ ] Changes reviewed with `git diff --staged`
 - [ ] Commit type matches change nature
 - [ ] Subject line under 50 characters, imperative mood
-- [ ] Breaking changes properly identified with `!`
+- [ ] Breaking changes properly identified with '!'
 - [ ] Related issues referenced correctly (Fixes #123, Closes #45)
 
 **User Confirmation Points (for Level 2+):**
@@ -141,7 +141,7 @@ git log --grep="Fixes"  # Verify issue references work
 
 **Breaking Change Identification:**
 - **Problem**: Missing breaking change indicators
-- **Solution**: Add `!` before colon in commit type
+- **Solution**: Add '!' before colon in commit type
 - **Example**: `feat!: remove deprecated authentication method`
 
 ### Recovery Procedures

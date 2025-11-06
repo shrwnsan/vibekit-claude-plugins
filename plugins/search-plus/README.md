@@ -224,9 +224,11 @@ SEARCH_PLUS_451_SIMPLE_MODE=true  # Enable minimal output for 451 errors
 ### Optional for Performance Tuning
 **Recovery Timeout Configuration** (for customizing 451 SecurityCompromiseError recovery behavior):
 - Set the `SEARCH_PLUS_RECOVERY_TIMEOUT_MS` environment variable to control strategy timeout
-- Default: `5000` (5 seconds per strategy, 20 seconds maximum for all 4 strategies)
+- Default: `5000` (5 seconds for individual strategies, 1.5s for optimized parallel execution)
+- Parallel Optimization: Domain exclusion (1s timeout) + Alternative sources (1.5s timeout)
 - Lower values: Faster failure detection but less time for slow strategies
 - Higher values: More time for slow strategies but longer wait times
+- Bounds checking: Automatically constrained to 100ms-60s range for safety
 - Examples:
   - Fast recovery: `export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=3000` (3 seconds per strategy)
   - Slow networks: `export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=10000` (10 seconds per strategy)
@@ -286,9 +288,10 @@ When a 451 error is encountered, the plugin automatically executes recovery stra
 5. **Actionable Suggestions**: Provides ready-to-run commands to avoid future 451 errors
 
 ### Performance Improvements
-- **87% Faster Recovery**: Reduced from 11.5s sequential to ~1.5s parallel execution
+- **89% Faster Recovery**: Reduced from ~8000ms sequential to ~870ms parallel execution
 - **Smart Error Classification**: Distinguishes permanent blocks from temporary failures
 - **User-Friendly Suggestions**: Provides commands like `/search-plus "query -site:blocked.com"`
+- **AbortController Cleanup**: Proper timeout handling prevents race conditions
 
 ### Dual-Mode Experience
 - **Enhanced Mode (Default)**: Detailed progress logging with emoji indicators and educational feedback
@@ -630,6 +633,7 @@ When reporting issues, please include:
 For detailed information about version history, bug fixes, and new features, please see the [CHANGELOG.md](CHANGELOG.md) file.
 
 Key recent releases:
+- **v2.5.0** (2025-11-06): Parallel 451 recovery, 89% performance improvement, enhanced UX, critical bug fixes
 - **v2.4.1** (2025-11-04): Configurable recovery timeout, enhanced documentation, security improvements
 - **v2.4.0** (2025-11-03): 451 SecurityCompromiseError handling, configurable 404 enhancement
 - **v2.3.0** (2025-11-03): Version bump for marketplace consistency

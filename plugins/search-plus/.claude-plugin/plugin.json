@@ -1,8 +1,5 @@
 {
   "name": "search-plus",
-  "description": "Enhanced web search with multi-service fallback architecture (Tavily + Jina.ai) and comprehensive error handling",
-"version": "2.5.0",
-  "author": {
-    "name": "shrwnsan"
-  }
+  "description": "Enhanced web search with multi-service fallback architecture and comprehensive error handling",
+  "version": "2.5.0"
 }

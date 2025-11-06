@@ -1,5 +1,5 @@
 // hooks/handle-web-search.mjs
-import { tavily, extractContent, mcp } from './content-extractor.mjs';
+import { tavily, extractContent } from './content-extractor.mjs';
 import { handleWebSearchError } from './handle-search-error.mjs';
 
 /**
@@ -33,15 +33,60 @@ export async function handleWebSearch(params) {
     };
   }
 
-  // Try MCP first if configured (opt-in only)
+  // Try MCP first if configured
   if (process.env.SEARCH_PLUS_MCP_ENDPOINT) {
-    try {
-      const mcpResult = await mcp.search(query);
-      return { success: true, ...mcpResult, source: 'MCP' };
-    } catch (error) {
-      console.log('MCP search failed, falling back to plugin services');
+    const mcpTool = await detectMcpService(process.env.SEARCH_PLUS_MCP_ENDPOINT);
+
+    if (mcpTool) {
+      try {
+        const mcpResult = await mcpTool.search({ query });
+        return { success: true, data: mcpResult, source: 'MCP' };
+      } catch (error) {
+        console.log('MCP search failed, falling back to plugin services');
+        console.log(`MCP Error: ${error.message}`);
+      }
+    } else {
+      console.log(`MCP service '${process.env.SEARCH_PLUS_MCP_ENDPOINT}' not available, using plugin fallbacks`);
     }
   }
+
+
+  // Use existing plugin fallbacks
+  return await existingPluginSearch(query, params);
+}
+
+/**
+ * Detects if the MCP service is available in the current session
+ * @param {string} mcpEndpoint - The MCP endpoint to detect
+ * @returns {Object|false} The MCP tool if available, otherwise false
+ */
+async function detectMcpService(mcpEndpoint) {
+  try {
+    // Check if MCP service is available in current session
+    const availableTools = globalThis.claudeCodeTools || {};
+    const mcpTool = availableTools[mcpEndpoint];
+
+    if (!mcpTool) {
+      console.log(`MCP service '${mcpEndpoint}' not available`);
+      return false;
+    }
+
+    return mcpTool;
+  } catch (error) {
+    console.log(`Failed to detect MCP service '${mcpEndpoint}': ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Handles the existing plugin search logic
+ * @param {string} query - The search query
+ * @param {Object} params - Search parameters
+ * @returns {Object} Search results or error information
+ */
+async function existingPluginSearch(query, params) {
+  const maxRetries = params.maxRetries || 3;
+  const timeout = params.timeout || 10000;
 
   // Check if the query is a URL and handle extraction
   if (isURL(query)) {

@@ -106,50 +106,160 @@ async function handle403Error(error, options) {
 
 /**
  * Handles 451 SecurityCompromiseError (domain blocked due to abuse)
+ * Uses parallel execution with enhanced UX logging
  * @param {Object} error - The 451 error
  * @param {Object} options - Search options
  * @returns {Object} Recovery results
  */
 async function handle451SecurityError(error, options) {
   const blockedDomain = extractBlockedDomain(error.message);
-  console.log(`🚫 451 SecurityCompromiseError encountered - domain ${blockedDomain || 'unknown'} blocked due to abuse`);
-  console.log('🔄 Attempting alternative search strategies...');
 
-  if (blockedDomain) {
-    console.log(`Domain ${blockedDomain} is blocked. Attempting alternative strategies...`);
+  // Simple mode for power users who want minimal output
+  if (process.env.SEARCH_PLUS_451_SIMPLE_MODE === 'true') {
+    return await handleSimple451Recovery(error, options, blockedDomain);
   }
 
-  // Try multiple recovery strategies for blocked domains
+  // Enhanced UX logging by default
+  console.log('🚫 451 SecurityCompromiseError detected');
+  console.log(`📍 Blocked domain: ${blockedDomain || 'unknown'}`);
+  console.log('🚀 Starting parallel recovery:');
+  console.log('  🛡️ Strategy 1: Domain exclusion');
+  console.log('  🔍 Strategy 2: Alternative sources');
+
+  // Optimized parallel execution using the two most effective strategies
   const strategies = [
-    () => tryAlternativeSearchSources(options),
-    () => searchWithExcludedDomain(options, blockedDomain),
-    () => reformulateQueryAvoidingBlockedDomain(options, blockedDomain),
-    () => useCachedOrArchiveResults(options, blockedDomain)
+    searchWithExcludedDomainOptimized(options, blockedDomain),
+    tryAlternativeSearchSourcesOptimized(options)
   ];
 
-  for (const strategy of strategies) {
-    const startTime = Date.now();
-    console.log(`Attempting 451 recovery strategy: ${strategy.name}...`);
-    const results = await strategy();
+  try {
+    const results = await Promise.any(strategies);
+    console.log(`✅ Success! Used strategy: ${results.strategy} (${results.responseTime}ms)`);
 
-    if (results && results.success) {
-      return {
-        success: true,
-        data: results.data,
-        message: `Successfully retrieved results using ${results.strategy} for blocked domain ${blockedDomain || 'unknown'}`,
-        strategy: results.strategy,
-        responseTime: Date.now() - startTime
-      };
-    } else {
-      console.log(`451 recovery strategy ${strategy.name} failed: ${results.error}`);
+    // Provide actionable suggestions for future searches
+    if (blockedDomain) {
+      console.log(`💡 Next time, try: /search-plus "${options.query} -site:${blockedDomain}"`);
     }
+
+    return {
+      success: true,
+      data: results.data,
+      message: `Successfully retrieved results using ${results.strategy} for blocked domain ${blockedDomain || 'unknown'}`,
+      strategy: results.strategy,
+      responseTime: results.responseTime,
+      blockedDomain: blockedDomain
+    };
+
+  } catch (aggregateError) {
+    // Enhanced error classification and user guidance
+    const failureType = classify451Failure(aggregateError, blockedDomain);
+    console.log(`❌ All recovery strategies failed`);
+    console.log(`🔍 Error type: ${failureType.type}`);
+
+    if (failureType.suggestions.length > 0) {
+      console.log('💡 Suggestions:');
+      failureType.suggestions.forEach((suggestion, i) => {
+        console.log(`   ${i + 1}. ${suggestion.description}`);
+      });
+    }
+
+    return generateEnhancedErrorResponse(failureType, blockedDomain, options);
+  }
+}
+
+/**
+ * Handles 451 errors in simple mode with minimal output
+ * @param {Object} error - The 451 error
+ * @param {Object} options - Search options
+ * @param {string} blockedDomain - The blocked domain
+ * @returns {Object} Recovery results
+ */
+async function handleSimple451Recovery(error, options, blockedDomain) {
+  console.log('⚡ 451 error - attempting recovery...');
+
+  const strategies = [
+    searchWithExcludedDomainOptimized(options, blockedDomain),
+    tryAlternativeSearchSourcesOptimized(options)
+  ];
+
+  try {
+    const results = await Promise.any(strategies);
+    console.log(`⚡ 451 recovered in ${results.responseTime}ms`);
+    return results;
+  } catch (aggregateError) {
+    console.log('❌ 451 recovery failed');
+    return {
+      error: true,
+      message: `Failed to recover from 451 error. Domain ${blockedDomain || 'unknown'} is blocked.`,
+      blockedDomain: blockedDomain
+    };
+  }
+}
+
+/**
+ * Classifies 451 failure types for enhanced error handling
+ * @param {AggregateError} aggregateError - The combined error from failed strategies
+ * @param {string} blockedDomain - The blocked domain
+ * @returns {Object} Failure classification with suggestions
+ */
+function classify451Failure(aggregateError, blockedDomain) {
+  // Check for permanent block patterns
+  if (aggregateError.errors.some(err => err.message.includes('blocked until'))) {
+    return {
+      type: 'permanent-block',
+      suggestions: [
+        {
+          type: 'ready-to-run',
+          command: `/search-plus "${options.query} -site:${blockedDomain}"`,
+          description: 'Exclude blocked domain and search again'
+        },
+        {
+          type: 'manual-search',
+          url: `https://www.google.com/search?q=${encodeURIComponent(options.query)}`,
+          description: 'Search manually in external browser'
+        }
+      ],
+      autoSuggestion: {
+        message: 'For more predictable results, enable simple 451 handling?',
+        command: 'export SEARCH_PLUS_451_SIMPLE_MODE=true',
+        benefit: 'Provides clear guidance instead of complex automation'
+      }
+    };
   }
 
+  // Default classification
+  return {
+    type: 'recovery-failed',
+    suggestions: [
+      {
+        type: 'ready-to-run',
+        command: `/search-plus "${options.query} -site:${blockedDomain}"`,
+        description: 'Try again excluding the blocked domain'
+      }
+    ],
+    autoSuggestion: {
+      message: 'Want simpler error handling?',
+      command: 'export SEARCH_PLUS_451_SIMPLE_MODE=true',
+      benefit: 'Minimal output with focus on results'
+    }
+  };
+}
+
+/**
+ * Generates enhanced error response with actionable suggestions
+ * @param {Object} failureType - The classified failure type
+ * @param {string} blockedDomain - The blocked domain
+ * @param {Object} options - Original search options
+ * @returns {Object} Enhanced error response
+ */
+function generateEnhancedErrorResponse(failureType, blockedDomain, options) {
   return {
     error: true,
-    message: `Failed to retrieve results after handling 451 SecurityCompromiseError. Domain ${blockedDomain || 'unknown'} is blocked due to previous abuse.`,
-    blockedUntil: extractBlockUntilDate(error.message),
-    suggestion: blockedDomain ? `Try searching for information from sources other than ${blockedDomain} or use web archive services.` : 'Try using different search terms or alternative sources.'
+    message: `Failed to retrieve results after handling 451 SecurityCompromiseError. Domain ${blockedDomain || 'unknown'} is blocked.`,
+    blockedDomain: blockedDomain,
+    failureType: failureType.type,
+    suggestions: failureType.suggestions,
+    autoSuggestion: failureType.autoSuggestion
   };
 }
 
@@ -173,6 +283,51 @@ function extractBlockUntilDate(errorMessage) {
   // Look for "blocked until" followed by a date, capturing until the next reason or end
   const dateMatch = errorMessage.match(/blocked until (.+?)(?:\s+due|$)/i);
   return dateMatch ? dateMatch[1].trim() : null;
+}
+
+/**
+ * Optimized alternative search sources with parallel execution support
+ * @param {Object} options - Original search options
+ * @returns {Promise<Object>} Search results from alternative sources
+ */
+async function tryAlternativeSearchSourcesOptimized(options) {
+  const startTime = Date.now();
+  const strategyName = 'alternative-search-sources';
+
+  try {
+    console.log('🔍 Trying alternative search sources...');
+    const blockedDomain = options.blockedDomain || null;
+    const domainFilter = blockedDomain ? `-site:${blockedDomain}` : '';
+    const modifiedQuery = `${options.query} ${domainFilter} alternative OR substitute OR replacement`.trim();
+    const modifiedParams = {
+      ...options,
+      query: modifiedQuery,
+      include_answer: true,
+      max_results: Math.min(options.max_results || 10, 8)
+    };
+
+    // Faster timeout for parallel execution
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Strategy timeout')), 1500);
+    });
+
+    const searchPromise = contentExtractor.tavily.search(modifiedParams);
+    const results = await Promise.race([searchPromise, timeoutPromise]);
+
+    return {
+      success: true,
+      data: results,
+      strategy: strategyName,
+      responseTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      strategy: strategyName,
+      responseTime: Date.now() - startTime
+    };
+  }
 }
 
 /**
@@ -211,6 +366,58 @@ async function tryAlternativeSearchSources(options) {
   });
 
   return Promise.race([strategyPromise, timeoutPromise]);
+}
+
+/**
+ * Optimized domain exclusion search with parallel execution support
+ * @param {Object} options - Original search options
+ * @param {string} blockedDomain - The blocked domain
+ * @returns {Promise<Object>} Search results
+ */
+async function searchWithExcludedDomainOptimized(options, blockedDomain) {
+  const startTime = Date.now();
+  const strategyName = 'excluded-domain-search';
+
+  try {
+    if (!blockedDomain) {
+      return {
+        success: false,
+        error: 'No blocked domain to exclude',
+        strategy: strategyName,
+        responseTime: Date.now() - startTime
+      };
+    }
+
+    console.log(`🛡️ Excluding domain: ${blockedDomain}`);
+    const exclusionQuery = `${options.query} -site:${blockedDomain}`;
+    const modifiedParams = {
+      ...options,
+      query: exclusionQuery,
+      headers: generateDiverseHeaders()
+    };
+
+    // Faster timeout for parallel execution
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Strategy timeout')), 1000);
+    });
+
+    const searchPromise = contentExtractor.tavily.search(modifiedParams);
+    const results = await Promise.race([searchPromise, timeoutPromise]);
+
+    return {
+      success: true,
+      data: results,
+      strategy: strategyName,
+      responseTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      strategy: strategyName,
+      responseTime: Date.now() - startTime
+    };
+  }
 }
 
 /**

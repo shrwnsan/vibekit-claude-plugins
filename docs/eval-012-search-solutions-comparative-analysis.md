@@ -262,6 +262,8 @@ Consider implementing both solutions:
 
 ### Future Enhancement: Hybrid Plugin Integration
 
+**Status**: Active Development (Issue #15)
+
 **Proposed Feature**: Environment-controlled MCP integration in search-plus plugin
 
 ```bash
@@ -271,11 +273,25 @@ export SEARCH_PLUS_MCP_ENDPOINT='my-custom-search-mcp'  # Use any MCP
 export SEARCH_PLUS_MCP_ENDPOINT=''  # Disable MCP, use plugin only
 ```
 
+**Real-World Validation (November 6, 2025)**:
+During research into git tagging best practices, we experienced the exact scenario this enhancement aims to solve:
+
+1. **MCP Speed Confirmed**: web-search-prime was significantly faster for initial discovery
+2. **MCP Limitations Real**: Brief-only results required additional steps for full content
+3. **Fallback Essential**: Plugin-style deep retrieval was crucial for comprehensive analysis
+4. **Automatic Switching Needed**: Manual switching between approaches created workflow friction
+
 **Benefits**:
 - Best of both worlds (MCP speed + plugin reliability)
 - Graceful degradation when MCP fails
 - One plugin to handle everything
 - User-controlled search priorities
+
+**Further Analysis Needed**:
+- Developer/User Experience (DX/UX) considerations
+- Speed vs depth trade-offs by query type
+- Cost analysis for MCP vs plugin services
+- Smart mode selection possibilities
 
 ---
 
@@ -398,7 +414,7 @@ The plugin/MCP approach represents the future of AI tool extensibility, bypassin
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 1.1*
 *Last Updated: November 6, 2025*
 *Author: Claude Code Testing Framework*
-*Community Validation: GitHub Issue #9067 Contributors*
+*Community Validation: GitHub Issue #9067 Contributors, Issue #15 Research*

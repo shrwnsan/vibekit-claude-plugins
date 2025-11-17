@@ -5,6 +5,27 @@ All notable changes to the Search Plus Claude Code plugin will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2025-11-16
+
+### Changed
+- **Environment Variable Namespacing**: Implemented namespaced environment variables to prevent conflicts
+  - `TAVILY_API_KEY` → `SEARCH_PLUS_TAVILY_API_KEY` (old variable still supported with deprecation warning)
+  - `JINA_API_KEY` → `SEARCH_PLUS_JINA_API_KEY` (old variable still supported with deprecation warning)
+
+### Added
+- Backward compatibility with graceful fallback to old environment variables
+- Deprecation warnings when old variables are detected during plugin execution
+- Enhanced documentation with migration guidance and examples
+
+### Deprecated
+- `TAVILY_API_KEY` environment variable (use `SEARCH_PLUS_TAVILY_API_KEY` instead)
+- `JINA_API_KEY` environment variable (use `SEARCH_PLUS_JINA_API_KEY` instead)
+
+### Migration Notes
+- Existing configurations continue to work without interruption
+- Users will see deprecation warnings when using old variable names
+- Migration to new variable names is recommended for future compatibility
+
 ## [2.5.0] - 2025-11-06
 
 ### Added

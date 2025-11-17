@@ -168,8 +168,9 @@ The plugin works out of the box with free-tier capabilities. For full functional
 
 ### Optional for Maximum Performance
 **Tavily API Key** (for enhanced performance and reliability):
-1. Set the `TAVILY_API_KEY` environment variable
+1. Set the `SEARCH_PLUS_TAVILY_API_KEY` environment variable
 2. The plugin automatically detects and uses the key when configured
+3. **Migration**: Previous versions used `TAVILY_API_KEY` (still supported with deprecation warning)
 
 **Free Tier Information**:
 - Tavily offers a free Researcher plan with 1,000 API credits/month
@@ -178,9 +179,10 @@ The plugin works out of the box with free-tier capabilities. For full functional
 
 ### Optional for Enhanced Features
 **Jina.ai API Key** (for cost tracking and token usage analysis):
-- Set the `JINA_API_KEY` environment variable
+- Set the `SEARCH_PLUS_JINA_API_KEY` environment variable
 - Used only when cost tracking is explicitly requested
 - Plugin works perfectly without this key using the free Jina.ai public endpoint
+- **Migration**: Previous versions used `JINA_API_KEY` (still supported with deprecation warning)
 
 **Jina.ai Free Tiers**:
 - **Without API Key**: 20 RPM (requests per minute)
@@ -197,11 +199,13 @@ The plugin works out of the box with free-tier capabilities. For full functional
 
 Example `.env` file configuration:
 ```bash
-# Tavily API for enhanced search performance
-TAVILY_API_KEY=your_tavily_api_key_here
+# === RECOMMENDED (New Namespaced Variables) ===
+SEARCH_PLUS_TAVILY_API_KEY=your_tavily_api_key_here
+SEARCH_PLUS_JINA_API_KEY=your_jina_api_key_here
 
-# Jina.ai API for cost tracking (optional)
-JINA_API_KEY=your_jina_api_key_here
+# === LEGACY (Deprecated but Still Supported) ===
+# TAVILY_API_KEY=your_tavily_api_key_here  # ⚠️ Shows deprecation warning
+# JINA_API_KEY=your_jina_api_key_here      # ⚠️ Shows deprecation warning
 
 # Performance tuning (optional)
 SEARCH_PLUS_RECOVERY_TIMEOUT_MS=5000

@@ -34,16 +34,16 @@ export async function handleWebSearch(params) {
   }
 
   // Try MCP first if configured
-  if (process.env.SEARCH_PLUS_MCP_ENDPOINT) {
-    const mcpTool = await detectMcpService(process.env.SEARCH_PLUS_MCP_ENDPOINT);
+  const mcpEndpoint = process.env.SEARCH_PLUS_MCP_ENDPOINT;
+  if (mcpEndpoint && typeof mcpEndpoint === 'string' && mcpEndpoint.trim().length > 0) {
+    const mcpTool = await detectMcpService(mcpEndpoint);
 
     if (mcpTool) {
       try {
         const mcpResult = await mcpTool.search({ query });
         return { success: true, data: mcpResult, source: 'MCP' };
       } catch (error) {
-        console.log('MCP search failed, falling back to plugin services');
-        console.log(`MCP Error: ${error.message}`);
+        handleMcpError(error, process.env.SEARCH_PLUS_MCP_ENDPOINT);
       }
     } else {
       console.log(`MCP service '${process.env.SEARCH_PLUS_MCP_ENDPOINT}' not available, using plugin fallbacks`);
@@ -53,6 +53,25 @@ export async function handleWebSearch(params) {
 
   // Use existing plugin fallbacks
   return await existingPluginSearch(query, params);
+}
+
+/**
+ * Handles MCP search errors with more specific logging
+ * @param {Error} error - The error from the MCP search
+ * @param {string} mcpEndpoint - The MCP endpoint that was used
+ */
+function handleMcpError(error, mcpEndpoint) {
+  console.log(`MCP service '${mcpEndpoint}' unavailable:`);
+
+  if (error.message.includes('API key')) {
+    console.log('  → Check API key configuration for MCP service');
+  } else if (error.message.includes('not found')) {
+    console.log('  → MCP service not installed or not available');
+  } else {
+    console.log(`  → Error: ${error.message}`);
+  }
+
+  console.log('  → Falling back to plugin search services');
 }
 
 /**

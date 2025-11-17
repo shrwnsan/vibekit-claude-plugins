@@ -1,8 +1,13 @@
 // hooks/tavily-client.mjs
 import { setTimeout } from 'timers/promises';
 
-// Tavily API configuration - in a real implementation, this would come from environment/config
-const TAVILY_API_KEY = process.env.TAVILY_API_KEY || null;
+// Tavily API configuration with fallback for backward compatibility
+const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
+
+// Show deprecation warning if using old variable
+if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
+  console.warn('⚠️  TAVILY_API_KEY is deprecated. Please update to SEARCH_PLUS_TAVILY_API_KEY');
+}
 const TAVILY_SEARCH_URL = 'https://api.tavily.com/search';
 const TAVILY_EXTRACT_URL = 'https://api.tavily.com/extract';
 

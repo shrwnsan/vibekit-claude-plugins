@@ -2,6 +2,7 @@
 name: search-plus
 description: Enhanced web search and content extraction with intelligent multi-service fallback strategy for reliable access to blocked or problematic domains
 model: inherit
+skills: meta-searching
 ---
 
 # Search Plus Agent

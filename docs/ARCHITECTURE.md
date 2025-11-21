@@ -4,6 +4,8 @@
 
 This document describes the hybrid architecture for automated A/B testing of the search-plus plugin updates, combining simulation and real testing capabilities with Docker security isolation.
 
+📚 **For practical usage instructions and testing workflows, see [Testing Guide](./TESTING-GUIDE.md)**
+
 ## Architecture Components
 
 ### 1. Main Orchestration Script

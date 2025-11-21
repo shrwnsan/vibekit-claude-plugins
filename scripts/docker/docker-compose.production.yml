@@ -1,11 +1,9 @@
-# Default configuration - uses production mode
-# Include this file and override MODE environment variable for different modes
 services:
-  search-plus-test:
+  search-plus-production:
     build:
       context: ../../
       dockerfile: scripts/docker/Dockerfile
-    container_name: search-plus-testing
+    container_name: search-plus-production
     volumes:
       - ../../test-results:/app/test-results:rw
       - ../../backups:/app/backups:rw
@@ -14,7 +12,7 @@ services:
       - .env.local
       - .env.docker
     environment:
-      - MODE=production  # Default mode, override with docker-compose -f docker-compose.yml -f docker-compose.clean-testing.yml up
+      - MODE=production
     security_opt:
       - no-new-privileges:true
     read_only: true
@@ -32,8 +30,8 @@ services:
     cpus: 1.0
     # Network isolation
     networks:
-      - search-plus-test-network
+      - search-plus-network
 
 networks:
-  search-plus-test-network:
+  search-plus-network:
     driver: bridge

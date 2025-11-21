@@ -426,6 +426,8 @@ node scripts/search-plus-automated-ab-testing.mjs --all
 ### Automated A/B Testing Framework: `search-plus-automated-ab-testing.mjs`
 
 **Purpose**: Comprehensive multi-component A/B testing with intelligent change detection
+
+📚 **For detailed architecture and security design, see [Testing Architecture Documentation](./ARCHITECTURE.md)**
 - **Git Change Detection**: Automatically detects which components have changes since last commit
 - **Multi-Component Support**: Tests SKILL.md, agents, and commands
 - **Automated Backups**: Creates timestamped backups before testing

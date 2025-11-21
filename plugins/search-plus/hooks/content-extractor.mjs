@@ -178,7 +178,7 @@ const SERVICES = {
     avgResponseTime: 2331,
     cost: 'free',
     requiresAuth: true,
-    bestFor: ['cost_tracking_only'] // 2.7x slower - only for token tracking
+    bestFor: ['enhanced_metadata', 'reliability'] // 2.7x slower - provides detailed analytics
   }
 };
 
@@ -401,7 +401,7 @@ async function extractWithJinaPublic(url, options = {}, timeoutMs = 10000) {
 }
 
 /**
- * Extracts content using Jina.ai API (for cost tracking only - slower)
+ * Extracts content using Jina.ai API (provides enhanced metadata and reliability)
  */
 async function extractWithJinaAPI(url, options = {}, timeoutMs = 10000) {
   const startTime = Date.now();
@@ -952,8 +952,8 @@ function determineFallbackLevel(service, totalAttempts) {
 /**
  * Determines the extraction strategy used
  */
-function determineStrategy(isDoc, useCostTracking) {
-  if (useCostTracking) return 'tavily_first_cost_tracking';
+function determineStrategy(isDoc, useEnhancedMetadata) {
+  if (useEnhancedMetadata) return 'tavily_first_enhanced_metadata';
   if (isDoc) return 'tavily_first_optimal_fallback';
   return 'tavily_first_default';
 }
@@ -1285,14 +1285,14 @@ export async function extractContent(url, options = {}) {
   // Determine optimal strategy based on URL characteristics
   const isDoc = isDocumentationSite(extractionURL);
   const isProblematic = isProblematicDomain(extractionURL);
-  const useCostTracking = options.costTracking || options.highVolume;
+  const useEnhancedMetadata = options.enhancedMetadata || options.highVolume;
 
   log(`🎯 Extracting content from: ${extractionURL}`);
   if (extractionURL !== url) {
     log(`   (Original URL: ${url})`);
   }
   log(`   URL Type: ${isDoc ? 'Documentation site' : isProblematic ? 'Problematic domain' : 'General URL'}`);
-  log(`   Cost Tracking: ${useCostTracking ? 'enabled' : 'disabled'}`);
+  log(`   Enhanced Metadata: ${useEnhancedMetadata ? 'enabled' : 'disabled'}`);
 
   let result;
 
@@ -1320,9 +1320,9 @@ export async function extractContent(url, options = {}) {
   let fallbackService = 'jinaPublic'; // Default fallback
   let fallbackReason = 'default';
 
-  if (useCostTracking && JINA_API_KEY) {
+  if (useEnhancedMetadata && JINA_API_KEY) {
     fallbackService = 'jinaAPI';
-    fallbackReason = 'cost tracking requested';
+    fallbackReason = 'enhanced metadata requested';
   } else if (isDoc) {
     fallbackService = 'jinaPublic';
     fallbackReason = 'documentation site';
@@ -1335,7 +1335,7 @@ export async function extractContent(url, options = {}) {
                        result.error?.code === '429' ||  // Rate limited
                        result.error?.code === 'EXCEPTION' || // Exception occurred
                        (result.contentLength === 0 && !options.skipEmptyFallback) ||
-                       (useCostTracking && !result.success);
+                       (useEnhancedMetadata && !result.success);
 
   if (needsFallback) {
     log(`⚠️ Tavily failed or returned empty, trying ${fallbackService} (${fallbackReason})...`);
@@ -1351,7 +1351,7 @@ export async function extractContent(url, options = {}) {
       results.push(fallbackResult);
 
       // Use fallback if it succeeded
-      if (fallbackResult.success && (fallbackResult.contentLength > 0 || useCostTracking)) {
+      if (fallbackResult.success && (fallbackResult.contentLength > 0 || useEnhancedMetadata)) {
         result = fallbackResult;
         log(`✅ Fallback to ${fallbackService} successful`);
 
@@ -1381,7 +1381,7 @@ export async function extractContent(url, options = {}) {
   }
 
   // Final fallback if needed (try the remaining service)
-  if ((!result.success || result.contentLength === 0) && !useCostTracking && JINA_API_KEY) {
+  if ((!result.success || result.contentLength === 0) && !useEnhancedMetadata && JINA_API_KEY) {
     const finalService = fallbackService === 'jinaPublic' ? 'jinaAPI' : 'jinaPublic';
     log(`🔄 Final fallback to ${finalService}...`);
 
@@ -1466,9 +1466,9 @@ export async function extractContent(url, options = {}) {
 
   // Return the successful result or the last attempted result
   // But only consider it successful if at least one service actually worked
-  const hasAnySuccessfulService = results.some(r => r.success && (r.contentLength > 0 || useCostTracking));
+  const hasAnySuccessfulService = results.some(r => r.success && (r.contentLength > 0 || useEnhancedMetadata));
   const successfulResult = hasAnySuccessfulService ?
-    results.find(r => r.success && (r.contentLength > 0 || useCostTracking)) :
+    results.find(r => r.success && (r.contentLength > 0 || useEnhancedMetadata)) :
     result;
 
   // Validate if the content is actually meaningful
@@ -1507,7 +1507,7 @@ export async function extractContent(url, options = {}) {
     strategy: {
       isDocumentationSite: isDoc,
       isProblematicDomain: isProblematic,
-      costTrackingEnabled: useCostTracking,
+      enhancedMetadataEnabled: useEnhancedMetadata,
       primaryService: 'tavily', // ALWAYS Tavily first
       fallbackService,
       fallbackReason
@@ -1528,7 +1528,7 @@ export async function extractContent(url, options = {}) {
       allServicesFailed: !hasAnySuccessfulService,
       ultraResilientAttempts: results.length > 3 ? results.length - 3 : 0,
       attemptedServices: results.map(r => r.service),
-      successfulService: hasAnySuccessfulService ? results.find(r => r.success && (r.contentLength > 0 || useCostTracking))?.service : null,
+      successfulService: hasAnySuccessfulService ? results.find(r => r.success && (r.contentLength > 0 || useEnhancedMetadata))?.service : null,
       // New meaningful content metrics
       honestSuccessMetrics: {
         technicalSuccess,
@@ -1682,7 +1682,7 @@ export async function extractContentBatch(urls, options = {}) {
     }
   }
 
-  const successCount = results.filter(r => r.success && (r.contentLength > 0 || options.costTracking)).length;
+  const successCount = results.filter(r => r.success && (r.contentLength > 0 || options.enhancedMetadata)).length;
   log(`✅ Batch extraction complete: ${successCount}/${urls.length} successful`);
 
   return {

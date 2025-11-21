@@ -149,7 +149,7 @@ async function performHybridSearch(params, timeoutMs = 10000) {
     console.log(`✅ Success with free service: ${result.service}`);
     return result;
   } catch (aggregateError) {
-    throw new Error('All search services failed. Please configure Tavily API key for best results.');
+    throw new Error('All search services failed. Try again or configure Tavily API key for enhanced reliability.');
   }
 }
 

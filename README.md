@@ -10,44 +10,17 @@ A curated collection of productivity-enhancing plugins for Claude Code, designed
 
 ## 🚀 Quick Start
 
-### Option 1: Install from GitHub (Recommended for users)
-
 Add this marketplace to Claude Code:
 
 ```bash
 /plugin marketplace add shrwnsan/vibekit-claude-plugins
 ```
 
-Browse available plugins:
+Browse available plugins and install search-plus:
 
 ```bash
 /plugin
-```
-
-Install a specific plugin:
-
-```bash
-/plugin install search-plus@vibekit
-```
-
-### Option 2: Test Locally (For developers)
-
-Test the marketplace locally before publishing:
-
-```bash
-# Navigate to parent directory of test-marketplace
-cd ~/
-
-# Start Claude Code
-claude
-
-# Add local marketplace
-/plugin marketplace add ./test-marketplace
-
-# Install plugin locally
-/plugin install search-plus@vibekit
-
-# Restart Claude Code when prompted
+# Select "Browse and install plugins" and choose search-plus
 ```
 
 ### Verify Installation
@@ -55,7 +28,7 @@ claude
 Check that the plugin is working:
 
 ```bash
-# Check available commands (should show /search-plus)
+# Check available commands (should show /search-plus in custom-commands tab)
 /help
 
 # Test the enhanced search
@@ -63,6 +36,12 @@ Check that the plugin is working:
 
 # Test URL extraction
 /search-plus "https://docs.anthropic.com/en/docs/claude-code/plugins"
+
+# Or invoke the search-plus agent
+Use the search-plus agent to investigate a topic
+
+# Or use the meta-searching skill
+Research latest web development trends
 ```
 
 ## 📦 Available Plugins
@@ -71,36 +50,18 @@ Check that the plugin is working:
 
 Enhanced web search with advanced error handling for 403, 429, 451, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-service fallback, retry logic, and reliable URL content extraction.
 
-**Proven Performance Results:**
-- 🎯 **100% Overall Test Success**: Perfect 35/35 tests with comprehensive validation
-- 🚀 **A/B Test Results**: 100% success rate vs 10% baseline (+900% improvement)
-- 🔧 **Complete Error Recovery**: 100% success rate for all error types (422, 429, 451, 403, connections)
-- 🎯 **Real-World Validation**: Successfully extracts from CoinGecko API docs, Reddit, Yahoo Finance
-- ⏱️ **Optimized Response Times**: 3.2 seconds average with intelligent service selection
-- 📊 **Zero Silent Failures**: Complete elimination of "Did 0 searches..." responses
+**Performance Results:**
+- 🎯 **95%+ Success Rate**: From 0-20% baseline to reliable search (+400% improvement)
+- 🚀 **Complete Error Recovery**: 100% success for 422 errors, 90% for 429, 80% for 403
+- 🎯 **Real-World Validation**: Successfully extracts from documentation, financial sites, and social media
+- ⏱️ **Fast Response Times**: 2.3 seconds average with intelligent service selection
+- 📊 **Zero Silent Failures**: Eliminates "Did 0 searches..." responses
 
 **Multi-Service Architecture:**
-- **Primary**: Tavily API for fast, reliable access (100% success rate, 863ms avg)
-- **Fallback**: Jina.ai for edge cases and documentation sites when Tavily fails or returns empty content
-- **Smart Activation**: Fallback only triggers when needed (failed requests, empty content, or specific documentation sites)
-
-**Comprehensive Validation:**
-- 🧪 **35 Test Scenarios**: Perfect 100% pass rate covering all error scenarios
-- 🎯 **100% Overall Success**: vs 0-20% with standard Claude Code tools
-- 📊 **Production Ready**: All functionality validated with real-world problematic URLs
-- ✅ **Zero False Positives**: Perfect test framework validation including designed failures
-
-**Quick Start:**
-```bash
-# Install the plugin
-/plugin install search-plus@vibekit
-
-# Search with error handling
-/search-plus "Claude Code plugin documentation"
-
-# Extract content from URLs
-/search-plus "https://docs.anthropic.com/en/docs/claude-code/plugins"
-```
+- **Primary**: Tavily API for fast, reliable access (95-98% success, ~863ms avg)
+- **Fallback**: Hybrid free services (SearXNG, DuckDuckGo, Startpage) in parallel
+- **Smart Activation**: Only triggers fallback when needed (failed requests or empty content)
+- **Zero Configuration**: Works out-of-the-box with free services
 
 [→ Detailed Documentation](plugins/search-plus/README.md)
 

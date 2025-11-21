@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "name": "search-plus",
       "source": "./plugins/search-plus",
       "description": "Enhanced web search with multi-service comprehensive error handling and fallback architecture",
-    "version": "2.7.0",
+    "version": "2.7.1",
       "author": {
         "name": "shrwnsan"
       },

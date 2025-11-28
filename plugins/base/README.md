@@ -4,6 +4,7 @@ A Claude Code plugin providing foundational workflow automation tools for produc
 
 ## Features
 
+- **Git Commit Command**: Quick, intelligent commit creation with `/commit` slash command
 - **Git Commit Crafting**: Professional commit messages with conventional standards and attribution
 - **Workflow Orchestration**: Coordinates development workflows and quality assurance (WIP)
 
@@ -13,6 +14,9 @@ A Claude Code plugin providing foundational workflow automation tools for produc
 # Install from VibeKit marketplace
 claude plugin install base
 
+# Quick commit with intelligent message drafting
+/commit
+
 # Try git commit crafting (automatic invocation)
 "help me commit these changes"
 
@@ -21,6 +25,19 @@ claude plugin install base
 ```
 
 ## Usage
+
+### Git Commit Command
+Quick, intelligent commit creation with automatic analysis:
+```bash
+/commit                                    # Analyze changes and create commit
+/commit "fix user login bug"              # Use custom message
+```
+
+**Features:**
+- Automatic git status and diff analysis
+- Smart complexity routing (simple vs complex changes)
+- Conventional commit formatting
+- Quality validation before committing
 
 ### Git Commit Crafting
 Automatically invoked for commit-related requests:
@@ -47,6 +64,8 @@ Automatically invoked for commit-related requests:
 ```
 plugins/base/
 ├── .claude-plugin/plugin.json
+├── commands/
+│   └── commit.md                   # Quick commit command
 ├── skills/
 │   └── crafting-commits/           # Professional commit crafting
 ├── agents/
@@ -68,4 +87,4 @@ export BASE_BACKUP_ON_DELETE=true   # Auto-backup before destructive ops
 
 ---
 
-License: Apache 2.0 | Plugin Version: 1.0.0
+License: Apache 2.0 | Plugin Version: 1.2.0

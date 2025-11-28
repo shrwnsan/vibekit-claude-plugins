@@ -13,6 +13,11 @@
     {
       "name": "base",
       "source": "./plugins/base",
+      "description": "Essential Claude Code workflow and context engineering tools for productive development",
+      "version": "1.1.2",
+      "author": {
+        "name": "shrwnsan"
+      },
       "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/base",
       "license": "Apache-2.0",
       "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation"],

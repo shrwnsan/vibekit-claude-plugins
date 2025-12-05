@@ -43,8 +43,9 @@ Then:
 #### Route A: Simple Commit (autonomous)
 1. Stage relevant unstaged changes
 2. Create commit message following conventional format
-3. Execute commit
-4. Verify success
+3. **Ask user**: "Please review the commit message above. Should I proceed with this commit?"
+4. Execute commit
+5. Verify success
 
 #### Route B: Complex Commit (with intelligent analysis)
 1. **Analyze changes**: Determine commit type and scope based on actual changes

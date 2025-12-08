@@ -1,0 +1,43 @@
+services:
+  search-plus-clean-testing:
+    build:
+      context: ../../
+      dockerfile: scripts/docker/Dockerfile
+    container_name: search-plus-clean-testing
+    user: "2000:2000"
+    volumes:
+      - ../../test-results:/app/test-results:rw
+      - ../../backups:/app/backups:rw
+      - ~/.claude:/home/testuser/.claude:ro  # Read-only Claude config
+    # Intentionally NOT loading env_file to prevent API key leakage
+    # Clean-testing mode should run without external API keys
+    environment:
+      - MODE=clean-testing
+      # Only pass through Claude authentication - no external API keys
+      - ANTHROPIC_AUTH_TOKEN
+      - ANTHROPIC_BASE_URL
+      - ANTHROPIC_MODEL
+    # Less restrictive security for testing (more like original test-env)
+    security_opt:
+      - no-new-privileges:true
+    # Read-write filesystem for debugging flexibility
+    tmpfs:
+      - /tmp
+    # Fewer capability restrictions for testing
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE  # Allow file permission changes for testing
+    # Resource limits (higher than production for testing)
+    mem_limit: 1g
+    cpus: 2.0
+    # Network isolation
+    networks:
+      - search-plus-testing-network
+
+networks:
+  search-plus-testing-network:
+    driver: bridge

@@ -1,0 +1,40 @@
+services:
+  search-plus-production:
+    build:
+      context: ../../
+      dockerfile: scripts/docker/Dockerfile
+    container_name: search-plus-production
+    volumes:
+      - ../../test-results:/app/test-results:rw
+      - ../../backups:/app/backups:rw
+    # Production mode: Load env_file for API key access
+    # Use with caution - this passes through all local API keys
+    env_file:
+      - .env
+      - .env.local
+      - .env.docker
+    environment:
+      - MODE=production
+      # Production mode preserves all API keys from env_file
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    # Resource limits
+    mem_limit: 512m
+    cpus: 1.0
+    # Network isolation
+    networks:
+      - search-plus-network
+
+networks:
+  search-plus-network:
+    driver: bridge

@@ -1,6 +1,7 @@
 // hooks/handle-web-search.mjs
 import { tavily, extractContent } from './content-extractor.mjs';
 import { handleWebSearchError } from './handle-search-error.mjs';
+import { transform } from './schema.mjs';
 
 // Configuration for environment variable namespacing
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
@@ -172,6 +173,7 @@ async function trySearXNGSearch(params, timeoutMs = 10000) {
     try {
       const searchUrl = `${instance}/search?q=${query}&format=json&engines=google,duckduckgo,startpage&results=${maxResults}`;
 
+      const startTime = performance.now();
       const response = await fetch(searchUrl, {
         method: 'GET',
         headers: {
@@ -188,6 +190,7 @@ async function trySearXNGSearch(params, timeoutMs = 10000) {
         },
         signal: AbortSignal.timeout(timeoutMs)
       });
+      const response_time = performance.now() - startTime;
 
       if (!response.ok) {
         continue; // Try next instance
@@ -199,21 +202,9 @@ async function trySearXNGSearch(params, timeoutMs = 10000) {
         continue; // Try next instance
       }
 
-      // Transform SearXNG results to Tavily-like format
-      const transformedResults = {
-        results: data.results.slice(0, maxResults).map((item, index) => ({
-          title: item.title,
-          url: item.url,
-          content: item.content || '',
-          score: 1.0 - (index * 0.1), // Simple scoring
-          published_date: item.publishedDate || null
-        })),
-        answer: data.answers?.[0] || null,
-        query: params.query,
-        response_time: Date.now() - performance.now()
-      };
-
-      return { data: transformedResults, service: 'searxng' };
+      // Standardize the response
+      const transformedData = transform({ ...data, query: params.query }, 'searxng', response_time);
+      return { data: transformedData, service: 'searxng' };
 
     } catch (error) {
       console.log(`❌ SearXNG instance ${instance} failed: ${error.message}`);
@@ -233,6 +224,7 @@ async function tryDuckDuckGoHTML(params, timeoutMs = 10000) {
 
   const searchUrl = `https://html.duckduckgo.com/html/?q=${query}&kl=us-en`;
 
+  const startTime = performance.now();
   const response = await fetch(searchUrl, {
     method: 'GET',
     headers: {
@@ -250,6 +242,7 @@ async function tryDuckDuckGoHTML(params, timeoutMs = 10000) {
     },
     signal: AbortSignal.timeout(timeoutMs)
   });
+  const response_time = performance.now() - startTime;
 
   if (!response.ok) {
     throw new Error(`DuckDuckGo HTML error: ${response.status}`);
@@ -279,14 +272,11 @@ async function tryDuckDuckGoHTML(params, timeoutMs = 10000) {
     throw new Error('No results found in DuckDuckGo HTML response');
   }
 
-  const transformedResults = {
-    results,
-    answer: null, // DuckDuckGo doesn't provide instant answers in HTML mode
-    query: params.query,
-    response_time: Date.now() - performance.now()
-  };
+  // Standardize the response
+  const rawData = { results, query: params.query };
+  const transformedData = transform(rawData, 'duckduckgo-html', response_time);
 
-  return { data: transformedResults, service: 'duckduckgo-html' };
+  return { data: transformedData, service: 'duckduckgo-html' };
 }
 
 /**
@@ -298,6 +288,7 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
 
   const searchUrl = `https://www.startpage.com/do/search?query=${query}&cat=web&pl=ext-ff&extVersion=1.3.0`;
 
+  const startTime = performance.now();
   const response = await fetch(searchUrl, {
     method: 'GET',
     headers: {
@@ -315,6 +306,7 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
     },
     signal: AbortSignal.timeout(timeoutMs)
   });
+  const response_time = performance.now() - startTime;
 
   if (!response.ok) {
     throw new Error(`Startpage HTML error: ${response.status}`);
@@ -344,14 +336,11 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
     throw new Error('No results found in Startpage HTML response');
   }
 
-  const transformedResults = {
-    results,
-    answer: null,
-    query: params.query,
-    response_time: Date.now() - performance.now()
-  };
+  // Standardize the response
+  const rawData = { results, query: params.query };
+  const transformedData = transform(rawData, 'startpage-html', response_time);
 
-  return { data: transformedResults, service: 'startpage-html' };
+  return { data: transformedData, service: 'startpage-html' };
 }
 
 /**

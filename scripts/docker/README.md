@@ -157,7 +157,7 @@ node scripts/search-plus-ab-testing.mjs --real all         # Real all components
 |---------|-----------------|------------------|
 | **Primary Purpose** | Container management | Automated testing |
 | **Interactive Shell** | ✅ `shell` command | ❌ No interactive mode |
-| **Mode Switching** | ✅ `production`/`clean-testing` | ❌ Fixed production mode |
+| **Mode Switching** | ✅ `production`/`clean-testing` | ✅ Clean mode by default (secure) |
 | **Test Execution** | ❌ Manual only | ✅ `simulation`/`real`/`both` |
 | **Results Handling** | ❌ No automatic results | ✅ Saves to `test-results/` |
 | **Target Selection** | ❌ Not applicable | ✅ `skill`/`agent`/`all` |
@@ -178,7 +178,14 @@ ANTHROPIC_API_KEY=your-anthropic-api-key
 CUSTOM_CLAUDE_URL=https://api.z.ai/v1
 CUSTOM_CLAUDE_KEY=your-custom-key
 CUSTOM_CLAUDE_MODEL=claude-3-5-sonnet-20241022
+
+# External search API keys (loaded in production mode)
+TAVILY_API_KEY=your-tavily-key
+JINAAI_API_KEY=your-jinaai-key
+SERPER_API_KEY=your-serper-key
 ```
+
+**⚠️ Security Note**: `.env` files are only loaded in production mode for security. docker-test.sh and clean-testing mode run without loading .env files to prevent accidental API key usage.
 
 ### Environment Variables
 
@@ -207,6 +214,22 @@ export CUSTOM_CLAUDE_MODEL="$ZAI_MODEL"
 - **Resource Limits**: CPU and memory constraints
 - **Permission Safety**: Dangerous permissions are safe in container
 - **Network Isolation**: Container uses isolated network
+
+### 🔐 API Key Isolation (Critical Security Feature)
+
+The modular Docker system implements strict API key isolation to prevent leakage:
+
+- **docker-test.sh**: Runs in secure mode by default, **does NOT** load local API keys from .env files
+- **clean-testing mode**: Explicitly blocks all external API keys (TAVILY, JINAAI, SERPER, BING, etc.)
+- **production mode**: Preserves API keys only when explicitly using production compose file
+- **API Key Storage**: Keys are truncated in logs (first/last 8 chars only), never stored in plain text
+
+### 🛡️ Security Compliance
+
+- ✅ **POSIX Shell Compatibility**: All scripts use `/bin/sh` compatible syntax
+- ✅ **No API Key Leakage**: Local environment variables isolated from containers
+- ✅ **Minimal Logging Exposure**: Only truncated API key fragments in logs
+- ✅ **Container Hardening**: Read-only filesystem, capability dropping, user separation
 
 ## 📊 Output
 

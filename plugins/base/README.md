@@ -87,4 +87,4 @@ export BASE_BACKUP_ON_DELETE=true   # Auto-backup before destructive ops
 
 ---
 
-License: Apache 2.0 | Plugin Version: 1.2.0
+License: Apache 2.0 | Plugin Version: 1.3.0

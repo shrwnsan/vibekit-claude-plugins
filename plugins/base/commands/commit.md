@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*)
-argument-hint: [optional-message]
-description: Create a git commit with intelligent message drafting
+argument-hint: [-f | --fast | -v | --verbose | optional-message]
+description: Create a git commit with intelligent message drafting (-f for fast, -v for verbose)
 model: inherit
 ---
 
@@ -23,7 +23,13 @@ Then:
 3. Check for potential breaking changes
 4. Match commit style with recent commits
 
-### Step 2: Determine Complexity Route
+### Step 2: Determine Mode and Route
+
+First, check for explicit mode flags in arguments:
+- `-f` or `--fast`: Force Route A (Simple) regardless of change type
+- `-v` or `--verbose`: Force Route B (Detailed) regardless of change type
+- No flags: Auto-determine based on change complexity
+
 **Route A (Simple)** - For changes matching these patterns:
 - Documentation updates (`docs:`)
 - Style/formatting fixes (`style:`)
@@ -31,7 +37,7 @@ Then:
 - Chore/maintenance (`chore:`)
 - Test additions/updates (`test:`)
 
-**Route B (Complex)** - For changes requiring:
+**Route B (Detailed)** - For changes requiring:
 - Feature additions (`feat:`)
 - Refactoring (`refactor:`)
 - Performance improvements (`perf:`)
@@ -47,7 +53,7 @@ Then:
 4. Execute commit
 5. Verify success
 
-#### Route B: Complex Commit (with intelligent analysis)
+#### Route B: Detailed Commit (with comprehensive analysis)
 1. **Analyze changes**: Determine commit type and scope based on actual changes
 2. **Check for breaking changes**: Identify API changes, removed features, or incompatible modifications
 3. **Show files to be committed**: List specific files that will be included in this commit

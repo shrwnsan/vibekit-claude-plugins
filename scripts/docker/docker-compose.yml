@@ -9,12 +9,14 @@ services:
     volumes:
       - ../../test-results:/app/test-results:rw
       - ../../backups:/app/backups:rw
-    env_file:
-      - .env
-      - .env.local
-      - .env.docker
+    # Test environment: Only pass Claude auth, no external API keys
+    # This ensures docker-test.sh runs cleanly without local API leakage
     environment:
       - MODE=production  # Default mode, override with docker-compose -f docker-compose.yml -f docker-compose.clean-testing.yml up
+      # Only allow Claude authentication - no external API keys
+      - ANTHROPIC_AUTH_TOKEN
+      - ANTHROPIC_BASE_URL
+      - ANTHROPIC_MODEL
     security_opt:
       - no-new-privileges:true
     read_only: true

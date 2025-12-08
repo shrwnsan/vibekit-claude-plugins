@@ -2,8 +2,9 @@
 # Supports two modes: clean-testing, production
 FROM node:22-alpine
 
-# Install Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code
+# Install bash and Claude Code CLI
+RUN apk add --no-cache bash && \
+    npm install -g @anthropic-ai/claude-code
 
 # Create users for different security levels
 RUN addgroup -g 1001 -S claudeuser && \
@@ -76,8 +77,8 @@ case "$MODE" in
 esac
 
 # Display configuration
-if [[ -n "$ANTHROPIC_AUTH_TOKEN" ]]; then
-    echo "🔐 Claude API Key: ${ANTHROPIC_AUTH_TOKEN:0:8}...${ANTHROPIC_AUTH_TOKEN: -8}"
+if [ -n "$ANTHROPIC_AUTH_TOKEN" ]; then
+    echo "🔐 Claude API Key: $(echo "$ANTHROPIC_AUTH_TOKEN" | cut -c1-8)...$(echo "$ANTHROPIC_AUTH_TOKEN" | rev | cut -c1-8 | rev)"
 else
     echo "⚠️  No Claude API key found"
 fi
@@ -100,7 +101,7 @@ COPY --chown=claudeuser:claudeuser <<'EOF' /app/mode-entrypoint.sh
 # Mode-specific entrypoint logic
 
 # Load mode configuration
-if [[ -f /tmp/mode-config ]]; then
+if [ -f /tmp/mode-config ]; then
     . /tmp/mode-config
 else
     USER_TYPE="claudeuser"
@@ -111,15 +112,19 @@ shift
 
 echo "🎬 Executing in $MODE mode as $USER_TYPE"
 
-# Switch to appropriate user
-case "$USER_TYPE" in
-    "testuser")
-        exec su-exec testuser "$@"
-        ;;
-    *)
-        exec su-exec claudeuser "$@"
-        ;;
-esac
+# In Docker, we should already be running as the correct user
+# The user is set by the docker-compose file (user: directive)
+echo "✅ Executing as expected user: $USER_TYPE"
+
+# Handle command execution properly
+if [ $# -gt 0 ]; then
+    # If there are arguments, execute them
+    exec "$@"
+else
+    # No arguments provided
+    echo "No command provided"
+    exit 1
+fi
 
 EOF
 

@@ -53,13 +53,21 @@ validate_mode() {
 # Function to get compose file for mode
 get_compose_files() {
     local mode=$1
-    echo "-f $SCRIPT_DIR/docker-compose.yml"
+    local compose_file=""
 
     if [[ "$mode" == "clean-testing" ]]; then
-        echo "-f $SCRIPT_DIR/docker-compose.clean-testing.yml"
+        compose_file="$SCRIPT_DIR/docker-compose.clean-testing.yml"
     elif [[ "$mode" == "production" ]]; then
-        echo "-f $SCRIPT_DIR/docker-compose.production.yml"
+        compose_file="$SCRIPT_DIR/docker-compose.production.yml"
     fi
+
+    # Check if compose file exists
+    if [[ ! -f "$compose_file" ]]; then
+        echo -e "${RED}Error: Compose file not found: $compose_file${NC}"
+        exit 1
+    fi
+
+    echo "-f $compose_file"
 }
 
 # Function to run docker-compose command
@@ -79,6 +87,24 @@ run_compose() {
     docker-compose $compose_files $command $extra_args
 }
 
+# Function to check Docker availability
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        echo -e "${RED}Error: Docker is not installed or not in PATH${NC}"
+        exit 1
+    fi
+
+    if ! docker info &> /dev/null; then
+        echo -e "${RED}Error: Docker daemon is not running${NC}"
+        exit 1
+    fi
+
+    if ! command -v docker-compose &> /dev/null; then
+        echo -e "${RED}Error: docker-compose is not installed or not in PATH${NC}"
+        exit 1
+    fi
+}
+
 # Main script logic
 main() {
     if [[ $# -lt 2 ]]; then
@@ -89,6 +115,8 @@ main() {
     local mode=$1
     local command=$2
 
+    # Check Docker availability
+    check_docker
     validate_mode "$mode"
 
     case "$command" in

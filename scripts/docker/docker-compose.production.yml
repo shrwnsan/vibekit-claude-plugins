@@ -7,12 +7,15 @@ services:
     volumes:
       - ../../test-results:/app/test-results:rw
       - ../../backups:/app/backups:rw
+    # Production mode: Load env_file for API key access
+    # Use with caution - this passes through all local API keys
     env_file:
       - .env
       - .env.local
       - .env.docker
     environment:
       - MODE=production
+      # Production mode preserves all API keys from env_file
     security_opt:
       - no-new-privileges:true
     read_only: true

@@ -55,7 +55,7 @@ display_container_config() {
     print_info "🐳 Docker A/B Testing Container Configuration:"
     echo "  🔗 Endpoint: $ANTHROPIC_BASE_URL"
     echo "  🤖 Model: $ANTHROPIC_MODEL"
-    echo "  🔐 API Key: ${ANTHROPIC_AUTH_TOKEN:0:8}...${ANTHROPIC_AUTH_TOKEN: -8}"
+    echo "  🔐 API Key: $(echo "$ANTHROPIC_AUTH_TOKEN" | cut -c1-8)...$(echo "$ANTHROPIC_AUTH_TOKEN" | rev | cut -c1-8 | rev)"
     echo "  📊 Mode: Real execution with secure permissions"
     echo "  🛡️  Container: Isolated environment"
 }

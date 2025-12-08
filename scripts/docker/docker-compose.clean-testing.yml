@@ -4,16 +4,19 @@ services:
       context: ../../
       dockerfile: scripts/docker/Dockerfile
     container_name: search-plus-clean-testing
+    user: "2000:2000"
     volumes:
       - ../../test-results:/app/test-results:rw
       - ../../backups:/app/backups:rw
       - ~/.claude:/home/testuser/.claude:ro  # Read-only Claude config
-    env_file:
-      - .env
-      - .env.local
-      - .env.docker
+    # Intentionally NOT loading env_file to prevent API key leakage
+    # Clean-testing mode should run without external API keys
     environment:
       - MODE=clean-testing
+      # Only pass through Claude authentication - no external API keys
+      - ANTHROPIC_AUTH_TOKEN
+      - ANTHROPIC_BASE_URL
+      - ANTHROPIC_MODEL
     # Less restrictive security for testing (more like original test-env)
     security_opt:
       - no-new-privileges:true

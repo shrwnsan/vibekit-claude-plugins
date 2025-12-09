@@ -48,7 +48,7 @@ Base Plugin addresses the fundamental need for professional development workflow
 - **Workflow Coordination**: Coordinates development tasks and quality checks
 - **Integration Hub**: Manages interaction between skills and Claude Code tools
 - **Error Recovery**: Handles failures and provides recovery options
-- **Agent Testing**: Comprehensive evaluation completed - see [eval-013-base-workflow-orchestrator.md](eval-013-base-workflow-orchestrator.md)
+- **Agent Testing**: Comprehensive evaluation completed - see [eval-015-base-workflow-orchestrator.md](eval-015-base-workflow-orchestrator.md)
 
 ## Implementation Strategy
 ### Phase 1: Foundation (v1.0.0)

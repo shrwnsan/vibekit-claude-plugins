@@ -6,20 +6,33 @@
   },
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins"
   },
   "plugins": [
     {
+      "name": "base",
+      "source": "./plugins/base",
+      "description": "Essential Claude Code workflow and context engineering tools for productive development",
+      "version": "1.3.0",
+      "author": {
+        "name": "shrwnsan"
+      },
+      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/base",
+      "license": "Apache-2.0",
+      "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation"],
+      "category": "productivity",
+      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation"]
+    },
+    {
       "name": "search-plus",
       "source": "./plugins/search-plus",
       "description": "Enhanced web search with multi-service comprehensive error handling and fallback architecture",
-    "version": "2.7.1",
+      "version": "2.7.1",
       "author": {
         "name": "shrwnsan"
       },
       "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus",
-      "repository": "https://github.com/shrwnsan/vibekit-claude-plugins",
       "license": "Apache-2.0",
       "keywords": ["search", "web", "error-handling", "rate-limiting", "schema-validation", "productivity", "url-extraction"],
       "category": "productivity",

@@ -2,11 +2,11 @@
 
 A curated collection of productivity-enhancing plugins for Claude Code, designed to solve common development challenges and improve your coding workflow.
 
-**What we offer:**
-- Battle-tested plugins for real-world development problems
-- Enhanced error handling for Claude Code limitations
-- Community-driven solutions with comprehensive documentation
-- Simple installation and reliable performance
+**Why VibeKit?**
+- 🚀 **Just Works**: Reliable plugins that handle Claude Code's limitations seamlessly
+- 🎯 **Battle-Tested**: Proven solutions for real-world development problems
+- 📚 **Well Documented**: Clear examples and comprehensive guides
+- 🔧 **Zero Config**: Install and use immediately - no setup required
 
 ## 🚀 Quick Start
 
@@ -46,6 +46,30 @@ Research latest web development trends
 
 ## 📦 Available Plugins
 
+### 🛠️ Base
+
+Essential workflow and context engineering tools for productive development. Includes intelligent git commit crafting, quality assurance automation, and workflow orchestration to streamline your development process.
+
+**Key Features:**
+- ✍️ **Smart Commit Messages**: Conventional commit formatting with co-authorship
+- 🔄 **Workflow Orchestration**: Automated git workflows with quality gates
+- 📊 **Quality Assurance**: Pre-commit hooks and validation automation
+- ⚡ **Parallel Development**: Support for concurrent development tasks
+
+**Example Usage:**
+```bash
+# Create intelligent git commits
+/base:commit
+
+# Run with verbose output
+/base:commit --verbose
+
+# Quick commit with automatic message
+/base:commit --fast
+```
+
+[→ Detailed Documentation](plugins/base/README.md)
+
 ### 🔍 Search Plus
 
 Enhanced web search with advanced error handling for 403, 429, 451, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-service fallback, retry logic, and reliable URL content extraction.
@@ -63,17 +87,58 @@ Enhanced web search with advanced error handling for 403, 429, 451, and connecti
 - **Smart Activation**: Only triggers fallback when needed (failed requests or empty content)
 - **Zero Configuration**: Works out-of-the-box with free services
 
+**Example Usage:**
+```bash
+# Search the web
+/search-plus "latest React best practices"
+
+# Extract content from URLs
+/search-plus "https://docs.anthropic.com/claude-code"
+
+# Use as an agent for research
+@search-plus investigate latest web development trends
+```
+
 [→ Detailed Documentation](plugins/search-plus/README.md)
 
-## 🎯 Use Cases
+## 🎯 What You Can Do
 
 Our plugins help developers:
 
-- **Enforce Standards**: Maintain consistency across teams with specialized workflows
-- **Boost Productivity**: Solve common development challenges with purpose-built tools  
+- **Automate Git Workflows**: Create intelligent commits with proper formatting
+- **Research Reliably**: Search the web without hitting rate limits or errors
+- **Extract Web Content**: Pull information from documentation and tutorials
+- **Boost Productivity**: Solve common development challenges with purpose-built tools
 - **Handle Edge Cases**: Address limitations in Claude Code's native functionality
-- **Integrate Tools**: Connect external services through custom implementations
-- **Share Best Practices**: Distribute proven workflows and configurations
+
+## 🤝 Community & Feedback
+
+VibeKit is currently maintained as a solo project, but community feedback is invaluable! Here's how you can help improve it:
+
+### 🐛 Report Issues
+Found a bug or unexpected behavior? Please open an issue with:
+- Clear description of the problem
+- Steps to reproduce
+- Expected vs actual behavior
+- Your environment (OS, Claude Code version)
+
+### 💡 Request Features
+Have an idea for a new plugin or improvement? Please share:
+- Use case and problem it solves
+- Expected functionality
+- Any relevant examples or references
+
+### 📝 General Feedback
+- What plugins do you find most useful?
+- Any pain points in installation or usage?
+- Suggestions for better documentation
+
+### 📞 Stay Connected
+- ⭐ **Star the repository** if you find VibeKit helpful
+- 👀 **Watch for updates** when new plugins are released
+- 🐛 **Report issues** at [github.com/shrwnsan/vibekit-claude-plugins/issues](https://github.com/shrwnsan/vibekit-claude-plugins/issues)
+
+Your feedback helps prioritize development and ensures VibeKit continues to solve real-world development challenges!
 
 ## 🏗️ Plugin Architecture
 
@@ -85,7 +150,6 @@ Each plugin includes:
 - **Specialized Agents**: Purpose-built AI agents for specific tasks
 - **Hooks**: Custom behavior at key workflow points
 - **MCP Servers**: External tool integrations (when applicable)
-
 
 ## 🛠️ Development
 
@@ -108,66 +172,12 @@ vibekit-claude-plugins/
 └── AGENTS.md                     # AI agent guidelines
 ```
 
-### Plugin Discovery and Management
-
-The `plugins/` directory structure makes it easy to organize and discover plugins:
-
-```bash
-# List all available plugins
-ls plugins/
-
-# Explore a specific plugin
-tree plugins/search-plus/
-```
-
-### Contributing
-
-We welcome contributions! See our [Contributing Guidelines](#contributing) for details.
-
 ### Security
 
 - All plugins are designed with security best practices
 - API keys and sensitive data are handled securely
 - Requests respect website terms of service
 - No data is stored beyond what's necessary for functionality
-
-## 🤝 Contributing
-
-We believe in the power of community-driven development. Here's how you can contribute:
-
-### Adding New Plugins
-
-1. **Fork the repository**
-2. **Create your plugin** in the `plugins/` directory following our architecture:
-   ```bash
-   mkdir plugins/your-plugin-name
-   ```
-3. **Test thoroughly** with various scenarios
-4. **Update marketplace.json** with your plugin details (use `./plugins/your-plugin-name` as the source path)
-5. **Submit a Pull Request** with clear documentation
-
-### Plugin Directory Structure
-
-Each plugin should follow this consistent structure within the `plugins/` directory:
-
-```
-plugins/your-plugin-name/
-├── .claude-plugin/
-│   └── plugin.json           # Plugin manifest (required)
-├── agents/                   # Custom AI agents (optional)
-├── commands/                 # Slash commands (optional)
-├── hooks/                    # Workflow hooks (optional)
-├── skills/                   # Auto-discoverable capabilities (optional)
-└── README.md                 # Plugin documentation (required)
-```
-
-### Plugin Development Guidelines
-
-- **Error Handling**: Include comprehensive error handling for all operations
-- **Documentation**: Provide clear README files and inline comments
-- **Testing**: Test with various error scenarios and edge cases
-- **Security**: Never commit API keys or sensitive information
-- **Compatibility**: Ensure compatibility with Claude Code's latest version
 
 ## 📄 License
 

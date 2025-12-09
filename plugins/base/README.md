@@ -26,24 +26,34 @@ claude plugin install base
 
 ## Usage
 
-### Git Commit Command
-Quick, intelligent commit creation with automatic analysis:
+### Git Commit Tools
+
+The Base Plugin offers two complementary approaches to creating commits:
+
+#### 1. /commit Command
+Explicit control with flexible CLI options:
 ```bash
-/commit                                    # Analyze changes and create commit
-/commit "fix user login bug"              # Use custom message
+/commit                                    # Auto-detects complexity and routes appropriately
+/commit -f                                 # Fast mode for simple, routine changes
+/commit -v                                 # Verbose mode for detailed analysis
+/commit "custom message"                   # Use your message with validation
 ```
 
-**Features:**
-- Automatic git status and diff analysis
-- Smart complexity routing (simple vs complex changes)
-- Conventional commit formatting
-- Quality validation before committing
-
-### Git Commit Crafting
-Automatically invoked for commit-related requests:
+#### 2. crafting-commits Skill
+Intelligent automation that adapts to your changes. Use for phrases like:
 - "help me commit"
 - "draft a commit message"
+- "create a proper commit"
 - "write commit message for [changes]"
+- "I need to commit these changes"
+
+**Which to use?** See [Commit Approaches Comparison](docs/commit-approaches-comparison.md) for detailed guidance.
+
+**Shared Features:**
+- Conventional commit formatting
+- Quality validation before committing
+- Proper attribution handling
+- Breaking change detection
 
 ### Workflow Orchestrator (WIP)
 ```bash
@@ -69,8 +79,12 @@ plugins/base/
 ├── skills/
 │   └── crafting-commits/           # Professional commit crafting
 ├── agents/
-│   └── workflow-orchestrator/     # Workflow coordination (WIP)
-└── README.md                      # This file
+│   └── workflow-orchestrator.md    # Workflow coordination (WIP)
+├── docs/
+│   └── commit-approaches-comparison.md  # Usage guidance
+├── README.md                      # This file
+├── CHANGELOG.md                   # Version history
+└── LICENSE                        # Apache 2.0
 ```
 
 ## Configuration

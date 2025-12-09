@@ -1600,24 +1600,15 @@ export const tavily = {
   };
 
   try {
-    // Create AbortController for timeout handling
-    const controller = new AbortController();
-    const timeoutId = setTimeout(timeoutMs, null).then(() => {
-      controller.abort();
-    });
-
     // Make the API request
     const startTime = performance.now();
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
-      signal: controller.signal
+      signal: AbortSignal.timeout(timeoutMs)
     });
     const response_time = performance.now() - startTime;
-
-    // Clear the timeout if the request completes in time
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

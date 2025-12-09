@@ -51,7 +51,7 @@ export function transform(data, service, response_time) {
       title: item.title || 'No Title',
       url: item.url || '',
       content: item.content || item.snippet || '',
-      score: item.score || (1.0 - (index * 0.1)), // Simple scoring if not provided
+      score: item.score || Math.max(0.1, 1.0 - (index * 0.1)), // Cap score at 0.1
       published_date: item.published_date || item.publishedDate || null,
       source: item.source || service,
       relevance_score: item.relevance_score || 0

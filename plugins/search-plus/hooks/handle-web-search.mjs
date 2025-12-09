@@ -421,7 +421,7 @@ async function handleURLExtraction(url, options = {}) {
     console.log('[GitHub Service] GitHub URL detected, attempting to fetch via gh CLI...');
     try {
       const info = gitHubService.extractGitHubInfo(url);
-      if (info && (info.type === 'blob' || info.type === 'tree')) {
+      if (info) {
         const content = await gitHubService.fetchRepoContent(info.owner, info.repo, info.path || '');
         const data = {
             success: true,
@@ -437,12 +437,11 @@ async function handleURLExtraction(url, options = {}) {
         };
       }
     } catch (error) {
-      const errorMessage = error.message.toLowerCase();
-      if (errorMessage.includes('enoent') || errorMessage.includes('command not found')) {
-        console.log('[GitHub Service] `gh` command not found. Please install the GitHub CLI. Falling back to web extraction.');
-      } else {
-        console.log(`[GitHub Service] gh CLI method failed, falling back to web extraction: ${error.message}`);
-      }
+        if (error.code === 'GH_NOT_INSTALLED') {
+            console.log('[GitHub Service] `gh` command not found. Please install the GitHub CLI. Falling back to web extraction.');
+        } else {
+            console.log(`[GitHub Service] gh CLI method failed, falling back to web extraction: ${error.message}`);
+        }
     }
   }
   

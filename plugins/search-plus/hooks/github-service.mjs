@@ -35,6 +35,8 @@ export class GitHubRateLimiter {
             this.limits.core.reset = data.resources.core.reset;
         } catch (error) {
             console.error('Failed to initialize GitHub rate limits:', error);
+            this.limits.core.remaining = 100; // Conservative default
+            this.limits.core.reset = Math.floor(Date.now() / 1000) + 3600; // Reset in 1 hour
         }
     }
 
@@ -101,6 +103,12 @@ class GitHubService {
             // Validate owner and repo to prevent command injection
             if (!/^[a-zA-Z0-9._-]+$/.test(owner) || !/^[a-zA-Z0-9._-]+$/.test(repo)) {
                 console.error(`Invalid owner or repo format: ${owner}/${repo}`);
+                return null;
+            }
+
+            const pathSegments = path.split('/');
+            if (pathSegments.includes('..')) {
+                console.error(`Invalid path format: contains '..' segments.`);
                 return null;
             }
 
@@ -218,6 +226,9 @@ class GitHubService {
     }
 
     parseGhResponse(stdout) {
+        if (!stdout.includes('\r\n\r\n')) {
+            return { headers: {}, body: stdout };
+        }
         const [headerPart, bodyPart] = stdout.split('\r\n\r\n');
         const headers = {};
         const headerLines = headerPart.split('\r\n');
@@ -227,6 +238,9 @@ class GitHubService {
                 headers[key.toLowerCase()] = value;
             }
         });
+        if (!bodyPart) {
+            throw new Error('Invalid response: missing body');
+        }
         return { headers, body: bodyPart };
     }
 

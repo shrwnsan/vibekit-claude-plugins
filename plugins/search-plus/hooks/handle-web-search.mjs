@@ -417,7 +417,7 @@ async function handleURLExtraction(url, options = {}) {
   const { maxRetries = 3, timeout = 15000 } = options;
 
   // If GitHub is enabled and it's a GitHub URL, try that first
-  if (gitHubService.githubEnabled && gitHubService.isGitHubUrl(url)) {
+  if (gitHubService.githubEnabled && await gitHubService.isGitHubUrl(url)) {
     console.log('[GitHub Service] GitHub URL detected, attempting to fetch via gh CLI...');
     try {
       const info = gitHubService.extractGitHubInfo(url);

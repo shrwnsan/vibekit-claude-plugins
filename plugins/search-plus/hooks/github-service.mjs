@@ -104,11 +104,11 @@ class GitHubService {
                 return null;
             }
 
-            if (type !== 'blob' && type !== 'tree') {
-                return { owner, repo, type: 'repo', path: '' }; // It's a repo URL
+            if (type !== 'blob' && type !== 'tree' && type) { // type can be undefined for base repo URLs
+                return null;
             }
 
-            return { owner, repo, type, branch, path };
+            return { owner, repo, type: type || 'repo', branch, path };
         } catch (error) {
             return null;
         }
@@ -157,6 +157,7 @@ class GitHubService {
         this.emitMetric('github_fetch_cache_miss', 1);
 
         const startTime = Date.now();
+        let success = false;
         try {
             if (this.githubEnabled) {
                 if (!await this.rateLimiter.checkLimits()) {
@@ -179,17 +180,19 @@ class GitHubService {
             if (response.encoding === 'base64') {
                 const content = Buffer.from(response.content, 'base64').toString('utf-8');
                 this.setCache(cacheKey, content);
+                success = true;
                 return content;
             }
             // For directory listings or other content types
             this.setCache(cacheKey, response);
+            success = true;
             return response;
 
         } catch (error) {
             console.error(`[GitHub Service] Failed to fetch content from ${owner}/${repo}/${path}:`, error);
             throw this.normalizeGitHubError(error);
         } finally {
-            this.emitMetric('github_fetch_duration_ms', Date.now() - startTime, { success: cachedContent !== null });
+            this.emitMetric('github_fetch_duration_ms', Date.now() - startTime, { success });
         }
     }
 

@@ -1,6 +1,7 @@
-// hooks/handle-web-search.mjs
+// scripts/handle-web-search.mjs
 import { tavily, extractContent } from './content-extractor.mjs';
 import { handleWebSearchError } from './handle-search-error.mjs';
+import { transformToStandard, createErrorResponse } from './response-transformer.mjs';
 
 // Configuration for environment variable namespacing
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
@@ -129,8 +130,14 @@ async function performHybridSearch(params, timeoutMs = 10000) {
   if (TAVILY_API_KEY) {
     try {
       console.log('🚀 Trying Tavily API...');
-      const result = await tavily.search(params, timeoutMs);
-      return { data: result, service: 'tavily' };
+      const startTime = Date.now();
+      const rawResult = await tavily.search(params, timeoutMs);
+      const responseTime = Date.now() - startTime;
+
+      // Transform to standard format
+      const standardizedResult = transformToStandard('tavily', rawResult, params.query, responseTime);
+
+      return { data: standardizedResult, service: 'tavily' };
     } catch (error) {
       console.log('🔄 Tavily failed, trying free services...');
     }
@@ -170,6 +177,7 @@ async function trySearXNGSearch(params, timeoutMs = 10000) {
 
   for (const instance of searxngInstances) {
     try {
+      const startTime = Date.now();
       const searchUrl = `${instance}/search?q=${query}&format=json&engines=google,duckduckgo,startpage&results=${maxResults}`;
 
       const response = await fetch(searchUrl, {
@@ -199,21 +207,11 @@ async function trySearXNGSearch(params, timeoutMs = 10000) {
         continue; // Try next instance
       }
 
-      // Transform SearXNG results to Tavily-like format
-      const transformedResults = {
-        results: data.results.slice(0, maxResults).map((item, index) => ({
-          title: item.title,
-          url: item.url,
-          content: item.content || '',
-          score: 1.0 - (index * 0.1), // Simple scoring
-          published_date: item.publishedDate || null
-        })),
-        answer: data.answers?.[0] || null,
-        query: params.query,
-        response_time: Date.now() - performance.now()
-      };
+      // Transform to standard format
+      const responseTime = Date.now() - startTime;
+      const standardizedResult = transformToStandard('searxng', data, params.query, responseTime);
 
-      return { data: transformedResults, service: 'searxng' };
+      return { data: standardizedResult, service: 'searxng' };
 
     } catch (error) {
       console.log(`❌ SearXNG instance ${instance} failed: ${error.message}`);
@@ -231,6 +229,7 @@ async function tryDuckDuckGoHTML(params, timeoutMs = 10000) {
   const query = encodeURIComponent(params.query);
   const maxResults = params.maxResults || 5;
 
+  const startTime = Date.now();
   const searchUrl = `https://html.duckduckgo.com/html/?q=${query}&kl=us-en`;
 
   const response = await fetch(searchUrl, {
@@ -279,14 +278,16 @@ async function tryDuckDuckGoHTML(params, timeoutMs = 10000) {
     throw new Error('No results found in DuckDuckGo HTML response');
   }
 
-  const transformedResults = {
+  // Transform to standard format
+  const responseTime = Date.now() - startTime;
+  const standardResponse = {
     results,
-    answer: null, // DuckDuckGo doesn't provide instant answers in HTML mode
-    query: params.query,
-    response_time: Date.now() - performance.now()
+    answer: null // DuckDuckGo doesn't provide instant answers in HTML mode
   };
 
-  return { data: transformedResults, service: 'duckduckgo-html' };
+  const standardizedResult = transformToStandard('duckduckgo-html', standardResponse, params.query, responseTime);
+
+  return { data: standardizedResult, service: 'duckduckgo-html' };
 }
 
 /**
@@ -296,6 +297,7 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
   const query = encodeURIComponent(params.query);
   const maxResults = params.maxResults || 5;
 
+  const startTime = Date.now();
   const searchUrl = `https://www.startpage.com/do/search?query=${query}&cat=web&pl=ext-ff&extVersion=1.3.0`;
 
   const response = await fetch(searchUrl, {
@@ -344,14 +346,16 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
     throw new Error('No results found in Startpage HTML response');
   }
 
-  const transformedResults = {
+  // Transform to standard format
+  const responseTime = Date.now() - startTime;
+  const standardResponse = {
     results,
-    answer: null,
-    query: params.query,
-    response_time: Date.now() - performance.now()
+    answer: null
   };
 
-  return { data: transformedResults, service: 'startpage-html' };
+  const standardizedResult = transformToStandard('startpage-html', standardResponse, params.query, responseTime);
+
+  return { data: standardizedResult, service: 'startpage-html' };
 }
 
 /**

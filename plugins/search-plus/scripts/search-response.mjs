@@ -170,12 +170,12 @@ export function normalizeScore(rawScore, index = 0, totalResults = 1, strategy =
       return Math.max(0, Math.min(1, numericScore));
 
     case 'logarithmic':
-      // Logarithmic scaling for better distribution
-      return Math.max(0, Math.min(1, Math.log1p(numericScore) / Math.log1p(1)));
+      // Logarithmic scaling: log(x+1)/log(2) maps 0→0, 0.5→0.585, 1→1
+      return Math.max(0, Math.min(1, Math.log(numericScore + 1) / Math.log(2)));
 
     case 'exponential':
-      // Exponential scaling for emphasizing differences
-      return Math.max(0, Math.min(1, Math.pow(numericScore, 0.5)));
+      // Square root transformation for emphasizing differences
+      return Math.max(0, Math.min(1, Math.sqrt(numericScore)));
 
     default:
       return Math.max(0, Math.min(1, numericScore));
@@ -229,6 +229,60 @@ export function calculateRelevanceScore({
   relevanceScore += serviceBonus[service] || 0;
 
   return Math.max(0, Math.min(1, relevanceScore));
+}
+
+/**
+ * Optimized batch relevance scoring for better performance
+ * @param {Array} results - Array of results to score
+ * @param {string} query - Search query
+ * @param {string} service - Service name
+ * @returns {Array} Results with optimized relevance scores
+ */
+export function calculateBatchRelevanceScores(results, query, service) {
+  // Pre-compile query terms once
+  const queryTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 2);
+  const serviceBonus = {
+    'tavily': 0.1,
+    'searxng': 0.05,
+    'duckduckgo-html': 0.03,
+    'startpage-html': 0.03
+  };
+  const bonus = serviceBonus[service] || 0;
+  const totalResults = results.length;
+
+  return results.map((result, index) => {
+    const titleLower = result.title.toLowerCase();
+    const contentLower = result.content.toLowerCase();
+
+    // Count matches efficiently
+    let titleMatches = 0;
+    let contentMatches = 0;
+
+    for (const term of queryTerms) {
+      if (titleLower.includes(term)) titleMatches++;
+      if (contentLower.includes(term)) contentMatches++;
+    }
+
+    let relevanceScore = 0.5; // Base score
+
+    // Title matching (most important)
+    relevanceScore += (titleMatches / queryTerms.length) * 0.3;
+
+    // Content matching
+    relevanceScore += (contentMatches / queryTerms.length) * 0.2;
+
+    // Position penalty (earlier results are better)
+    const positionScore = Math.max(0, 1 - (index / totalResults));
+    relevanceScore += positionScore * 0.2;
+
+    // Service reliability bonus
+    relevanceScore += bonus;
+
+    return {
+      ...result,
+      relevance_score: Math.max(0, Math.min(1, relevanceScore))
+    };
+  });
 }
 
 /**

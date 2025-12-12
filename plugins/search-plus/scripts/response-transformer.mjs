@@ -8,6 +8,7 @@ import {
   createStandardResponse,
   normalizeScore,
   calculateRelevanceScore,
+  calculateBatchRelevanceScores,
   normalizeDate
 } from './search-response.mjs';
 
@@ -89,22 +90,19 @@ const tavilyTransformer = {
   },
 
   transform: (response, query) => {
-    const results = response.results.map((item, index) => ({
+    // Base transformation with URL validation and content sanitization
+    let results = response.results.map((item, index) => ({
       title: item.title || '',
       url: item.url || '',
       content: item.content || '',
       score: normalizeScore(item.score || 1.0, index, response.results.length),
       published_date: normalizeDate(item.published_date),
       source: 'tavily',
-      relevance_score: calculateRelevanceScore({
-        title: item.title,
-        content: item.content,
-        query,
-        position: index,
-        totalResults: response.results.length,
-        service: 'tavily'
-      })
+      relevance_score: 0 // Will be calculated in batch
     }));
+
+    // Apply optimized batch relevance scoring
+    results = calculateBatchRelevanceScores(results, query, 'tavily');
 
     return {
       results,

@@ -2,6 +2,7 @@
 import { tavily, extractContent } from './content-extractor.mjs';
 import { handleWebSearchError } from './handle-search-error.mjs';
 import { transformToStandard, createErrorResponse } from './response-transformer.mjs';
+import { sanitizeHTMLContent, validateAndSanitizeURL } from './security-utils.mjs';
 
 // Configuration for environment variable namespacing
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
@@ -332,11 +333,14 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
   while ((match = resultRegex.exec(html)) !== null && results.length < maxResults) {
     const [, url, title, snippet] = match;
 
-    if (url && title) {
+    // Validate and sanitize URL
+    const sanitizedUrl = validateAndSanitizeURL(url);
+
+    if (sanitizedUrl && title) {
       results.push({
-        title: title.trim(),
-        url: url.startsWith('http') ? url : `https:${url}`,
-        content: snippet ? snippet.replace(/<[^>]*>/g, '').trim() : '',
+        title: sanitizeHTMLContent(title),
+        url: sanitizedUrl,
+        content: snippet ? sanitizeHTMLContent(snippet) : '',
         score: 1.0 - (results.length * 0.1)
       });
     }

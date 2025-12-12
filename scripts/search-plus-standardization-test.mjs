@@ -9,21 +9,28 @@ import {
   hasTransformer,
   batchTransform,
   createErrorResponse
-} from './response-transformer.mjs';
+} from '../plugins/search-plus/scripts/response-transformer.mjs';
 
 import {
   validateResponse,
   validateBatch,
   analyzePerformance,
   createValidationReport
-} from './response-validator.mjs';
+} from '../plugins/search-plus/scripts/response-validator.mjs';
 
 import {
   createStandardResponse,
   normalizeScore,
   calculateRelevanceScore,
+  calculateBatchRelevanceScores,
   normalizeDate
-} from './search-response.mjs';
+} from '../plugins/search-plus/scripts/search-response.mjs';
+
+import {
+  decodeHTMLEntities,
+  sanitizeHTMLContent,
+  validateAndSanitizeURL
+} from '../plugins/search-plus/scripts/security-utils.mjs';
 
 /**
  * Test runner utility
@@ -380,6 +387,79 @@ runner.test('should create validation report', () => {
 
   runner.assert(report.includes('Response Validation Report'), 'Should include report title');
   runner.assert(report.includes('Warnings'), 'Should include warnings section');
+});
+
+// Security test cases
+runner.test('should prevent XSS through HTML entities', () => {
+  const maliciousContent = '&lt;img src=x onerror="alert(1)"&gt;';
+  const sanitized = sanitizeHTMLContent(maliciousContent);
+
+  // Should remain as encoded text, NOT become executable HTML
+  runner.assert(sanitized.includes('&lt;img'), 'Should keep entities encoded for security');
+  runner.assert(sanitized.includes('onerror'), 'Should have text content preserved');
+  runner.assert(!sanitized.includes('<img'), 'Should not contain executable HTML tags');
+});
+
+runner.test('should prevent URL injection attacks', () => {
+  const dangerousUrls = [
+    'javascript:alert("XSS")',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox("XSS")',
+    'file:///etc/passwd'
+  ];
+
+  dangerousUrls.forEach(url => {
+    const sanitized = validateAndSanitizeURL(url);
+    runner.assertEqual(sanitized, null, `Should block dangerous URL: ${url}`);
+  });
+});
+
+runner.test('should allow legitimate URLs', () => {
+  const testCases = [
+    { input: 'https://example.com', expected: 'https://example.com/' },
+    { input: 'http://example.com/path?query=value', expected: 'http://example.com/path?query=value' },
+    { input: 'https://sub.example.com:8080/path', expected: 'https://sub.example.com:8080/path' }
+  ];
+
+  testCases.forEach(({ input, expected }) => {
+    const sanitized = validateAndSanitizeURL(input);
+    runner.assertEqual(sanitized, expected, `Should allow legitimate URL: ${input}`);
+  });
+});
+
+runner.test('should handle large result sets efficiently', () => {
+  const largeResults = Array(1000).fill().map((_, i) => ({
+    title: `Result ${i}`,
+    url: `https://example.com/${i}`,
+    content: `Content for result ${i}`,
+    score: Math.random(),
+    published_date: null,
+    source: 'test',
+    relevance_score: 0
+  }));
+
+  const startTime = performance.now();
+  const scoredResults = calculateBatchRelevanceScores(largeResults, 'test query', 'test-service');
+  const duration = performance.now() - startTime;
+
+  runner.assertEqual(scoredResults.length, 1000, 'Should process all results');
+  runner.assert(duration < 1000, `Should complete within 1 second: ${duration}ms`);
+  runner.assert(scoredResults.every(r => r.relevance_score >= 0 && r.relevance_score <= 1), 'All scores should be normalized');
+});
+
+runner.test('should validate HTML entity decoding', () => {
+  const testCases = [
+    { input: '&lt;script&gt;', expected: '<script>' },
+    { input: '&amp;lt;&amp;gt;', expected: '&lt;&gt;' },
+    { input: '&#39;test&#39;', expected: "'test'" },
+    { input: '&#x27;test&#x27;', expected: "'test'" },
+    { input: '&quot;hello&quot;', expected: '"hello"' }
+  ];
+
+  testCases.forEach(({ input, expected }) => {
+    const decoded = decodeHTMLEntities(input);
+    runner.assertEqual(decoded, expected, `Should decode: ${input} -> ${expected}`);
+  });
 });
 
 // Run all tests

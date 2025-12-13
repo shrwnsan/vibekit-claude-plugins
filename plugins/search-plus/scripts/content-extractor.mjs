@@ -1,4 +1,4 @@
-// hooks/content-extractor.mjs
+// scripts/content-extractor.mjs
 import { setTimeout } from 'timers/promises';
 import { promises as dns } from 'dns';
 import net from 'net';

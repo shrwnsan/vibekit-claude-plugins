@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/handle-web-search.mjs",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/handle-web-search.mjs",
             "timeout": 30
           }
         ]

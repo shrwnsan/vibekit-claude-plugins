@@ -1,4 +1,4 @@
-// hooks/handle-search-error.mjs
+// scripts/handle-search-error.mjs
 import contentExtractor from './content-extractor.mjs';
 import { handleRateLimit } from './handle-rate-limit.mjs';
 

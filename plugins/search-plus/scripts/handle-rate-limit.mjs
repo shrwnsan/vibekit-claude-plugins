@@ -1,4 +1,4 @@
-// hooks/handle-rate-limit.mjs
+// scripts/handle-rate-limit.mjs
 import contentExtractor from './content-extractor.mjs';
 
 /**

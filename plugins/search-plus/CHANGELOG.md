@@ -5,6 +5,46 @@ All notable changes to the Search Plus Claude Code plugin will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2025-12-12
+
+### Added ✨
+- **Response Format Standardization**: Implemented unified response schema across all search services (Issue #23)
+- **Standard Response Schema**: Consistent data structure with normalized scores and relevance metrics
+- **Advanced Relevance Scoring**: Multi-factor relevance calculation considering title/content matching, position, and service reliability
+- **Unified Transformer Utility**: Centralized transformation system for all search services
+- **Comprehensive Validation**: Response validation with detailed error reporting and performance analysis
+- **Service Transformers**: Individual transformers for Tavily, SearXNG, DuckDuckGo, and Startpage
+- **Score Normalization**: Linear, logarithmic, and exponential normalization strategies
+- **Metadata Enrichment**: Service-specific metadata extraction and standardization
+
+### Changed 🔄
+- **All Search Services**: Updated to return standardized response format
+- **Response Processing**: Unified transformation pipeline replaces service-specific parsing
+- **Error Handling**: Standardized error responses with consistent structure
+- **Performance Tracking**: Accurate response time measurement for all services
+
+### Fixed 🐛
+- **Response Time Calculation**: Fixed performance.now() usage errors in search functions
+- **Inconsistent Data Structures**: Eliminated varying response formats across services
+
+### Performance 📈
+- **Unified Processing**: Reduced complexity with single transformation pipeline
+- **Advanced Scoring**: Improved result relevance with multi-factor scoring algorithm
+- **Validation Efficiency**: Fast validation with early exit for common patterns
+
+### Testing ✅
+- **Comprehensive Test Suite**: 17 test cases covering all transformation scenarios
+- **Service Transformer Tests**: Validation for all service-specific transformations
+- **Score Normalization Tests**: Verification of all scoring strategies
+- **Validation Framework**: Complete response validation testing
+- **Performance Analysis**: Metrics collection and analysis testing
+
+### Documentation 📚
+- **Standard Response Format Guide**: Complete documentation for new response schema
+- **Migration Guide**: Instructions for updating consumers to use standard format
+- **API Reference**: Detailed field descriptions and usage examples
+- **Transformer Documentation**: Service-specific transformation details
+
 ## [2.7.0] - 2025-11-19
 
 ### Fixed 🐛

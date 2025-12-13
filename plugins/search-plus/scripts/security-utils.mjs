@@ -45,16 +45,23 @@ export function decodeHTMLEntities(html) {
 }
 
 /**
- * Sanitizes HTML content by removing tags and keeping entities encoded for security
+ * Sanitizes HTML content by removing tags and dangerous content
  * @param {string} html - HTML content to sanitize
  * @returns {string} Sanitized plain text content with entities preserved
  */
 export function sanitizeHTMLContent(html) {
   if (!html || typeof html !== 'string') return '';
 
-  // Remove actual HTML tags but keep encoded entities as-is for security
-  // This prevents &lt;script&gt; from becoming executable if decoded
-  const textOnly = html.replace(/<[^>]*>/g, '');
+  // Remove actual HTML tags
+  let textOnly = html.replace(/<[^>]*>/g, '');
+
+  // Remove dangerous content patterns that might bypass tag removal
+  // Note: Don't remove event handlers from text content (only from actual HTML)
+  textOnly = textOnly
+    .replace(/javascript:/gi, 'removed:')
+    .replace(/data:text\/html/gi, 'removed:')
+    .replace(/url\s*\([^)]*javascript:/gi, 'url("removed:'); // Remove javascript: in url()
+
   return textOnly.trim();
 }
 

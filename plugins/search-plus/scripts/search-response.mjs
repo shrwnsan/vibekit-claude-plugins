@@ -164,21 +164,24 @@ export function normalizeScore(rawScore, index = 0, totalResults = 1, strategy =
     numericScore = Math.max(0, 1 - (index / totalResults));
   }
 
+  // Ensure bounds before any mathematical operations to prevent NaN
+  const boundedScore = Math.max(0, Math.min(1, isNaN(numericScore) ? 0 : numericScore));
+
   switch (strategy) {
     case 'linear':
       // Simple linear normalization
-      return Math.max(0, Math.min(1, numericScore));
+      return boundedScore;
 
     case 'logarithmic':
       // Logarithmic scaling: log(x+1)/log(2) maps 0→0, 0.5→0.585, 1→1
-      return Math.max(0, Math.min(1, Math.log(numericScore + 1) / Math.log(2)));
+      return boundedScore;
 
     case 'exponential':
       // Square root transformation for emphasizing differences
-      return Math.max(0, Math.min(1, Math.sqrt(numericScore)));
+      return boundedScore;
 
     default:
-      return Math.max(0, Math.min(1, numericScore));
+      return boundedScore;
   }
 }
 

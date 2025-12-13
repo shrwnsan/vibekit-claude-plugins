@@ -266,12 +266,40 @@ async function tryDuckDuckGoHTML(params, timeoutMs = 10000) {
     const [, url, title, snippet] = match;
 
     if (url && title && !url.includes('//r.jina.ai/http')) { // Filter out redirect links
-      results.push({
-        title: title.trim(),
-        url: url.startsWith('http') ? url : `https:${url}`,
-        content: snippet ? snippet.replace(/<[^>]*>/g, '').trim() : '',
-        score: 1.0 - (results.length * 0.1)
-      });
+      // Validate and sanitize URL with error handling
+      let sanitizedUrl = null;
+      try {
+        sanitizedUrl = validateAndSanitizeURL(url.startsWith('http') ? url : `https:${url}`);
+      } catch (error) {
+        console.warn(`URL sanitization failed: ${url}`, error.message);
+      }
+
+      if (sanitizedUrl) {
+        // Sanitize content with error handling
+        let sanitizedTitle = '';
+        let sanitizedContent = '';
+
+        try {
+          sanitizedTitle = sanitizeHTMLContent(title.trim());
+        } catch (error) {
+          console.warn(`Title sanitization failed: ${title}`, error.message);
+          sanitizedTitle = title.trim(); // Fallback to original
+        }
+
+        try {
+          sanitizedContent = snippet ? sanitizeHTMLContent(snippet) : '';
+        } catch (error) {
+          console.warn(`Content sanitization failed for snippet`, error.message);
+          sanitizedContent = snippet ? snippet.replace(/<[^>]*>/g, '').trim() : ''; // Basic fallback
+        }
+
+        results.push({
+          title: sanitizedTitle,
+          url: sanitizedUrl,
+          content: sanitizedContent,
+          score: 1.0 - (results.length * 0.1)
+        });
+      }
     }
   }
 
@@ -333,14 +361,37 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
   while ((match = resultRegex.exec(html)) !== null && results.length < maxResults) {
     const [, url, title, snippet] = match;
 
-    // Validate and sanitize URL
-    const sanitizedUrl = validateAndSanitizeURL(url);
+    // Validate and sanitize URL with error handling
+    let sanitizedUrl = null;
+    try {
+      sanitizedUrl = validateAndSanitizeURL(url);
+    } catch (error) {
+      console.warn(`URL sanitization failed: ${url}`, error.message);
+    }
 
     if (sanitizedUrl && title) {
+      // Sanitize content with error handling
+      let sanitizedTitle = '';
+      let sanitizedContent = '';
+
+      try {
+        sanitizedTitle = sanitizeHTMLContent(title);
+      } catch (error) {
+        console.warn(`Title sanitization failed: ${title}`, error.message);
+        sanitizedTitle = title; // Fallback to original
+      }
+
+      try {
+        sanitizedContent = snippet ? sanitizeHTMLContent(snippet) : '';
+      } catch (error) {
+        console.warn(`Content sanitization failed for snippet`, error.message);
+        sanitizedContent = snippet ? snippet.replace(/<[^>]*>/g, '').trim() : ''; // Basic fallback
+      }
+
       results.push({
-        title: sanitizeHTMLContent(title),
+        title: sanitizedTitle,
         url: sanitizedUrl,
-        content: snippet ? sanitizeHTMLContent(snippet) : '',
+        content: sanitizedContent,
         score: 1.0 - (results.length * 0.1)
       });
     }

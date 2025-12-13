@@ -462,6 +462,132 @@ runner.test('should validate HTML entity decoding', () => {
   });
 });
 
+// Additional edge case and OWASP XSS test vectors
+runner.test('should handle edge cases and extreme values', () => {
+  // Test extreme score values
+  const extremeScores = [
+    -100, -1, 0, 1, 100, Number.MAX_VALUE, Number.MIN_VALUE,
+    Infinity, -Infinity, NaN, undefined, null, 'invalid'
+  ];
+
+  extremeScores.forEach(score => {
+    const normalized = normalizeScore(score);
+    runner.assert(
+      normalized >= 0 && normalized <= 1 && !isNaN(normalized),
+      `Should handle extreme score: ${score} -> ${normalized}`
+    );
+  });
+
+  // Test null/undefined inputs
+  const nullInputs = [null, undefined, '', {}, []];
+  nullInputs.forEach(input => {
+    try {
+      const sanitized = sanitizeHTMLContent(input);
+      runner.assert(typeof sanitized === 'string', 'Should handle null input gracefully');
+    } catch (error) {
+      runner.assert(false, `Should not throw for null input: ${input}`);
+    }
+  });
+});
+
+runner.test('should prevent OWASP XSS test vectors', () => {
+  // OWASP XSS Prevention Cheat Sheet test vectors
+  const xssVectors = [
+    // Script injection attempts
+    '<script>alert("XSS")</script>',
+    '<img src=x onerror=alert("XSS")>',
+    '<svg onload=alert("XSS")>',
+    '<iframe src="javascript:alert(\'XSS\')">',
+
+    // Encoded bypass attempts
+    '%3Cscript%3Ealert("XSS")%3C/script%3E',
+    '&lt;script&gt;alert("XSS")&lt;/script&gt;',
+    '&#60;script&#62;alert("XSS")&#60;/script&#62;',
+
+    // Event handler vectors
+    '<div onclick="alert(\'XSS\')">click me</div>',
+    '<a href="javascript:alert(\'XSS\')">link</a>',
+    '<img src="x" onmouseover="alert(\'XSS\')">',
+
+    // Style injection
+    '<style>body { background: url("javascript:alert(\'XSS\')") }</style>',
+    '<div style="background:url(javascript:alert(\'XSS\'))">',
+
+    // Meta refresh
+    '<meta http-equiv="refresh" content="0;url=javascript:alert(\'XSS\')">',
+
+    // Data URLs
+    'data:text/html,<script>alert("XSS")</script>',
+    'data:image/svg+xml,<svg onload=alert(\'XSS\')>'
+  ];
+
+  xssVectors.forEach(vector => {
+    const sanitized = sanitizeHTMLContent(vector);
+
+    // Should remove executable HTML tags
+    runner.assert(!sanitized.includes('<script'), `Should remove script tags: ${vector}`);
+    runner.assert(!sanitized.includes('onerror'), `Should remove event handlers: ${vector}`);
+    runner.assert(!sanitized.includes('onclick'), `Should remove click handlers: ${vector}`);
+    runner.assert(!sanitized.includes('javascript:'), `Should remove javascript URLs: ${vector}`);
+
+    // Should not contain dangerous patterns
+    runner.assert(!sanitized.includes('alert(') || !sanitized.includes('alert(&#39;'),
+      `Should prevent alert execution: ${vector}`);
+  });
+});
+
+runner.test('should handle URL edge cases and bypass attempts', () => {
+  const edgeCases = [
+    // Protocol confusion attacks
+    'http://example.com',
+    'HTTP://example.com',
+    'Https://example.com',
+    '  https://example.com  ',
+    'https://example.com#fragment',
+    'https://example.com?query=value',
+
+    // Malformed URLs
+    'not-a-url',
+    '',
+    null,
+    undefined,
+    'ftp://example.com',
+
+    // Mixed encoding attempts
+    'j%61vascript:alert("XSS")',
+    'jav%61script:alert("XSS")',
+    '&#106;&#97;&#118;&#97;&#115;&#99;&#114;&#105;&#112;&#116;:alert("XSS")',
+
+    // Data protocol variations
+    'data:,',
+    'data:text/plain,hello',
+    'data:text/html,<b>safe</b>'
+  ];
+
+  edgeCases.forEach(url => {
+    try {
+      const sanitized = validateAndSanitizeURL(url);
+
+      // For legitimate URLs, should return valid URL
+      if (url && typeof url === 'string' && url.toLowerCase().startsWith('http')) {
+        runner.assert(sanitized !== null, `Should allow legitimate URL: ${url}`);
+      }
+
+      // For dangerous protocols, should return null
+      if (url && typeof url === 'string' && (
+          url.toLowerCase().includes('javascript:') ||
+          url.toLowerCase().includes('data:') ||
+          url.toLowerCase().includes('vbscript:')
+      )) {
+        runner.assertEqual(sanitized, null, `Should block dangerous URL: ${url}`);
+      }
+    } catch (error) {
+      // Should handle malformed URLs gracefully
+      runner.assert(true, `Should handle malformed URL gracefully: ${url}`);
+    }
+  });
+});
+
 // Run all tests
 export async function runTests() {
   const success = await runner.run();

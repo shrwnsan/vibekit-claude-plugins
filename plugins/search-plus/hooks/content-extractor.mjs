@@ -2,6 +2,7 @@
 import { setTimeout } from 'timers/promises';
 import { promises as dns } from 'dns';
 import net from 'net';
+import { transform } from './schema.mjs';
 
 /**
  * Enhanced Content Extractor with Service Selection Strategy
@@ -1578,8 +1579,6 @@ export async function extractContent(url, options = {}) {
  */
 export const tavily = {
   search: async function tavilySearch(params, timeoutMs = 15000) {
-    const startTime = Date.now();
-
     if (!TAVILY_API_KEY) {
     throw new Error('Tavily API key not configured');
   }
@@ -1601,22 +1600,15 @@ export const tavily = {
   };
 
   try {
-    // Create AbortController for timeout handling
-    const controller = new AbortController();
-    const timeoutId = setTimeout(timeoutMs, null).then(() => {
-      controller.abort();
-    });
-
     // Make the API request
+    const startTime = performance.now();
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
-      signal: controller.signal
+      signal: AbortSignal.timeout(timeoutMs)
     });
-
-    // Clear the timeout if the request completes in time
-    clearTimeout(timeoutId);
+    const response_time = performance.now() - startTime;
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -1624,7 +1616,7 @@ export const tavily = {
     }
 
     const data = await response.json();
-    return data;
+    return transform(data, 'tavily', response_time);
 
   } catch (error) {
     if (error.name === 'AbortError') {

@@ -6,7 +6,7 @@ A Claude Code plugin providing foundational workflow automation tools for produc
 
 - **Git Commit Command**: Quick, intelligent commit creation with `/commit` slash command
 - **Git Commit Crafting**: Professional commit messages with conventional standards and attribution
-- **Workflow Orchestration**: Coordinates development workflows and quality assurance (WIP)
+- **Workflow Orchestration**: Coordinates development workflows and quality assurance (beta)
 
 ## Quick Start
 
@@ -55,18 +55,52 @@ Intelligent automation that adapts to your changes. Use for phrases like:
 - Proper attribution handling
 - Breaking change detection
 
-### Workflow Orchestrator (WIP)
+### Workflow Orchestrator (beta)
+The workflow orchestrator coordinates complex development workflows, integrating git operations, quality assurance, and productivity automation. It manages parallel development, enforces quality gates, and sequences tasks for smooth development processes.
+
+#### Workflow Types
 ```bash
-"base: workflow commit"           # Standard commit workflow
-"base: workflow qa --scope code"   # Quality assurance checks
-"base: workflow clean"            # Clean and reset workspace
+"base: workflow commit"                    # Standard commit workflow with quality integration
+"base: workflow qa --scope code"           # Quality assurance checks (code/docs/feature)
+"base: workflow parallel feature"          # Parallel development with worktrees
+"base: workflow clean"                     # Clean and reset workspace
 ```
 
-### Terminal Productivity
+#### Key Capabilities
+- **Git Workflow Integration**: Automated commit → quality check → validation pipeline
+- **Parallel Development**: Creates isolated worktrees for feature branches
+- **Quality Gate Enforcement**: Runs scoped QA based on change type and scope
+- **Error Recovery**: Provides rollback options and recovery guidance
+- **Progress Tracking**: Monitors workflow status with detailed reporting
+
+#### Quality Assurance Scope Options
+- `--scope code` - Linting, testing, and build validation
+- `--scope docs` - Link checking and formatting validation
+- `--scope feature` - Comprehensive QA for new features
+- `--scope minimal` - Basic syntax and structure validation
+
+#### Usage Examples
 ```bash
-"base: clean-deps --safe"         # Uses trash instead of rm
-"base: quality-check"             # Run lint + test + build
-"base: backup-state"              # Create workspace backup
+# Standard feature development with QA
+"base: workflow commit"
+
+# Quality check specific changes
+"base: workflow qa --scope code"
+
+# Parallel feature development
+"base: workflow parallel feature-branch-name"
+
+# Clean workspace after development session
+"base: workflow clean"
+```
+
+The orchestrator automatically determines the appropriate workflow type based on your context and requirements, providing detailed progress reports and recommendations for next steps.
+
+### Terminal Productivity (Planned Features)
+```bash
+"base: clean-deps --safe"         # Uses trash instead of rm (planned)
+"base: quality-check"             # Run lint + test + build (planned)
+"base: backup-state"              # Create workspace backup (planned)
 ```
 
 ## Architecture
@@ -79,7 +113,7 @@ plugins/base/
 ├── skills/
 │   └── crafting-commits/           # Professional commit crafting
 ├── agents/
-│   └── workflow-orchestrator.md    # Workflow coordination (WIP)
+│   └── workflow-orchestrator.md    # Workflow coordination (beta)
 ├── docs/
 │   └── commit-approaches-comparison.md  # Usage guidance
 ├── README.md                      # This file
@@ -87,12 +121,14 @@ plugins/base/
 └── LICENSE                        # Apache 2.0
 ```
 
-## Configuration
+## Configuration (Planned Features)
+> Note: The following environment variables are planned for future releases
 
 ```bash
-export BASE_USE_TRASH=true          # Safe file operations
-export BASE_QA_SCOPE=standard       # QA thoroughness level
-export BASE_BACKUP_ON_DELETE=true   # Auto-backup before destructive ops
+# VibeKit Base Plugin Configuration (defaults shown)
+export VIBEKIT_BASE_DISABLE_TRASH=""         # Empty = trash enabled, "true"/"1" = disabled
+export VIBEKIT_BASE_DISABLE_BACKUP=""        # Empty = backup enabled, "true"/"1" = disabled
+export VIBEKIT_BASE_QA_SCOPE=standard        # Quality assurance level: standard, quick, minimal
 ```
 
 ## Support

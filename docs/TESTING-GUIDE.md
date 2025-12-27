@@ -196,6 +196,96 @@ node scripts/test-http-infra.js
 🥇 Content Tests: httpbingo.org/headers, /user-agent, /get
 ```
 
+### GitHub CLI Integration Testing (NEW)
+```bash
+# Test GitHub CLI integration feature
+export SEARCH_PLUS_GITHUB_ENABLED=true
+export SEARCH_PLUS_GITHUB_CACHE_TTL=300
+node scripts/test-github-cli.mjs
+```
+
+**Purpose**: Validates GitHub CLI integration for optimized GitHub repository content access
+- **GitHub URL Detection**: Tests identification of GitHub URLs vs non-GitHub URLs
+- **Content Extraction**: Validates fetching from public repositories
+- **Error Handling**: Tests invalid repos, 404s, and rate limiting
+- **Fallback Behavior**: Verifies graceful degradation when gh CLI unavailable
+- **Performance Validation**: Measures response times for GitHub URLs
+- **Cache Effectiveness**: Tests cache hit/miss behavior
+
+**Prerequisites**:
+```bash
+# Install GitHub CLI if not already installed
+brew install gh
+
+# Authenticate (if not already)
+gh auth status || gh auth login
+```
+
+**Test Scenarios Covered** (7 scenarios):
+- ✅ Public repository README extraction
+- ✅ Specific file blob URLs
+- ✅ GitHub organization repositories
+- ✅ Non-repo GitHub URLs (docs.github.com) - should fall back
+- ✅ Invalid/nonexistent repositories - error handling
+- ✅ Non-GitHub URLs - should bypass GitHub service
+- ✅ Edge cases and error conditions
+
+**Expected Output**:
+```
+✅ GitHub CLI available: gh version 2.x.x
+GitHub Feature Enabled: true
+
+============================================================
+Testing: Public Repo README
+URL: https://github.com/facebook/react
+✅ SUCCESS - Duration: 2341ms
+Content length: 4521 chars
+Expected content matches: 3/3
+
+============================================================
+TEST SUMMARY
+============================================================
+Total scenarios: 7
+✅ Successful: 7
+🔧 GitHub CLI used: 4
+🔄 Fallbacks: 3
+
+Performance:
+  Average: 2847ms
+  Min: 1823ms
+  Max: 4102ms
+
+✅ ALL TESTS PASSED
+```
+
+**When to Use**:
+- Before merging GitHub CLI integration changes
+- When testing GitHub URL extraction performance
+- To validate gh CLI installation and authentication
+- For verifying fallback behavior when gh CLI unavailable
+- When benchmarking GitHub CLI vs web scraping performance
+
+**Configuration Options**:
+```bash
+# Enable GitHub CLI integration (opt-in)
+export SEARCH_PLUS_GITHUB_ENABLED=true
+
+# Configure cache TTL (default: 300 seconds)
+export SEARCH_PLUS_GITHUB_CACHE_TTL=600
+
+# Disable feature (test fallback)
+export SEARCH_PLUS_GITHUB_ENABLED=false
+```
+
+**Success Criteria**:
+- ✅ GitHub CLI available and authenticated
+- ✅ GitHub URLs correctly identified
+- ✅ Content successfully fetched from public repos
+- ✅ Invalid repos return proper error codes (GH_NOT_FOUND)
+- ✅ Non-GitHub URLs bypass GitHub service
+- ✅ Average response time < 5 seconds
+- ✅ Fallback to web scraping works when gh CLI unavailable
+
 ### Test Output Files
 
 **When Plugin is Installed (Enhanced Mode)**:

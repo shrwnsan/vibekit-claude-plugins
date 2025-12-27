@@ -1,6 +1,7 @@
 // hooks/handle-web-search.mjs
 import { tavily, extractContent } from './content-extractor.mjs';
 import { handleWebSearchError } from './handle-search-error.mjs';
+import { gitHubService } from './github-service.mjs';
 
 // Configuration for environment variable namespacing
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
@@ -414,6 +415,35 @@ function isRetryableError(error) {
  */
 async function handleURLExtraction(url, options = {}) {
   const { maxRetries = 3, timeout = 15000 } = options;
+
+  // If GitHub is enabled and it's a GitHub URL, try that first
+  if (gitHubService.githubEnabled && await gitHubService.isGitHubUrl(url)) {
+    console.log('[GitHub Service] GitHub URL detected, attempting to fetch via gh CLI...');
+    try {
+      const info = gitHubService.extractGitHubInfo(url);
+      if (info) {
+        const content = await gitHubService.fetchRepoContent(info.owner, info.repo, info.path || '');
+        const data = {
+            success: true,
+            content: typeof content === 'string' ? content : JSON.stringify(content, null, 2),
+            service: 'github',
+            url,
+        };
+        return {
+          success: true,
+          data: data,
+          attempt: 1,
+          isURLExtraction: true,
+        };
+      }
+    } catch (error) {
+        if (error.code === 'GH_NOT_INSTALLED') {
+            console.log('[GitHub Service] `gh` command not found. Please install the GitHub CLI. Falling back to web extraction.');
+        } else {
+            console.log(`[GitHub Service] gh CLI method failed, falling back to web extraction: ${error.message}`);
+        }
+    }
+  }
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {

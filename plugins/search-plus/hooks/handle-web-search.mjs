@@ -33,6 +33,80 @@ export async function handleWebSearch(params) {
     };
   }
 
+  // Try MCP first if configured
+  const mcpEndpoint = process.env.SEARCH_PLUS_MCP_ENDPOINT;
+  if (mcpEndpoint && typeof mcpEndpoint === 'string' && mcpEndpoint.trim().length > 0) {
+    const mcpTool = await detectMcpService(mcpEndpoint);
+
+    if (mcpTool) {
+      try {
+        const mcpResult = await mcpTool.search({ query });
+        return { success: true, data: mcpResult, source: 'MCP' };
+      } catch (error) {
+        handleMcpError(error, process.env.SEARCH_PLUS_MCP_ENDPOINT);
+      }
+    } else {
+      console.log(`MCP service '${process.env.SEARCH_PLUS_MCP_ENDPOINT}' not available, using plugin fallbacks`);
+    }
+  }
+
+
+  // Use existing plugin fallbacks
+  return await existingPluginSearch(query, params);
+}
+
+/**
+ * Handles MCP search errors with more specific logging
+ * @param {Error} error - The error from the MCP search
+ * @param {string} mcpEndpoint - The MCP endpoint that was used
+ */
+function handleMcpError(error, mcpEndpoint) {
+  console.log(`MCP service '${mcpEndpoint}' unavailable:`);
+
+  if (error.message.includes('API key')) {
+    console.log('  → Check API key configuration for MCP service');
+  } else if (error.message.includes('not found')) {
+    console.log('  → MCP service not installed or not available');
+  } else {
+    console.log(`  → Error: ${error.message}`);
+  }
+
+  console.log('  → Falling back to plugin search services');
+}
+
+/**
+ * Detects if the MCP service is available in the current session
+ * @param {string} mcpEndpoint - The MCP endpoint to detect
+ * @returns {Object|false} The MCP tool if available, otherwise false
+ */
+async function detectMcpService(mcpEndpoint) {
+  try {
+    // Check if MCP service is available in current session
+    const availableTools = globalThis.claudeCodeTools || {};
+    const mcpTool = availableTools[mcpEndpoint];
+
+    if (!mcpTool) {
+      console.log(`MCP service '${mcpEndpoint}' not available`);
+      return false;
+    }
+
+    return mcpTool;
+  } catch (error) {
+    console.log(`Failed to detect MCP service '${mcpEndpoint}': ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Handles the existing plugin search logic
+ * @param {string} query - The search query
+ * @param {Object} params - Search parameters
+ * @returns {Object} Search results or error information
+ */
+async function existingPluginSearch(query, params) {
+  const maxRetries = params.maxRetries || 3;
+  const timeout = params.timeout || 10000;
+
   // Check if the query is a URL and handle extraction
   if (isURL(query)) {
     console.log(`🔍 Extracting content from URL: ${query}`);

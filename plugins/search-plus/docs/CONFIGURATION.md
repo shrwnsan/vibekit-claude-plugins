@@ -134,6 +134,43 @@ unset SEARCH_PLUS_451_SIMPLE_MODE
 export SEARCH_PLUS_451_SIMPLE_MODE=true
 ```
 
+### GitHub CLI Integration
+
+Enable reliable GitHub repository content extraction using the official GitHub CLI:
+
+```bash
+# Enable GitHub CLI integration (default: disabled)
+export SEARCH_PLUS_GITHUB_ENABLED=true
+
+# Configure cache duration for GitHub CLI responses (default: 300 seconds)
+export SEARCH_PLUS_GITHUB_CACHE_TTL=300
+```
+
+**Requirements**:
+- GitHub CLI (`gh`) must be installed and authenticated
+- Works best for public repositories
+- Rate-limited to 5000 requests/hour with authenticated `gh` CLI
+
+**Setup GitHub CLI**:
+```bash
+# Install GitHub CLI
+# macOS: brew install gh
+# Linux: See https://github.com/cli/cli#installation
+
+# Authenticate
+gh auth login
+
+# Verify installation
+gh --version
+gh auth status
+```
+
+**Benefits**:
+- Near 100% success rate for GitHub URLs
+- Native API access (no web scraping)
+- Proper syntax highlighting and code formatting
+- Respects repository permissions and visibility
+
 ## Service Tiers Comparison
 
 | Configuration | Success Rate | Response Time | Cost | Setup |

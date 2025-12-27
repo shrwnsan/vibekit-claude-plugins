@@ -129,6 +129,34 @@ flowchart TD
     M --> D
 ```
 
+### GitHub CLI Integration
+
+Search Plus includes optional GitHub CLI integration for reliable repository content access:
+
+```mermaid
+flowchart TD
+    A[GitHub URL Detected] --> B{GitHub CLI Enabled?}
+    B -->|Yes| C[Try GitHub CLI Extraction<br/>github-service.mjs]
+    B -->|No| F[Web Scraping Fallback]
+    C --> D{Success?}
+    D -->|Yes| E[Return Content]
+    D -->|No/Not Installed| F
+    F --> G[Standard URL Extraction Flow]
+```
+
+**GitHub Service Components**:
+- **GitHubService**: Main service class for CLI integration
+- **GitHubRateLimiter**: API rate limit tracking and management
+- **Cache Layer**: Configurable response caching (default: 5 minutes)
+- **Error Normalization**: Standardized error handling for GitHub-specific failures
+
+**Activation Flow**:
+1. URL detection identifies GitHub repository patterns
+2. Check if `SEARCH_PLUS_GITHUB_ENABLED=true`
+3. Verify `gh` CLI is installed and authenticated
+4. Extract content using `gh repo view` or `gh api`
+5. Cache response with configurable TTL
+6. Fallback to standard web scraping on failure
 
 ## Service Selection Logic
 
@@ -326,7 +354,7 @@ const recoveryResult = await Promise.any(recoveryStrategies);
 {
   "name": "search-plus",
   "description": "Enhanced web search with multi-service fallback architecture",
-  "version": "2.7.0",
+  "version": "2.9.0",
   "skills": ["search-plus"],
   "commands": ["search-plus"],
   "agents": ["search-plus"],

@@ -28,7 +28,7 @@
       "name": "search-plus",
       "source": "./plugins/search-plus",
       "description": "Enhanced web search with multi-service comprehensive error handling and fallback architecture",
-      "version": "2.8.0",
+      "version": "2.9.0",
       "author": {
         "name": "shrwnsan"
       },

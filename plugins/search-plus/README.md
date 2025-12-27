@@ -49,6 +49,7 @@ Extracts content from blocked or problematic URLs:
 Automatically tries multiple services until one works:
 - **Primary**: Tavily API (if configured)
 - **Fallback**: Jina.ai, SearXNG, DuckDuckGo, Startpage
+- **GitHub Integration**: Native GitHub CLI access for repository content (when enabled)
 - **Result**: You get answers instead of errors
 
 ## Performance Results
@@ -100,6 +101,21 @@ export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 - Jina.ai: 20-500 requests/minute free
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete setup details.
+
+### Option 3: GitHub CLI Integration (Advanced)
+
+Enable native GitHub repository access for maximum reliability with GitHub URLs:
+
+```bash
+# Install GitHub CLI
+brew install gh  # macOS
+gh auth login    # Authenticate
+
+# Enable GitHub integration
+export SEARCH_PLUS_GITHUB_ENABLED=true
+```
+
+See [docs/CONFIGURATION.md#github-cli-integration](docs/CONFIGURATION.md#github-cli-integration) for complete setup details.
 
 ## Usage Examples
 

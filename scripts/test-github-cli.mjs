@@ -51,6 +51,27 @@ const githubTestScenarios = [
     tier: 'basic'
   },
   {
+    name: 'Public Gist (Single File)',
+    url: 'https://gist.github.com/shrwnsan/0d27e6dbab3bd28c00088f332cb31ff2',
+    expectedContent: ['Test Gist', 'Single File', 'Unit testing'],
+    tier: 'gist-basic',
+    note: 'Tests single-file gist (dedicated test gist)'
+  },
+  {
+    name: 'Public Gist (Multi File)',
+    url: 'https://gist.github.com/shrwnsan/a592c2551a5a32b6969916a0b5e0a0f0',
+    expectedContent: ['Test Gist', 'Multi File', 'Unit testing'],
+    tier: 'gist-basic',
+    note: 'Tests multi-file gist (dedicated test gist)'
+  },
+  {
+    name: 'Invalid Gist URL (Expected 404)',
+    url: 'https://gist.github.com/shrwnsan/6cad326836d38bd6a7ae',
+    expectedError: 'GH_NOT_FOUND',
+    tier: 'error-handling',
+    note: 'Tests error handling for non-existent gists'
+  },
+  {
     name: 'GitHub Docs (Non-Repo URL)',
     url: 'https://docs.github.com/en/get-started',
     expectedContent: ['GitHub', 'documentation'],
@@ -124,16 +145,51 @@ async function testGitHubUrl(scenario) {
   try {
     // Import the GitHub service
     const { gitHubService } = await import('../plugins/search-plus/scripts/github-service.mjs');
-    
+
+    // Check if it's a Gist URL first
+    const isGist = await gitHubService.isGistUrl(scenario.url);
+    log(`Is Gist URL: ${isGist}`);
+
     // Check if it's a GitHub URL
     const isGitHub = await gitHubService.isGitHubUrl(scenario.url);
     log(`Is GitHub URL: ${isGitHub}`);
-    
-    if (isGitHub && gitHubService.githubEnabled) {
-      // Extract GitHub info
+
+    if (isGist && gitHubService.githubEnabled) {
+      // Extract gist info
+      const info = gitHubService.extractGistInfo(scenario.url);
+      log(`Extracted gist info: ${JSON.stringify(info)}`);
+
+      if (info) {
+        // Try to fetch content
+        const content = await gitHubService.fetchGistContent(info.gistId);
+
+        const duration = Date.now() - startTime;
+        log(`✅ SUCCESS - Duration: ${duration}ms`);
+        log(`Content length: ${typeof content === 'string' ? content.length : JSON.stringify(content).length} chars`);
+
+        // Validate expected content
+        if (scenario.expectedContent) {
+          const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+          const found = scenario.expectedContent.filter(term =>
+            contentStr.toLowerCase().includes(term.toLowerCase())
+          );
+          log(`Expected content matches: ${found.length}/${scenario.expectedContent.length}`);
+        }
+
+        return {
+          success: true,
+          duration,
+          service: 'github-gist',
+          scenario: scenario.name
+        };
+      } else {
+        log(`⚠️  Could not extract gist info - falling back`);
+      }
+    } else if (isGitHub && gitHubService.githubEnabled) {
+      // Extract GitHub repo info
       const info = gitHubService.extractGitHubInfo(scenario.url);
       log(`Extracted info: ${JSON.stringify(info)}`);
-      
+
       if (info) {
         // Try to fetch content
         const content = await gitHubService.fetchRepoContent(
@@ -141,20 +197,20 @@ async function testGitHubUrl(scenario) {
           info.repo,
           info.path || ''
         );
-        
+
         const duration = Date.now() - startTime;
         log(`✅ SUCCESS - Duration: ${duration}ms`);
         log(`Content length: ${typeof content === 'string' ? content.length : JSON.stringify(content).length} chars`);
-        
+
         // Validate expected content
         if (scenario.expectedContent) {
           const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
-          const found = scenario.expectedContent.filter(term => 
+          const found = scenario.expectedContent.filter(term =>
             contentStr.toLowerCase().includes(term.toLowerCase())
           );
           log(`Expected content matches: ${found.length}/${scenario.expectedContent.length}`);
         }
-        
+
         return {
           success: true,
           duration,
@@ -165,7 +221,7 @@ async function testGitHubUrl(scenario) {
         log(`⚠️  Could not extract GitHub info - falling back`);
       }
     } else {
-      log(`ℹ️  Not using GitHub CLI (isGitHub=${isGitHub}, enabled=${gitHubService.githubEnabled})`);
+      log(`ℹ️  Not using GitHub CLI (isGist=${isGist}, isGitHub=${isGitHub}, enabled=${gitHubService.githubEnabled})`);
     }
     
     // If we get here, it should fall back to web scraping
@@ -266,12 +322,14 @@ async function runTests() {
   const successful = results.scenarios.filter(s => s.result.success).length;
   const failed = results.scenarios.filter(s => !s.result.success).length;
   const ghCliUsed = results.scenarios.filter(s => s.result.service === 'github-cli').length;
+  const ghGistUsed = results.scenarios.filter(s => s.result.service === 'github-gist').length;
   const fallbacks = results.scenarios.filter(s => s.result.service === 'fallback').length;
-  
+
   log(`Total scenarios: ${results.scenarios.length}`);
   log(`✅ Successful: ${successful}`);
   log(`❌ Failed: ${failed}`);
-  log(`🔧 GitHub CLI used: ${ghCliUsed}`);
+  log(`🔧 GitHub CLI (repo) used: ${ghCliUsed}`);
+  log(`📋 GitHub CLI (gist) used: ${ghGistUsed}`);
   log(`🔄 Fallbacks: ${fallbacks}`);
   
   // Performance stats

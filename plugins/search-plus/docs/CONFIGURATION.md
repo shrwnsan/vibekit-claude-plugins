@@ -136,7 +136,7 @@ export SEARCH_PLUS_451_SIMPLE_MODE=true
 
 ### GitHub CLI Integration
 
-Enable reliable GitHub repository content extraction using the official GitHub CLI:
+Enable reliable GitHub repository and gist content extraction using the official GitHub CLI:
 
 ```bash
 # Enable GitHub CLI integration (default: disabled)
@@ -148,7 +148,7 @@ export SEARCH_PLUS_GITHUB_CACHE_TTL=300
 
 **Requirements**:
 - GitHub CLI (`gh`) must be installed and authenticated
-- Works best for public repositories
+- Works best for public repositories and gists
 - Rate-limited to 5000 requests/hour with authenticated `gh` CLI
 
 **Setup GitHub CLI**:
@@ -165,11 +165,18 @@ gh --version
 gh auth status
 ```
 
+**Supported URLs**:
+- **Repository files**: `https://github.com/{owner}/{repo}/blob/{branch}/{path}`
+- **Repository directories**: `https://github.com/{owner}/{repo}/tree/{branch}/{path}`
+- **Gists**: `https://gist.github.com/{owner}/{gist_id}`
+- **Gist revisions**: `https://gist.github.com/{owner}/{gist_id}/revision/{revision}`
+
 **Benefits**:
 - Near 100% success rate for GitHub URLs
 - Native API access (no web scraping)
 - Proper syntax highlighting and code formatting
 - Respects repository permissions and visibility
+- Supports both repositories and gists
 
 ## Service Tiers Comparison
 

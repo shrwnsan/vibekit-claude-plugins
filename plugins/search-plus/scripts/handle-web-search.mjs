@@ -475,7 +475,36 @@ function isRetryableError(error) {
 async function handleURLExtraction(url, options = {}) {
   const { maxRetries = 3, timeout = 15000 } = options;
 
-  // If GitHub is enabled and it's a GitHub URL, try that first
+  // If GitHub is enabled and it's a GitHub Gist URL, try that first
+  if (gitHubService.githubEnabled && await gitHubService.isGistUrl(url)) {
+    console.log('[GitHub Service] Gist URL detected, attempting to fetch via gh CLI...');
+    try {
+      const info = gitHubService.extractGistInfo(url);
+      if (info) {
+        const content = await gitHubService.fetchGistContent(info.gistId);
+        const data = {
+            success: true,
+            content: content,
+            service: 'github-gist',
+            url,
+        };
+        return {
+          success: true,
+          data: data,
+          attempt: 1,
+          isURLExtraction: true,
+        };
+      }
+    } catch (error) {
+        if (error.code === 'GH_NOT_INSTALLED') {
+            console.log('[GitHub Service] `gh` command not found. Please install the GitHub CLI. Falling back to web extraction.');
+        } else {
+            console.log(`[GitHub Service] gh CLI method failed, falling back to web extraction: ${error.message}`);
+        }
+    }
+  }
+
+  // If GitHub is enabled and it's a GitHub repository URL, try that next
   if (gitHubService.githubEnabled && await gitHubService.isGitHubUrl(url)) {
     console.log('[GitHub Service] GitHub URL detected, attempting to fetch via gh CLI...');
     try {

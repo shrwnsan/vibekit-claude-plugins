@@ -81,6 +81,20 @@ class GitHubService {
     }
 
     /**
+     * Checks if a given URL is a GitHub Gist URL.
+     * @param {string} url The URL to check.
+     * @returns {boolean} True if the URL is a gist.github.com URL, false otherwise.
+     */
+    async isGistUrl(url) {
+        try {
+            const urlObject = new URL(url);
+            return urlObject.hostname === 'gist.github.com';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
      * Extracts repository information from a GitHub URL.
      * @param {string} url The GitHub URL to parse.
      * @returns {object|null} An object containing the owner, repo, type, branch, and path, or null if the URL is invalid.
@@ -117,6 +131,42 @@ class GitHubService {
             }
 
             return { owner, repo, type: type || 'repo', branch, path };
+        } catch (error) {
+            return null;
+        }
+    }
+
+    /**
+     * Extracts gist information from a gist.github.com URL.
+     * @param {string} url The gist URL to parse.
+     * @returns {object|null} An object containing the owner and gistId, or null if the URL is invalid.
+     */
+    extractGistInfo(url) {
+        try {
+            const parsedUrl = new URL(url);
+            if (parsedUrl.hostname !== 'gist.github.com') {
+                return null;
+            }
+
+            const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+            if (pathParts.length < 2) {
+                return null;
+            }
+
+            const [owner, gistId, ...rest] = pathParts;
+
+            // Validate owner and gistId to prevent command injection
+            // Gist IDs can be: numeric (old gists), 32-char hex (newer gists), or variable length
+            if (!/^[a-zA-Z0-9_.-]+$/.test(owner) || !/^[a-zA-Z0-9]{8,}$/.test(gistId)) {
+                console.error(`Invalid owner or gistId format: ${owner}/${gistId}`);
+                return null;
+            }
+
+            // Check for revision URLs (we don't need the revision for fetching the latest content)
+            // https://gist.github.com/{owner}/{gist_id}/revision/{revision}
+            const hasRevision = rest.length >= 2 && rest[0] === 'revision';
+
+            return { owner, gistId, hasRevision };
         } catch (error) {
             return null;
         }
@@ -201,6 +251,79 @@ class GitHubService {
             throw this.normalizeGitHubError(error);
         } finally {
             this.emitMetric('github_fetch_duration_ms', Date.now() - startTime, { success });
+        }
+    }
+
+    /**
+     * Fetches content from a GitHub Gist using the gh CLI.
+     * @param {string} gistId The gist ID.
+     * @param {number} timeout The timeout in milliseconds.
+     * @returns {Promise<string>} The combined content of all files in the gist.
+     * @throws {Error} If the gh CLI command fails.
+     */
+    async fetchGistContent(gistId, timeout = 5000) {
+        const cacheKey = `gist:${gistId}`;
+        const cachedContent = await this.getCached(cacheKey);
+        if (cachedContent) {
+            this.emitMetric('gist_fetch_cache_hit', 1);
+            console.log(`[GitHub Service] Cache hit for gist ${gistId}`);
+            return cachedContent;
+        }
+        this.emitMetric('gist_fetch_cache_miss', 1);
+
+        const startTime = Date.now();
+        let success = false;
+        try {
+            if (this.githubEnabled) {
+                if (!await this.rateLimiter.checkLimits()) {
+                    throw new Error('GitHub rate limit check failed or limits are low.');
+                }
+            }
+
+            console.log(`[GitHub Service] Fetching gist ${gistId}`);
+            const apiPath = `gists/${gistId}`;
+            const { stdout } = await Promise.race([
+                __internal.execAsync('gh', ['api', '--include', apiPath]),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('GH_TIMEOUT')), timeout))
+            ]);
+
+            const { headers, body } = this.parseGhResponse(stdout);
+            this.rateLimiter.updateLimitsFromHeaders(headers);
+
+            const response = JSON.parse(body);
+
+            // Gists have a 'files' object with file entries
+            if (response.files) {
+                const fileNames = Object.keys(response.files);
+                if (fileNames.length === 0) {
+                    throw new Error('Gist has no files');
+                }
+
+                // Combine all files into a single string with file headers
+                let combinedContent = '';
+                for (const fileName of fileNames) {
+                    const file = response.files[fileName];
+                    if (file.content) {
+                        combinedContent += `// File: ${fileName}\n`;
+                        combinedContent += `${file.content}\n\n`;
+                    } else if (file.raw_url) {
+                        // If content is not directly available, we'd need to fetch raw_url
+                        // For now, note this limitation
+                        combinedContent += `// File: ${fileName} (content not available via API)\n`;
+                    }
+                }
+
+                this.setCache(cacheKey, combinedContent);
+                success = true;
+                return combinedContent.trim();
+            }
+
+            throw new Error('Gist response has no files');
+        } catch (error) {
+            console.error(`[GitHub Service] Failed to fetch gist ${gistId}:`, error);
+            throw this.normalizeGitHubError(error);
+        } finally {
+            this.emitMetric('gist_fetch_duration_ms', Date.now() - startTime, { success });
         }
     }
 

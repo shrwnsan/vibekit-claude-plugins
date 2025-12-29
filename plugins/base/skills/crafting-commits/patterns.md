@@ -1,62 +1,139 @@
-# Advanced Patterns & Best Practices
+# Advanced Patterns
 
-This file covers advanced commit message patterns, best practices for formatting, and detailed attribution guidelines.
+This reference covers advanced commit message patterns for issue integration, breaking changes, attribution, and performance commits.
 
-## Best Practices Implemented
+## Issue Integration
 
-### Conventional Commit Types
-- **feat**: New features or functionality
-- **fix**: Bug fixes and corrections
-- **docs**: Documentation changes only
-- **style**: Code formatting changes (no functional impact)
-- **refactor**: Code restructuring without functional changes
-- **perf**: Performance improvements
-- **test**: Adding or updating tests
-- **chore**: Maintenance tasks, dependency updates
+### Single Issue Reference
 
-### Formatting Standards
-- **Subject Line**: Max 50 characters, imperative mood, no period
-- **Body Lines**: Max 72 characters, present tense
-- **Empty Line**: Blank line between subject and body
-- **Bullet Points**: Use hyphens or asterisks for lists
-
-### Attribution Guidelines
-- **Single Author**: One Co-Authored-By line
-- **Multiple Authors**: Multiple Co-Authored-By lines
-- **Format**: `Co-Authored-By: Name <email>`
-- **Placement**: After commit body, before signatures
-
-## Advanced Patterns
-
-### Issue Integration
-**Single Issue:**
+Simple format in subject line:
 ```
 fix: resolve user login timeout (Fixes #123)
 ```
 
-**Multiple Issues:**
+Or in body:
+```
+fix: resolve user login timeout
+
+Fix authentication session expiration issue causing premature
+logouts for active users.
+
+Fixes #123
+```
+
+### Multiple Issues Reference
+
 ```
 feat: add data export functionality
 
-Implement CSV and JSON export options for user data.
+Implement CSV and JSON export options for user data with
+configurable filters and batch processing support.
 
 Fixes #45, Closes #67, Resolves #89
 ```
 
-### Breaking Change Notices
+### Issue Reference Formats
+
+- `Fixes #123` - Automatically closes issue when merged
+- `Closes #45` - Alternative closing keyword
+- `Resolves #89` - Another closing keyword
+- `Related to #12` - Does not close, just references
+- `See also #34` - Weak reference for additional context
+
+## Breaking Change Notices
+
+### Breaking Change in Type/Scope
+
 ```
 feat(api)!: change user endpoint response format
 
-BREAKING CHANGE: The user profile endpoint now returns a nested object
+BREAKING CHANGE: User profile endpoint now returns nested object
 structure instead of flat fields.
 
-Migration: Update client code to access `user.profile.name`
-instead of `user.name` directly.
+Migration: Update client code to access user.profile.name
+instead of user.name directly.
 
-Deprecates: Direct field access will be removed in v2.0.0.
+Deprecates: Direct field access removed in v2.0.0
 ```
 
-### Performance Commits
+### Breaking Change in Body
+
+```
+feat: add user endpoint response format changes
+
+This commit updates the user profile endpoint structure.
+
+BREAKING CHANGE: User profile endpoint now returns nested object
+structure instead of flat fields.
+
+Migration:
+- Update client code to access user.profile.name
+- Update all API consumers to use new nested structure
+- Run migration script to transform existing data
+
+Deprecates: Direct field access, removed in v2.0.0
+```
+
+### Breaking Change with Exclamation
+
+Use '!' after type/scope to indicate breaking change:
+```
+feat!: remove deprecated authentication method
+fix(api)!: change error response format
+refactor(core)!: replace legacy data store
+```
+
+## Attribution Guidelines
+
+### When to Add Attribution
+
+**Always include Co-Authored-By lines when:**
+- Working with AI models and assistants
+- Multiple human contributors made significant changes
+- Code reviewers provided substantial input
+- Pair programming sessions occurred
+- External dependencies or libraries were integrated
+
+### Attribution Format
+
+```
+Co-Authored-By: Full Name <email@example.com>
+Co-Authored-By: GitHub Username <username@users.noreply.github.com>
+Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+```
+
+### Single Contributor
+
+```
+feat: add new feature
+
+Implementation details here.
+
+Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+```
+
+### Multiple Contributors
+
+```
+feat: implement collaborative feature
+
+This feature was developed through collaborative effort
+with contributions from multiple team members.
+
+Technical details:
+- Component A developed by Alice
+- Component B developed by Bob
+- Integration and testing by Carlos
+
+Co-Authored-By: Alice Chen <alice@company.com>
+Co-Authored-By: Bob Smith <bob@company.com>
+Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+```
+
+## Performance Commits
+
+### Performance Optimization
+
 ```
 perf: optimize database query performance
 
@@ -67,34 +144,63 @@ Before: Average 250ms per user profile load
 After: Average 150ms per user profile load
 
 Impact: Improves user experience, reduces server load
-```
 
-## Attribution Guidelines
+Testing:
+- Benchmark with 10k concurrent users
+- Memory usage reduced by 15%
+- CPU utilization improved by 25%
 
-### When to Add Attribution
-**Always include Co-Authored-By lines when:**
-- Working with AI models and assistants
-- Multiple human contributors made significant changes
-- Code reviewers provided substantial input
-- Pair programming sessions occurred
-- External dependencies or libraries were integrated
-
-### Attribution Format
-```
-Co-Authored-By: Full Name <email@example.com>
-Co-Authored-By: GitHub Username <username@users.noreply.github.com>
 Co-Authored-By: GLM <zai-org@users.noreply.github.com>
 ```
 
-### Multiple Contributors
-For significant collaboration:
+### Memory Optimization
+
 ```
-feat: implement collaborative feature
+perf: reduce memory footprint in data pipeline
 
-This feature was developed through collaborative effort
-with contributions from multiple team members.
+Implement streaming data processing to reduce memory usage
+during large file operations.
 
-Co-Authored-By: Alice Chen <alice@company.com>
-Co-Authored-By: Bob Smith <bob@company.com>
+Before: Peak memory usage of 2GB for 100MB files
+After: Peak memory usage of 200MB for 100MB files
+
+Impact: Enables processing larger files on smaller instances
+
+Testing: Verified with 1GB+ files without OOM errors
+
 Co-Authored-By: GLM <zai-org@users.noreply.github.com>
 ```
+
+## Best Practices
+
+### Commit Type Selection
+
+Choose the most specific type:
+- `feat` for new features
+- `fix` for bug fixes
+- `docs` for documentation only
+- `style` for formatting (no functional change)
+- `refactor` for restructuring (no functional change)
+- `perf` for performance improvements
+- `test` for adding/updating tests
+- `chore` for maintenance tasks
+
+### Scope Guidelines
+
+Use scope to indicate the area affected:
+```
+feat(auth): add OAuth2 support
+fix(api): resolve rate limiting bug
+docs(readme): update installation instructions
+```
+
+Omit scope if changes affect multiple areas or scope is unclear.
+
+### Body Content Guidelines
+
+- Explain **what** and **why**, not **how**
+- Use present tense ("Add feature" not "Added feature")
+- Wrap lines at 72 characters
+- Use bullet points for lists
+- Include testing notes for non-trivial changes
+- Reference issues when applicable

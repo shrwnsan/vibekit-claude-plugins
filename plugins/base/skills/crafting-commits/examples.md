@@ -1,8 +1,9 @@
 # Commit Message Examples
 
-This file provides examples for different types of commits, following conventional commit standards.
+This reference provides detailed commit message examples for various change types. Use these as templates when crafting your commit messages.
 
 ## Feature Addition
+
 ```
 feat: add user authentication system with JWT tokens
 
@@ -22,6 +23,7 @@ Co-Authored-By: GLM <zai-org@users.noreply.github.com>
 ```
 
 ## Bug Fix
+
 ```
 fix: resolve memory leak in data processing pipeline
 
@@ -40,6 +42,7 @@ Co-Authored-By: GLM <zai-org@users.noreply.github.com>
 ```
 
 ## Documentation Update
+
 ```
 docs: update API documentation with new authentication endpoints
 
@@ -58,6 +61,7 @@ Co-Authored-By: GLM <zai-org@users.noreply.github.com>
 ```
 
 ## Refactoring
+
 ```
 refactor: simplify data validation logic with chainable validators
 
@@ -74,3 +78,32 @@ Benefits:
 Performance impact: Minimal (<1ms per validation)
 Co-Authored-By: GLM <zai-org@users.noreply.github.com>
 ```
+
+## Simple Changes
+
+```
+feat: add user profile page
+fix: resolve null pointer exception
+docs: update installation guide
+style: format code with prettier
+chore: update dependencies to latest versions
+test: add unit tests for user service
+```
+
+## Complex Changes
+
+For complex changes, include detailed body explaining:
+- What was changed and why
+- Breaking changes (if any)
+- Testing performed
+- Related issues or PRs
+- Performance implications
+- Migration considerations
+
+## Collaborative Work
+
+Always include Co-Authored-By lines when working with:
+- AI models and assistants
+- Multiple human contributors
+- Code reviewers who provided significant input
+- Pair programming sessions

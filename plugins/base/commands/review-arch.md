@@ -22,19 +22,25 @@ Context constraints
 
 3. Visual diagrams (optional, post-analysis)
 After delivering the initial review, ask: "Would you like me to generate state machine diagrams for the key components? This helps verify complete path coverage and reveals edge cases."
-If yes, create ASCII/text-based diagrams showing:
-- Component interaction states and transitions
-- Request/response lifecycles
-- Error handling paths
-- Concurrent operation flows
 
-Use these diagram formats:
-- **Tree structures**: Box-drawing characters (├─, │, └─) for hierarchies
-- **State transitions**: Numbered states with labeled arrows (e.g., "① → ②: validate")
-- **Loops/cycles**: Explicit "→ back to ①" or "→ retry" markers
-- **Parallel flows**: Separate branches showing concurrent operations
+If yes, create diagrams in TWO formats:
 
-Keep diagrams compact and readable in terminal output.
+**Terminal format** (compact ASCII, for immediate viewing):
+- Section headers for grouping (Main Flow, Error Handling, Concurrent Operations)
+- State labels in brackets: ①[StateName]
+- Clear entry/exit markers: START, EXIT
+- Explicit loop markers: "→ back to ①" or "→ retry"
+- Box-drawing for hierarchies: ├─, │, └─
+- Keep compact and readable in terminal width
+
+**Markdown format** (for file output with rendering):
+- Mermaid diagram syntax: ```mermaid ... ```
+- Use stateDiagram-v2 for state machines
+- Use flowchart TD for data flows and process flows
+- Include descriptive labels and proper transitions
+- Full documentation with diagram descriptions
+
+After generating terminal format, ask: "Should I write this to a file as Markdown with Mermaid diagrams? (Recommended for GitHub/IDE rendering)"
 
 4. Guardrails
 - Do not invent services/APIs/infra not present; mark unknown and ask.

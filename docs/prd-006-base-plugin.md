@@ -54,24 +54,56 @@ Base Plugin addresses the fundamental need for professional development workflow
 - **Comprehensive Analysis**: Maps components, data flows, dependencies, and risks
 - **Prioritized Improvements**: Delivers actionable recommendations with rationale
 - **Optional Focus Areas**: Supports backend, frontend, auth, performance specialization
-- **State Machine Diagrams**: ASCII/text-based diagrams for system visualization
+- **Dual-Format Diagrams**: ASCII for terminal + Mermaid for file rendering
 - **Security-First**: Excludes secrets files and handles sensitive data safely
 
-**Diagram Format Examples:**
+**Terminal Format Example:**
 ```
 State Machine: API Request Flow
-① Init → ②: send request
-② Validate → ③: process data
-③ Process → ④: return response
-④ Response → ①: complete
 
-Error paths:
-② Validate → ⑤: on error
-⑤ Error → ①: retry (max 3x)
+Main Flow:
+  START → ①[ReceiveRequest]: client request
+  ①[ReceiveRequest] → ②[ValidateToken]: check auth
+  ②[ValidateToken] → ③[ProcessData]: token valid
+  ③[ProcessData] → ④[SendResponse]: return result
+  ④[SendResponse] → EXIT: complete
 
-Loop example:
-③ Process → ②: revalidate if needed
+Error Handling:
+  ②[ValidateToken] → ⑤[AuthError]: invalid token
+  ⑤[AuthError] → EXIT: return 401
+
+  ③[ProcessData] → ⑥[ProcessError]: processing fails
+  ⑥[ProcessError] → ①[ReceiveRequest]: retry (max 3x)
+
+Loop Example:
+  ③[ProcessData] → ②[ValidateToken]: revalidate if expired
 ```
+
+**Markdown Format Example (for file output):**
+\`\`\`markdown
+## State Machine: API Request Flow
+
+\`\`\`mermaid
+stateDiagram-v2
+    [*] --> ReceiveRequest
+    ReceiveRequest --> ValidateToken: check auth
+    ValidateToken --> ProcessData: token valid
+    ValidateToken --> AuthError: invalid token
+    ProcessData --> SendResponse: success
+    ProcessData --> ProcessError: fails
+    ProcessError --> ReceiveRequest: retry (max 3x)
+    SendResponse --> [*]
+    AuthError --> [*]
+\`\`\`
+
+**States:**
+- **ReceiveRequest**: Incoming client request
+- **ValidateToken**: Authentication check
+- **ProcessData**: Business logic execution
+- **SendResponse**: Return result to client
+- **AuthError**: Token validation failed
+- **ProcessError**: Processing failure with retry
+\`\`\`
 
 ## Implementation Strategy
 ### Phase 1: Foundation (v1.0.0)

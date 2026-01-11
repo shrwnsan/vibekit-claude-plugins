@@ -46,6 +46,7 @@ After generating terminal format, ask: "Should I write this to a file as Markdow
 - Do not invent services/APIs/infra not present; mark unknown and ask.
 - No speculative metrics; keep it qualitative unless concrete data exists.
 - Don't paste large code blocks unless asked.
+- **File exclusion**: NEVER read system files (.DS_Store, Thumbs.db, desktop.ini, *.swp, *~, etc.) or editor configs (.idea/, .vscode/, *.sublime-*)
 - **Security exclusion**: NEVER read or display contents of secrets files (.env, .env.*, *.key, *.pem, credentials.json, .aws/credentials, etc.)
 - **Sensitive data**: If you encounter API keys, tokens, or secrets in code, report their presence generically without exposing values
 

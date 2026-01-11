@@ -5,6 +5,18 @@ All notable changes to the Base Plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-01-11
+
+### Added
+- **/review-arch command** for comprehensive architecture reviews
+  - Analyzes components, data flows, and risks
+  - Provides prioritized improvement opportunities
+  - Supports optional focus areas (backend, frontend, auth, performance)
+  - Delivers actionable insights with concrete next steps
+
+### Changed
+- Updated plugin version to 1.5.0 for marketplace consistency
+
 ## [1.3.0] - 2025-12-08
 
 ### Added
@@ -32,5 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Crafting-commits skill for intelligent commit message creation
 - Essential Claude Code workflow tools
 
-[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.3.0...v1.5.0
 [1.3.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.2.0...v1.3.0

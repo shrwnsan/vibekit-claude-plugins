@@ -28,7 +28,13 @@ If yes, create ASCII/text-based diagrams showing:
 - Error handling paths
 - Concurrent operation flows
 
-Use box-drawing characters (├─, │, └─) for tree structures and simple ASCII art for state transitions. Keep diagrams compact and readable in terminal output.
+Use these diagram formats:
+- **Tree structures**: Box-drawing characters (├─, │, └─) for hierarchies
+- **State transitions**: Numbered states with labeled arrows (e.g., "① → ②: validate")
+- **Loops/cycles**: Explicit "→ back to ①" or "→ retry" markers
+- **Parallel flows**: Separate branches showing concurrent operations
+
+Keep diagrams compact and readable in terminal output.
 
 4. Guardrails
 - Do not invent services/APIs/infra not present; mark unknown and ask.

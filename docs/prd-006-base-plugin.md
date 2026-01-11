@@ -50,6 +50,29 @@ Base Plugin addresses the fundamental need for professional development workflow
 - **Error Recovery**: Handles failures and provides recovery options
 - **Agent Testing**: Comprehensive evaluation completed - see [eval-015-base-workflow-orchestrator.md](eval-015-base-workflow-orchestrator.md)
 
+### Architecture Review Command (✅ Complete - v1.5.0)
+- **Comprehensive Analysis**: Maps components, data flows, dependencies, and risks
+- **Prioritized Improvements**: Delivers actionable recommendations with rationale
+- **Optional Focus Areas**: Supports backend, frontend, auth, performance specialization
+- **State Machine Diagrams**: ASCII/text-based diagrams for system visualization
+- **Security-First**: Excludes secrets files and handles sensitive data safely
+
+**Diagram Format Examples:**
+```
+State Machine: API Request Flow
+① Init → ②: send request
+② Validate → ③: process data
+③ Process → ④: return response
+④ Response → ①: complete
+
+Error paths:
+② Validate → ⑤: on error
+⑤ Error → ①: retry (max 3x)
+
+Loop example:
+③ Process → ②: revalidate if needed
+```
+
 ## Implementation Strategy
 ### Phase 1: Foundation (v1.0.0)
 - ✅ Crafting-commits skill with Claude-centric invocation
@@ -57,7 +80,8 @@ Base Plugin addresses the fundamental need for professional development workflow
 - ✅ Marketplace integration with strict adherence
 - ✅ Comprehensive documentation and evaluation
 
-### Phase 2: Expansion (Future)
+### Phase 2: Expansion (v1.5.0+)
+- ✅ Architecture review command with state machine diagrams
 - 🌳 Branch workflow (git worktrees, parallel development)
 - ⚡ Terminal helpers (safe operations, command shortcuts)
 - 🔍 QA gatekeeper (scoped pre-commit checks)
@@ -144,10 +168,11 @@ plugins/base/
   - *Mitigation*: Platform-agnostic design patterns
 
 ## Next Steps
-### Immediate (v1.0.0)
+### Immediate (v1.0.0 - v1.5.0)
 - ✅ Complete core implementation
 - ✅ Test skill invocation and user adoption
 - ✅ Comprehensive agent testing and validation
+- ✅ Architecture review command with diagram support
 - 📊 Collect feedback and usage metrics
 - 📈 Prepare for Phase 2 evaluation
 

@@ -50,6 +50,15 @@ Base Plugin addresses the fundamental need for professional development workflow
 - **Error Recovery**: Handles failures and provides recovery options
 - **Agent Testing**: Comprehensive evaluation completed - see [eval-015-base-workflow-orchestrator.md](eval-015-base-workflow-orchestrator.md)
 
+### Architecture Review Command
+- **Comprehensive Analysis**: Maps components, data flows, dependencies, and risks
+- **Prioritized Improvements**: Delivers actionable recommendations with rationale
+- **Optional Focus Areas**: Supports backend, frontend, auth, performance specialization
+- **Dual-Format Diagrams**: ASCII for terminal + Mermaid for file rendering
+- **Security-First**: Excludes secrets files and handles sensitive data safely
+
+See `/review-arch` command for detailed diagram format specifications and examples.
+
 ## Implementation Strategy
 ### Phase 1: Foundation (v1.0.0)
 - ✅ Crafting-commits skill with Claude-centric invocation
@@ -57,7 +66,8 @@ Base Plugin addresses the fundamental need for professional development workflow
 - ✅ Marketplace integration with strict adherence
 - ✅ Comprehensive documentation and evaluation
 
-### Phase 2: Expansion (Future)
+### Phase 2: Expansion (v1.5.0+)
+- ✅ Architecture review command with state machine diagrams
 - 🌳 Branch workflow (git worktrees, parallel development)
 - ⚡ Terminal helpers (safe operations, command shortcuts)
 - 🔍 QA gatekeeper (scoped pre-commit checks)
@@ -144,10 +154,11 @@ plugins/base/
   - *Mitigation*: Platform-agnostic design patterns
 
 ## Next Steps
-### Immediate (v1.0.0)
+### Immediate (v1.0.0 - v1.5.0)
 - ✅ Complete core implementation
 - ✅ Test skill invocation and user adoption
 - ✅ Comprehensive agent testing and validation
+- ✅ Architecture review command with diagram support
 - 📊 Collect feedback and usage metrics
 - 📈 Prepare for Phase 2 evaluation
 

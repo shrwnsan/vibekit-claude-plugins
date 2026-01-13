@@ -2,6 +2,7 @@
 name: workflow-orchestrator
 description: Coordinates development workflows and orchestrates base plugin operations including git workflows, quality checks, and productivity automation
 model: inherit
+skills: crafting-commits
 ---
 
 # Workflow Orchestrator

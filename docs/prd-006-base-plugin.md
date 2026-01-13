@@ -50,60 +50,14 @@ Base Plugin addresses the fundamental need for professional development workflow
 - **Error Recovery**: Handles failures and provides recovery options
 - **Agent Testing**: Comprehensive evaluation completed - see [eval-015-base-workflow-orchestrator.md](eval-015-base-workflow-orchestrator.md)
 
-### Architecture Review Command (✅ Complete - v1.5.0)
+### Architecture Review Command
 - **Comprehensive Analysis**: Maps components, data flows, dependencies, and risks
 - **Prioritized Improvements**: Delivers actionable recommendations with rationale
 - **Optional Focus Areas**: Supports backend, frontend, auth, performance specialization
 - **Dual-Format Diagrams**: ASCII for terminal + Mermaid for file rendering
 - **Security-First**: Excludes secrets files and handles sensitive data safely
 
-**Terminal Format Example:**
-```
-State Machine: API Request Flow
-
-Main Flow:
-  START → ①[ReceiveRequest]: client request
-  ①[ReceiveRequest] → ②[ValidateToken]: check auth
-  ②[ValidateToken] → ③[ProcessData]: token valid
-  ③[ProcessData] → ④[SendResponse]: return result
-  ④[SendResponse] → EXIT: complete
-
-Error Handling:
-  ②[ValidateToken] → ⑤[AuthError]: invalid token
-  ⑤[AuthError] → EXIT: return 401
-
-  ③[ProcessData] → ⑥[ProcessError]: processing fails
-  ⑥[ProcessError] → ①[ReceiveRequest]: retry (max 3x)
-
-Loop Example:
-  ③[ProcessData] → ②[ValidateToken]: revalidate if expired
-```
-
-**Markdown Format Example (for file output):**
-\`\`\`markdown
-## State Machine: API Request Flow
-
-\`\`\`mermaid
-stateDiagram-v2
-    [*] --> ReceiveRequest
-    ReceiveRequest --> ValidateToken: check auth
-    ValidateToken --> ProcessData: token valid
-    ValidateToken --> AuthError: invalid token
-    ProcessData --> SendResponse: success
-    ProcessData --> ProcessError: fails
-    ProcessError --> ReceiveRequest: retry (max 3x)
-    SendResponse --> [*]
-    AuthError --> [*]
-\`\`\`
-
-**States:**
-- **ReceiveRequest**: Incoming client request
-- **ValidateToken**: Authentication check
-- **ProcessData**: Business logic execution
-- **SendResponse**: Return result to client
-- **AuthError**: Token validation failed
-- **ProcessError**: Processing failure with retry
-\`\`\`
+See `/review-arch` command for detailed diagram format specifications and examples.
 
 ## Implementation Strategy
 ### Phase 1: Foundation (v1.0.0)

@@ -20,12 +20,12 @@ Context constraints
 - Step-by-step primary flow(s).
 - Top improvement opportunities (prioritized) with 1-line rationale each.
 
-3. Visual diagrams (optional, post-analysis)
+3. Visual diagrams (optional)
 After delivering the initial review, ask: "Would you like me to generate state machine diagrams for the key components? This helps verify complete path coverage and reveals edge cases."
 
 If yes, create diagrams in TWO formats:
 
-**Terminal format** (compact ASCII, for immediate viewing):
+3.1. Terminal format (compact ASCII, for immediate viewing):
 - Section headers for grouping (Main Flow, Error Handling, Concurrent Operations)
 - State labels in brackets: ①[StateName]
 - Clear entry/exit markers: START, EXIT
@@ -33,7 +33,7 @@ If yes, create diagrams in TWO formats:
 - Box-drawing for hierarchies: ├─, │, └─
 - Keep compact and readable in terminal width
 
-**Markdown format** (for file output with rendering):
+3.2. Markdown format (for file output with rendering):
 - Mermaid diagram syntax: ```mermaid ... ```
 - Use stateDiagram-v2 for state machines
 - Use flowchart TD for data flows and process flows

@@ -2,6 +2,16 @@
 
 This reference covers advanced commit message patterns for issue integration, breaking changes, attribution, and performance commits.
 
+## Freedom Levels & Model Guidance
+
+The skill operates at three autonomy levels based on commit complexity:
+
+- **Level 1 (Autonomous)**: Simple commits like `fix`, `docs`, `style`, and `chore`. I can execute these autonomously.
+- **Level 2 (Validation Required)**: Complex changes such as `feat`, `refactor`, and `perf`. I will ask for your confirmation before proceeding.
+- **Level 3 (Explicit Approval)**: Critical modifications or breaking changes. I will require your explicit approval before committing.
+
+See [validation.md](validation.md) for detailed checklists for each freedom level.
+
 ## Issue Integration
 
 ### Single Issue Reference
@@ -99,7 +109,7 @@ refactor(core)!: replace legacy data store
 ```
 Co-Authored-By: Full Name <email@example.com>
 Co-Authored-By: GitHub Username <username@users.noreply.github.com>
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Single Contributor
@@ -109,7 +119,7 @@ feat: add new feature
 
 Implementation details here.
 
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Multiple Contributors
@@ -127,7 +137,7 @@ Technical details:
 
 Co-Authored-By: Alice Chen <alice@company.com>
 Co-Authored-By: Bob Smith <bob@company.com>
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## Performance Commits
@@ -150,7 +160,7 @@ Testing:
 - Memory usage reduced by 15%
 - CPU utilization improved by 25%
 
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Memory Optimization
@@ -168,7 +178,7 @@ Impact: Enables processing larger files on smaller instances
 
 Testing: Verified with 1GB+ files without OOM errors
 
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## Best Practices

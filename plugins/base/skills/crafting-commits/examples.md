@@ -19,7 +19,7 @@ Changes:
 Fixes #123
 Related to #45
 
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## Bug Fix
@@ -38,7 +38,7 @@ Testing: Verified memory usage remains stable during 24h stress test
 with 1M+ records processed.
 
 Fixes #89
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## Documentation Update
@@ -57,7 +57,7 @@ Updated sections:
 - Integration examples for popular frameworks
 
 Related to feature implementation in commit 7a2b3c4
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## Refactoring
@@ -76,7 +76,7 @@ Benefits:
 - Reduced cognitive complexity in validation logic
 
 Performance impact: Minimal (<1ms per validation)
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## Simple Changes

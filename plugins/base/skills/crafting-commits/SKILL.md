@@ -1,8 +1,8 @@
 ---
 name: crafting-commits
-description: Automatically invoked when user requests git commit message creation, commit drafting, or needs help with conventional commit formatting. Handles conventional commit standards.
+description: Generates git commit messages following conventional commit standards with collaborative attribution. Use when user requests commit message creation, drafting, or help with formatting.
 allowed-tools:
-  - bash
+  - bash(git:*)
 ---
 
 # Crafting Git Commits

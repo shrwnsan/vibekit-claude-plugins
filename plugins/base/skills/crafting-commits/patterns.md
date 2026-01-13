@@ -2,6 +2,16 @@
 
 This reference covers advanced commit message patterns for issue integration, breaking changes, attribution, and performance commits.
 
+## Freedom Levels & Model Guidance
+
+The skill operates at three autonomy levels based on commit complexity:
+
+- **Level 1 (Autonomous)**: Simple commits like `fix`, `docs`, `style`, and `chore`. I can execute these autonomously.
+- **Level 2 (Validation Required)**: Complex changes such as `feat`, `refactor`, and `perf`. I will ask for your confirmation before proceeding.
+- **Level 3 (Explicit Approval)**: Critical modifications or breaking changes. I will require your explicit approval before committing.
+
+See [validation.md](validation.md) for detailed checklists for each freedom level.
+
 ## Issue Integration
 
 ### Single Issue Reference

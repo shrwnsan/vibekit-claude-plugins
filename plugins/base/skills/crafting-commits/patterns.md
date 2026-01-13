@@ -109,7 +109,7 @@ refactor(core)!: replace legacy data store
 ```
 Co-Authored-By: Full Name <email@example.com>
 Co-Authored-By: GitHub Username <username@users.noreply.github.com>
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Single Contributor
@@ -119,7 +119,7 @@ feat: add new feature
 
 Implementation details here.
 
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Multiple Contributors
@@ -137,7 +137,7 @@ Technical details:
 
 Co-Authored-By: Alice Chen <alice@company.com>
 Co-Authored-By: Bob Smith <bob@company.com>
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## Performance Commits
@@ -160,7 +160,7 @@ Testing:
 - Memory usage reduced by 15%
 - CPU utilization improved by 25%
 
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Memory Optimization
@@ -178,7 +178,7 @@ Impact: Enables processing larger files on smaller instances
 
 Testing: Verified with 1GB+ files without OOM errors
 
-Co-Authored-By: GLM <zai-org@users.noreply.github.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## Best Practices

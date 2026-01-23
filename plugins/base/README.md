@@ -6,6 +6,7 @@ A Claude Code plugin providing foundational workflow automation tools for produc
 
 - **Git Commit Command**: Quick, intelligent commit creation with `/commit` slash command
 - **Git Commit Crafting**: Professional commit messages with conventional standards and attribution
+- **Systematic Debugging**: Structured debugging approach that finds root causes efficiently
 - **Workflow Orchestration**: Coordinates development workflows and quality assurance (beta)
 
 ## Quick Start
@@ -19,6 +20,9 @@ claude plugin install base
 
 # Try git commit crafting (automatic invocation)
 "help me commit these changes"
+
+# Debug errors systematically (automatic invocation)
+"this test is failing" or "help me debug this issue"
 
 # Use workflow orchestrator
 "base: workflow commit --scope feature"
@@ -54,6 +58,30 @@ Intelligent automation that adapts to your changes. Use for phrases like:
 - Quality validation before committing
 - Proper attribution handling
 - Breaking change detection
+
+### Systematic Debugging
+
+Automatically activates when you encounter errors, test failures, or unexpected behavior. No command needed—just describe the issue.
+
+**When it activates:**
+- Error messages or stack traces in conversation
+- Test failures being discussed
+- "Not working", "bug", "broken", or "unexpected behavior" mentioned
+- Questions like "why is this happening?"
+
+**What it provides:**
+- 5-step systematic debugging workflow
+- Guardrails against common debugging pitfalls
+- Guidance for multi-component systems
+- Architecture questioning when 3+ fixes fail
+
+**Usage examples:**
+- "This test is failing"
+- "Help me debug this error"
+- "Why isn't this working?"
+- "Something's broken after my changes"
+
+**Key principle:** Understand the root cause before attempting fixes. Systematic debugging is faster than random fixes.
 
 ### Workflow Orchestrator (beta)
 The workflow orchestrator coordinates complex development workflows, integrating git operations, quality assurance, and productivity automation. It manages parallel development, enforces quality gates, and sequences tasks for smooth development processes.
@@ -111,7 +139,8 @@ plugins/base/
 ├── commands/
 │   └── commit.md                   # Quick commit command
 ├── skills/
-│   └── crafting-commits/           # Professional commit crafting
+│   ├── crafting-commits/           # Professional commit crafting
+│   └── systematic-debugging/       # Systematic debugging approach
 ├── agents/
 │   └── workflow-orchestrator.md    # Workflow coordination (beta)
 ├── docs/
@@ -137,4 +166,4 @@ export VIBEKIT_BASE_QA_SCOPE=standard        # Quality assurance level: standard
 
 ---
 
-License: Apache 2.0 | Plugin Version: 1.3.0
+License: Apache 2.0 | Plugin Version: 1.6.0 (Unreleased)

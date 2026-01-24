@@ -14,15 +14,15 @@
       "name": "base",
       "source": "./plugins/base",
       "description": "Essential Claude Code workflow and context engineering tools for productive development",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "author": {
         "name": "shrwnsan"
       },
       "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/base",
       "license": "Apache-2.0",
-      "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation"],
+      "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation", "debugging"],
       "category": "productivity",
-      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation"]
+      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging"]
     },
     {
       "name": "search-plus",

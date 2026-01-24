@@ -2,7 +2,7 @@
 name: workflow-orchestrator
 description: Coordinates development workflows and orchestrates base plugin operations including git workflows, quality checks, and productivity automation
 model: inherit
-skills: crafting-commits
+skills: crafting-commits, systematic-debugging
 ---
 
 # Workflow Orchestrator
@@ -44,6 +44,7 @@ Structured workflow execution with:
 
 4) Coordinate integration points
 - Integrate git commit crafter for proper message formatting
+- Apply systematic debugging approach when errors occur
 - Coordinate quality gate execution at appropriate stages
 - Manage parallel subagent contexts and isolation
 - Utilize terminal helpers for productivity enhancements
@@ -61,6 +62,7 @@ Structured workflow execution with:
 - Provide recommendations for next steps
 
 7) Error handling and recovery
+- Apply systematic debugging when errors or test failures occur
 - Handle workflow interruptions gracefully
 - Provide recovery options for failed operations
 - Maintain workflow state for resume capability

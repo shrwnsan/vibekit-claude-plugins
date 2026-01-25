@@ -3,6 +3,7 @@ name: handoff-context
 description: Detects natural language handoff requests and generates structured context summaries for seamless thread continuation. Use when user says "handoff", "new thread", "continue in fresh thread", or similar phrases.
 allowed-tools:
   - bash(git:*)
+  - bash(write to /tmp/*)
 ---
 
 # Handoff Context
@@ -61,9 +62,14 @@ git ls-files --others --exclude-standard  # Untracked files
 
 ### 3. Generate Handoff Summary
 
-Output structured context in YAML format:
+Generate unique filename and write structured context to `/tmp/`:
 
-```yaml
+```bash
+# Generate unique filename with timestamp
+HANDOFF_FILE="/tmp/handoff-$(date +%Y%m%d-%H%M%S).yaml"
+
+# Write YAML context to file
+cat > "$HANDOFF_FILE" << 'EOF'
 handoff:
   timestamp: "ISO 8601"
   thread_id: "current_thread_identifier"
@@ -87,6 +93,11 @@ context:
       context: "what to continue with"
   preserved_context:
     - "key decision or important detail"
+EOF
+
+# Display file path and contents
+echo "🔄 Handoff context written to: $HANDOFF_FILE"
+cat "$HANDOFF_FILE"
 ```
 
 ### 4. Provide Continuation Instruction
@@ -96,8 +107,12 @@ Display the handoff summary and provide clear next steps:
 ```text
 🔄 Handoff context ready
 
-Start a new thread and include the above context to continue.
-Copy the YAML output or reference the key points in preserved_context.
+Context written to: /tmp/handoff-YYYYMMDD-HHMMSS.yaml
+
+To continue in a new thread:
+  1. Start a new Claude Code conversation
+  2. Read the handoff file: "Continue from /tmp/handoff-YYYYMMDD-HHMMSS.yaml"
+  3. Or paste the YAML output directly
 ```
 
 ## Examples
@@ -143,7 +158,7 @@ The goal is to let you stay in flow while transitioning to a fresh thread. No bu
 ## Limitations
 
 - Does not automatically create new threads (that's a platform capability)
-- Relies on user to copy context to new thread
+- Context written to `/tmp/` may be cleared on system reboot
 - Git state is captured at handoff time, not live-synced
 - Large conversations may produce extensive summaries
 

@@ -100,8 +100,8 @@ Automatically activates when you want to transition to a new thread and preserve
 - "Start a new thread with this" → Explicit thread continuation
 
 **What it provides:**
-- Structured YAML context summary with git state, conversation phases, and next steps
-- Preserves key decisions and important details for continuation
+- Structured YAML context summary written to `/tmp/handoff-TIMESTAMP.yaml`
+- Preserves git state, conversation phases, next steps, and key decisions
 - Integrates with workflow-orchestrator for workflow-aware handoffs
 
 **Usage examples:**

@@ -105,14 +105,13 @@ cat "$HANDOFF_FILE"
 Display the handoff summary and provide clear next steps:
 
 ```text
-🔄 Handoff context ready
+🔄 Handoff ready
 
-Context written to: /tmp/handoff-YYYYMMDD-HHMMSS.yaml
+Context written to: /tmp/handoff-20260125-092412.yaml
 
 To continue in a new thread:
-  1. Start a new Claude Code conversation
-  2. Read the handoff file: "Continue from /tmp/handoff-YYYYMMDD-HHMMSS.yaml"
-  3. Or paste the YAML output directly
+  1. Start a new AI agent conversation
+  2. Tell the agent: "Continue from /tmp/handoff-20260125-092412.yaml"
 ```
 
 ## Examples

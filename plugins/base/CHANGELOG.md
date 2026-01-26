@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-01-26
+
+### Added
+- **handoff-context skill** for natural language thread continuation
+  - Detects handoff triggers: "handoff and", "handoff to", "start a new thread with this"
+  - Captures git state, conversation summary, active work, next steps
+  - Writes to `/tmp/` with private temp directory for security
+  - Agent-agnostic output compatible with agentskills.io standard
+  - Complements Claude Code Tasks system for clean slate continuation
+
+### Changed
+- Updated plugin version to 1.6.0
+
+## [1.5.0] - 2026-01-11
+
 ### Added
 - **systematic-debugging skill** for structured debugging approach
   - 5-step workflow: capture context, reproduce, isolate, fix, verify
@@ -14,10 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Multi-component system debugging guidance
   - Architecture questioning when 3+ fixes fail
   - Auto-activates on error language and debugging context
-
-## [1.5.0] - 2026-01-11
-
-### Added
 - **/review-arch command** for comprehensive architecture reviews
   - Analyzes components, data flows, and risks
   - Provides prioritized improvement opportunities
@@ -54,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Crafting-commits skill for intelligent commit message creation
 - Essential Claude Code workflow tools
 
-[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.3.0...v1.5.0
 [1.3.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.2.0...v1.3.0

@@ -55,6 +55,8 @@ Essential workflow and context engineering tools for productive development. Inc
 - 🔄 **Workflow Orchestration**: Automated git workflows with quality gates
 - 📊 **Quality Assurance**: Pre-commit hooks and validation automation
 - ⚡ **Parallel Development**: Support for concurrent development tasks
+- 🎯 **Systematic Debugging**: Structured approach to find root causes efficiently
+- 🔗 **Handoff Context**: Natural language thread continuation with context preservation
 
 **Example Usage:**
 ```bash

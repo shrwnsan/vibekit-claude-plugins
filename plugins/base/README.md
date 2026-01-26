@@ -196,4 +196,4 @@ export VIBEKIT_BASE_QA_SCOPE=standard        # Quality assurance level: standard
 
 ---
 
-License: Apache 2.0 | Plugin Version: 1.6.0 (Unreleased)
+License: Apache 2.0 | Plugin Version: 1.6.0

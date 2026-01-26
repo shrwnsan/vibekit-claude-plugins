@@ -19,29 +19,34 @@ Generates structured context summaries for seamless thread continuation.
 - "Handoff to [agent/skill]" → targeted handoff
 - "Start a new thread with this" → explicit continuation
 
-**When triggered, execute this script:**
+**When this skill is triggered, you must:**
+
+1. **Execute the script first:**
 ```bash
 bash plugins/base/skills/handoff-context/scripts/capture-context.sh
 ```
 
-**Workflow:**
-1. Script generates YAML template with git state at `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml`
-2. Read the generated file and populate conversation context (current_work, conversation_summary, next_steps, preserved_context)
-3. **Overwrite the same file** with complete context
-4. Display continuation instructions to user
+2. **Capture the HANDOFF_FILE path** from script output (format: `HANDOFF_FILE=/tmp/...`)
+
+3. **Read that file** and populate conversation context:
+   - Current work (tasks, status, affected files)
+   - Conversation summary (phases, outcomes, decisions)
+   - Next steps (continuation action context)
+   - Preserved context (key details to remember)
+
+4. **Overwrite the same file** with complete context
+
+5. **Display summary** to user with file path
 
 **What the script captures:**
 - Git state (branch, staged/unstaged/untracked files)
 - YAML structure with dynamic timestamps
 - Secure temp directory with proper permissions
 
-**What you (Claude) need to add:**
-- Current work (tasks, status, affected files)
-- Conversation summary (phases, outcomes, decisions)
-- Next steps (continuation action context)
-- Preserved context (key details to remember)
+**What you need to add:**
+- Current work, conversation summary, next steps, preserved_context
 
-Creates complete `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml` with full context.
+**Result:** Complete `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml` with full context.
 
 ## What Gets Captured
 

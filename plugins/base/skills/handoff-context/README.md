@@ -36,6 +36,24 @@ To continue in a new thread:
   2. Tell the agent: "Continue from /tmp/handoff-20260125-092412.yaml"
 ```
 
+## Screenshots
+
+Early testing demonstrates the handoff feature working as expected:
+
+### Handoff Detection and Context Generation
+
+![Handoff detection screenshot](https://github.com/user-attachments/assets/f5570d4e-6487-4ddf-b8aa-f8d289a66b3f)
+
+The skill activates when natural language handoff phrases are detected, capturing git state and conversation context automatically.
+
+### Generated Context File
+
+![Generated YAML context](https://github.com/user-attachments/assets/aa0b4d92-bef9-4b24-9933-8e80cde40f82)
+
+A structured YAML file is written to `/tmp/` with timestamp, thread metadata, and comprehensive context for continuation in a new thread.
+
+*See [GitHub Issue #41](https://github.com/shrwnsan/vibekit-claude-plugins/issues/41#issuecomment-3797783132) for the original testing report.*
+
 ## Relationship to Claude Code Tasks
 
 This skill complements [Claude Code's Tasks system](https://www.reddit.com/r/ClaudeAI/comments/1qkjznp/anthropic_replaced_claude_codes_old_todos_with/) (announced [2025-01-24](https://x.com/bcherny/status/2014485078815211652)). They serve different purposes:
@@ -65,7 +83,6 @@ The two systems are complementary—Tasks manages ongoing work across sessions, 
 
 This skill follows the [agentskills.io](https://agentskills.io) standard and is compatible with:
 - ✅ Claude Code
-- ✅ Gemini CLI (with skill support)
 - ✅ Other agents implementing the Agent Skills standard
 
 The output is agent-agnostic and works across platforms that support:

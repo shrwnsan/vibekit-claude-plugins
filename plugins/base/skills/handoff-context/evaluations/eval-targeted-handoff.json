@@ -1,0 +1,42 @@
+{
+  "skills": ["handoff-context"],
+  "query": "Handoff to the code-reviewer agent to check for security issues",
+  "context": {
+    "current_work": [
+      {
+        "task": "Implement user password reset flow",
+        "status": "completed",
+        "files": ["src/auth/reset.ts", "src/email/templates.ts"]
+      }
+    ],
+    "conversation_summary": [
+      {
+        "phase": "implementation",
+        "outcome": "Added password reset endpoint with email verification. Uses time-based tokens. Need security review before deploying."
+      }
+    ],
+    "preserved_context": [
+      "Time-based tokens expire after 1 hour",
+      "Reset links can only be used once",
+      "Rate limiting implemented: 3 requests per hour"
+    ]
+  },
+  "expected_behavior": [
+    "Detects targeted handoff type from 'Handoff to' pattern",
+    "Extracts continuation_action: 'the code-reviewer agent to check for security issues'",
+    "Captures completed password reset implementation",
+    "Identifies security-sensitive nature of the work",
+    "Preserves technical implementation details",
+    "Generates YAML with specific agent target",
+    "Output indicates handoff to specific agent/skill",
+    "Includes security context for reviewer"
+  ],
+  "success_criteria": [
+    "YAML file is created in /tmp/ directory",
+    "continuation_action includes 'code-reviewer agent' and 'security issues'",
+    "current_work captures completed password reset task",
+    "preserved_context includes security-relevant details",
+    "conversation_summary notes need for security review",
+    "Output provides clear handoff target for next thread"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "skills": ["handoff-context"],
+  "query": "Handoff and build an admin panel",
+  "context": {
+    "current_work": [
+      {
+        "task": "Implement user authentication API",
+        "status": "completed",
+        "files": ["src/api/auth.ts", "src/middleware/auth.ts", "src/types/user.ts"]
+      }
+    ],
+    "git_state": {
+      "branch": "feature/user-auth",
+      "staged": ["src/api/auth.ts", "src/middleware/auth.ts"],
+      "unstaged": [],
+      "untracked": []
+    },
+    "conversation_summary": [
+      {
+        "phase": "implementation",
+        "outcome": "Implemented OAuth2 authentication with JWT tokens. Added login endpoint, token validation middleware, and user type definitions."
+      }
+    ]
+  },
+  "expected_behavior": [
+    "Detects continuation handoff type from 'Handoff and' pattern",
+    "Extracts continuation_action: 'build an admin panel'",
+    "Captures git state including branch and staged files",
+    "Includes completed authentication work in current_work",
+    "Captures implementation phase outcome",
+    "Generates YAML file with unique timestamp in /tmp/handoff-*.yaml",
+    "Displays continuation instructions to user",
+    "YAML contains populated continuation_action field"
+  ],
+  "success_criteria": [
+    "YAML file is created in /tmp/ directory",
+    "continuation_action equals 'build an admin panel'",
+    "git_state section includes branch 'feature/user-auth'",
+    "current_work includes completed auth API task",
+    "conversation_summary captures implementation outcome",
+    "Output message includes file path and continuation instructions"
+  ]
+}

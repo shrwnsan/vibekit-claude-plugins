@@ -1,0 +1,42 @@
+{
+  "skills": ["handoff-context"],
+  "query": "Handoff this context",
+  "context": {
+    "current_work": [
+      {
+        "task": "Debug database connection timeout",
+        "status": "in_progress",
+        "files": ["src/db/connection.ts", "src/config/database.ts"]
+      },
+      {
+        "task": "Review similar timeout issues in other services",
+        "status": "pending",
+        "files": []
+      }
+    ],
+    "conversation_summary": [
+      {
+        "phase": "debugging",
+        "outcome": "Identified timeout occurs after 30s. Connection pool exhausted. Added retry logic but issue persists. Need to audit other services for similar patterns."
+      }
+    ]
+  },
+  "expected_behavior": [
+    "Detects context-preservation handoff type (no specific action)",
+    "Sets continuation_action to null",
+    "Captures current work including in-progress debugging task",
+    "Captures pending task for reviewing similar issues",
+    "Includes debugging phase outcome with technical details",
+    "Generates YAML file without specific continuation action",
+    "Preserves all context for future use",
+    "Output message indicates context preservation mode"
+  ],
+  "success_criteria": [
+    "YAML file is created in /tmp/ directory",
+    "continuation_action is null",
+    "current_work includes both in-progress and pending tasks",
+    "conversation_summary captures debugging findings",
+    "preserved_context includes key technical details (timeout 30s, connection pool)",
+    "Output provides instructions for using preserved context"
+  ]
+}

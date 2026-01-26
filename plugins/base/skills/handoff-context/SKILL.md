@@ -46,19 +46,30 @@ Creates `/tmp/handoff-YYYYMMDD-HHMMSS.yaml` with current context.
 ```text
 🔄 Handoff ready
 
-Context written to: /tmp/handoff-20260125-092412.yaml
+Context written to: /tmp/handoff-20260126-143022.yaml
 
 To continue in a new thread:
   1. Start a new AI agent conversation
-  2. Tell the agent: "Continue from /tmp/handoff-20260125-092412.yaml"
+  2. Tell the agent: "Continue from /tmp/handoff-20260126-143022.yaml"
 ```
 
-## Detailed Guides
+## Quick Examples
 
-**Complete workflow**: See [workflow.md](workflow.md) - Step-by-step process
-**Trigger patterns**: See [patterns.md](patterns.md) - All detected phrases
-**Usage examples**: See [examples.md](examples.md) - Common scenarios
-**Output templates**: See [templates.md](templates.md) - YAML structures
+**Continuation:** "Handoff and build an admin panel" → action extracted
+**Preservation:** "Handoff this context" → full state saved
+**Targeted:** "Handoff to code-reviewer" → specific agent
+
+**Quick reference:** See [examples-quick.md](examples-quick.md) - 4 concrete scenarios
+**Detailed examples:** See [examples.md](examples.md) - Full YAML output
+
+## Evaluations
+
+Test files for validating skill behavior:
+- [evaluations/eval-continuation.json](evaluations/eval-continuation.json)
+- [evaluations/eval-context-preservation.json](evaluations/eval-context-preservation.json)
+- [evaluations/eval-targeted-handoff.json](evaluations/eval-targeted-handoff.json)
+
+Run evaluations to verify pattern detection and YAML generation.
 
 ## Common Scenarios
 

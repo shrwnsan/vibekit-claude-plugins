@@ -1,0 +1,55 @@
+name: Docs-Only Auto-Merge
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  docs-only-check:
+    if: github.actor == 'shrwnsan'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if docs-only changes
+        id: check
+        run: |
+          # Get list of changed files
+          FILES=$(git diff --name-only origin/main...HEAD)
+
+          # Check if any non-markdown files changed
+          if echo "$FILES" | grep -v '\.md$' | grep -q .; then
+            echo "Non-markdown files detected:"
+            echo "$FILES" | grep -v '\.md$'
+            echo "docs_only=false" >> $GITHUB_OUTPUT
+          else
+            echo "Only markdown files changed:"
+            echo "$FILES"
+            echo "docs_only=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Auto-merge docs-only PR
+        if: steps.check.outputs.docs_only == 'true'
+        run: |
+          # Sanitize PR title: remove potentially dangerous characters
+          SAFE_TITLE="${{ github.event.pull_request.title }}"
+          SAFE_TITLE=$(echo "$SAFE_TITLE" | tr -d '";\n\r' | tr -s ' ' | cut -c1-100)
+
+          gh pr merge ${{ github.event.pull_request.number }} --squash --auto --subject "docs: auto-merge ${SAFE_TITLE}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Comment on non-docs PR
+        if: steps.check.outputs.docs_only == 'false'
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ This PR contains code changes and requires manual review."
+        env:
+          GH_TOKEN: ${{ github.token }}

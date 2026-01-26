@@ -1,0 +1,44 @@
+{
+  "skills": ["handoff-context"],
+  "query": "Handoff this context",
+  "context": {
+    "working_directory": "/home/user/project",
+    "git_repo": false,
+    "current_work": [
+      {
+        "task": "Analyze system logs for errors",
+        "status": "in_progress",
+        "files": ["logs/app.log", "logs/error.log"]
+      }
+    ],
+    "conversation_summary": [
+      {
+        "phase": "debugging",
+        "outcome": "Found intermittent timeout errors in logs. Need to analyze patterns across multiple log files."
+      }
+    ]
+  },
+  "expected_behavior": [
+    "Script detects no git repository (git rev-parse fails)",
+    "Script omits git_state section from YAML output",
+    "Script proceeds with conversation context only",
+    "YAML includes working directory in preserved_context",
+    "Script completes successfully without git dependency",
+    "Output includes continuation instructions",
+    "No errors or warnings about missing git"
+  ],
+  "success_criteria": [
+    "YAML file is created in /tmp/ directory",
+    "git_state section is NOT present in YAML",
+    "current_work captures log analysis task",
+    "conversation_summary captures debugging findings",
+    "preserved_context includes working directory path",
+    "Script exits with success code (0)",
+    "User receives clear continuation instructions"
+  ],
+  "notes": [
+    "Non-git scenarios are valid for projects without version control",
+    "Script should gracefully handle absence of .git directory",
+    "Focus is on preserving conversation context, not git state"
+  ]
+}

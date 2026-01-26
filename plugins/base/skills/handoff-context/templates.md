@@ -2,6 +2,8 @@
 
 Templates for generating context summaries based on handoff type and scenario.
 
+> **Note:** `{{IF_CONDITION}}...{{END_IF}}` notation indicates optional sections that should only be included if the condition is met. The actual implementation uses conditional logic in bash, not a templating engine.
+
 ## Template Structure
 
 All templates output YAML format with the following base structure:

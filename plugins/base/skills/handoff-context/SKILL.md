@@ -68,6 +68,7 @@ Test files for validating skill behavior:
 - [evaluations/eval-continuation.json](evaluations/eval-continuation.json)
 - [evaluations/eval-context-preservation.json](evaluations/eval-context-preservation.json)
 - [evaluations/eval-targeted-handoff.json](evaluations/eval-targeted-handoff.json)
+- [evaluations/eval-non-git-repo.json](evaluations/eval-non-git-repo.json)
 
 Run evaluations to verify pattern detection and YAML generation.
 

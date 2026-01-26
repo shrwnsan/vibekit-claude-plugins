@@ -38,10 +38,12 @@ jobs:
 
       - name: Auto-merge docs-only PR
         if: steps.check.outputs.docs_only == 'true'
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          gh pr merge ${{ github.event.pull_request.number }} --squash --auto --subject "docs: auto-merge ${PR_TITLE}"
+          # Sanitize PR title: remove potentially dangerous characters
+          SAFE_TITLE="${{ github.event.pull_request.title }}"
+          SAFE_TITLE=$(echo "$SAFE_TITLE" | tr -d '";\n\r' | tr -s ' ' | cut -c1-100)
+
+          gh pr merge ${{ github.event.pull_request.number }} --squash --auto --subject "docs: auto-merge ${SAFE_TITLE}"
         env:
           GH_TOKEN: ${{ github.token }}
 

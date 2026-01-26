@@ -8,6 +8,14 @@ set -euo pipefail
 HANDOFF_DIR=$(mktemp -d /tmp/handoff-XXXXXX)
 chmod 700 "$HANDOFF_DIR"
 
+# Validate write permissions to temp directory
+if ! touch "$HANDOFF_DIR/.write-test" 2>/dev/null; then
+  echo "❌ Error: Cannot write to $HANDOFF_DIR" >&2
+  echo "Check directory permissions or disk space" >&2
+  exit 1
+fi
+rm -f "$HANDOFF_DIR/.write-test"
+
 # Generate unique filename with timestamp
 HANDOFF_FILE="$HANDOFF_DIR/handoff-$(date +%Y%m%d-%H%M%S).yaml"
 

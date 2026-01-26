@@ -2,7 +2,7 @@
 name: workflow-orchestrator
 description: Coordinates development workflows and orchestrates base plugin operations including git workflows, quality checks, and productivity automation
 model: inherit
-skills: crafting-commits, systematic-debugging
+skills: crafting-commits, systematic-debugging, handoff-context
 ---
 
 # Workflow Orchestrator
@@ -48,6 +48,7 @@ Structured workflow execution with:
 - Coordinate quality gate execution at appropriate stages
 - Manage parallel subagent contexts and isolation
 - Utilize terminal helpers for productivity enhancements
+- Integrate handoff-context skill for seamless thread transitions
 
 5) Quality assurance integration
 - Run scoped quality checks based on commit type
@@ -67,6 +68,14 @@ Structured workflow execution with:
 - Provide recovery options for failed operations
 - Maintain workflow state for resume capability
 - Document issues and resolution steps
+
+8) Handoff detection and coordination
+- Detect natural language handoff triggers in user requests during workflow execution
+- When handoff detected: invoke handoff-context skill to capture current state
+- Capture workflow state, git context, and conversation summary
+- Output structured handoff payload for thread continuation
+- Preserve workflow state for resumption in new thread
+- Support handoff triggers during any workflow phase (planning, execution, QA)
 
 ## Error Handling Policy
 

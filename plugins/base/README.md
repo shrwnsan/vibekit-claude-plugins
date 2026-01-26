@@ -7,6 +7,7 @@ A Claude Code plugin providing foundational workflow automation tools for produc
 - **Git Commit Command**: Quick, intelligent commit creation with `/commit` slash command
 - **Git Commit Crafting**: Professional commit messages with conventional standards and attribution
 - **Systematic Debugging**: Structured debugging approach that finds root causes efficiently
+- **Handoff Context**: Natural language handoff detection for seamless thread continuation
 - **Workflow Orchestration**: Coordinates development workflows and quality assurance (beta)
 
 ## Quick Start
@@ -23,6 +24,11 @@ claude plugin install base
 
 # Debug errors systematically (automatic invocation)
 "this test is failing" or "help me debug this issue"
+
+# Handoff to new thread with context (automatic invocation)
+"handoff and build an admin panel for this"
+"handoff to implement the plan"
+"start a new thread with this context"
 
 # Use workflow orchestrator
 "base: workflow commit --scope feature"
@@ -83,6 +89,29 @@ Automatically activates when you encounter errors, test failures, or unexpected 
 
 **Key principle:** Understand the root cause before attempting fixes. Systematic debugging is faster than random fixes.
 
+### Handoff Context
+
+Automatically activates when you want to transition to a new thread and preserve your conversation context. No command needed—just say "handoff" naturally.
+
+**When it activates:**
+- "Handoff and [action]" → Continue work in new thread (e.g., "Handoff and build an admin panel")
+- "Handoff to [action]" → Targeted continuation (e.g., "Handoff to implement the plan")
+- "Handoff [context]" → Context preservation only (e.g., "Handoff this context")
+- "Start a new thread with this" → Explicit thread continuation
+
+**What it provides:**
+- Structured YAML context summary written to `/tmp/handoff-TIMESTAMP.yaml`
+- Preserves git state, conversation phases, next steps, and key decisions
+- Integrates with workflow-orchestrator for workflow-aware handoffs
+
+**Usage examples:**
+- "Handoff and refactor the authentication flow"
+- "Handoff to implement the plan"
+- "Start a new thread with this context"
+- "Continue in a fresh thread"
+
+**Key principle:** Seamless continuation without losing context. Stay in flow while transitioning to a fresh thread.
+
 ### Workflow Orchestrator (beta)
 The workflow orchestrator coordinates complex development workflows, integrating git operations, quality assurance, and productivity automation. It manages parallel development, enforces quality gates, and sequences tasks for smooth development processes.
 
@@ -140,7 +169,8 @@ plugins/base/
 │   └── commit.md                   # Quick commit command
 ├── skills/
 │   ├── crafting-commits/           # Professional commit crafting
-│   └── systematic-debugging/       # Systematic debugging approach
+│   ├── systematic-debugging/       # Systematic debugging approach
+│   └── handoff-context/            # Natural language handoff detection
 ├── agents/
 │   └── workflow-orchestrator.md    # Workflow coordination (beta)
 ├── docs/

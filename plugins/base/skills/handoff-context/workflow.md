@@ -106,14 +106,21 @@ Display the handoff summary and provide clear next steps:
 ```text
 🔄 Handoff ready
 
-Context written to: /tmp/handoff-20260125-092412.yaml
+Context written to: /tmp/handoff-20260126-143022.yaml
 
 To continue in a new thread:
   1. Start a new AI agent conversation
-  2. Tell the agent: "Continue from /tmp/handoff-20260125-092412.yaml"
+  2. Tell the agent: "Continue from /tmp/handoff-20260126-143022.yaml"
 ```
 
-**Important:** Replace the example timestamp with the actual generated filename from Step 3.
+**Important workflow note:** When using the capture-context.sh script:
+1. Script generates template at `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml`
+2. Script outputs `HANDOFF_FILE=/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml`
+3. Read the file, populate conversation context
+4. **Overwrite the same file** with complete summary
+5. Display the final file path to user
+
+This ensures only ONE final handoff file is created, populated with both git state (from script) and conversation context (from Claude).
 
 ## Error Handling
 

@@ -24,13 +24,24 @@ Generates structured context summaries for seamless thread continuation.
 bash plugins/base/skills/handoff-context/scripts/capture-context.sh
 ```
 
-This script:
-- Captures git state automatically
-- Generates unique timestamped YAML file
-- Displays output and continuation instructions
-- Handles errors gracefully (no git repo, permissions, etc.)
+**Workflow:**
+1. Script generates YAML template with git state at `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml`
+2. Read the generated file and populate conversation context (current_work, conversation_summary, next_steps, preserved_context)
+3. **Overwrite the same file** with complete context
+4. Display continuation instructions to user
 
-Creates `/tmp/handoff-YYYYMMDD-HHMMSS.yaml` with current context.
+**What the script captures:**
+- Git state (branch, staged/unstaged/untracked files)
+- YAML structure with dynamic timestamps
+- Secure temp directory with proper permissions
+
+**What you (Claude) need to add:**
+- Current work (tasks, status, affected files)
+- Conversation summary (phases, outcomes, decisions)
+- Next steps (continuation action context)
+- Preserved context (key details to remember)
+
+Creates complete `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml` with full context.
 
 ## What Gets Captured
 

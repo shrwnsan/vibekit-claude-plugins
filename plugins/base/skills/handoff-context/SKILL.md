@@ -10,105 +10,33 @@ allowed-tools:
 
 # Handoff Context
 
-A lightweight skill that detects when you want to transition to a new thread and generates a structured context summary to preserve your work and conversation state.
+Generates structured context summaries for seamless thread continuation.
 
-## When to Use
+## Quick Start
 
-**This skill activates when you say:**
-- "Handoff and [action]" → continuation workflow (e.g., "Handoff and build an admin panel")
-- "Handoff to [agent/skill]" → targeted handoff (e.g., "Handoff to implement the plan")
-- "Handoff [context]" → context preservation (e.g., "Handoff this context")
+**Trigger phrases:**
+- "Handoff and [action]" → continuation workflow
+- "Handoff to [agent/skill]" → targeted handoff
 - "Start a new thread with this" → explicit continuation
-- "Continue in a fresh thread" → explicit continuation
-- "Handoff, [action]" → comma-separated variant
 
-**Common scenarios:**
-- After implementing a feature and wanting to start fresh for the next phase
-- When the thread has become long and you want a clean slate with preserved context
-- After fixing a bug and wanting to check for similar issues elsewhere
-- After planning and wanting to move to implementation in a new thread
-- When you want to pause work and resume in a new session later
-
-## Core Workflow
-
-### 1. Detect Handoff Trigger
-
-Match user message against trigger patterns and extract:
-- **Handoff type**: continuation, targeted, or context-only
-- **Continuation action**: what to do next (if specified)
-- **Context scope**: how much conversation history to include
-
-### 2. Capture Current Context
-
-Gather relevant state information:
-
-**Git state:**
+**Basic usage:**
 ```bash
-git status --porcelain          # Check git repo state
-git rev-parse --abbrev-ref HEAD  # Current branch
-git diff --staged --name-only    # Staged files
-git diff --name-only             # Unstaged files
-git ls-files --others --exclude-standard  # Untracked files
+# Run the handoff script
+bash plugins/base/skills/handoff-context/scripts/capture-context.sh
 ```
 
-**Conversation summary:**
-- Identify conversation phases (planning, implementation, debugging, etc.)
-- Extract outcomes from each phase
-- Note active work items and their status
-- Capture key decisions and important details
+Creates `/tmp/handoff-YYYYMMDD-HHMMSS.yaml` with current context.
 
-**Current work:**
-- Active tasks with status (pending/in_progress/completed)
-- Affected files for each task
-- Any in-progress operations
+## What Gets Captured
 
-### 3. Generate Handoff Summary
+| Category | Details |
+|----------|---------|
+| **Git State** | Branch, staged/unstaged/untracked files |
+| **Conversation** | Phase summaries, outcomes, decisions |
+| **Current Work** | Active tasks with status and affected files |
+| **Next Steps** | Continuation action (if specified) |
 
-Generate unique filename and write structured context to `/tmp/`:
-
-```bash
-# Create private temp directory (user-only, macOS/Linux/WSL compatible)
-HANDOFF_DIR=$(mktemp -d /tmp/handoff-XXXXXX)
-chmod 700 "$HANDOFF_DIR"
-
-# Generate unique filename with timestamp
-HANDOFF_FILE="$HANDOFF_DIR/handoff-$(date +%Y%m%d-%H%M%S).yaml"
-
-# Write YAML context to file
-cat > "$HANDOFF_FILE" << 'EOF'
-handoff:
-  timestamp: "ISO 8601"
-  thread_id: "current_thread_identifier"
-  continuation_action: "extracted action or null"
-
-context:
-  current_work:
-    - task: "description"
-      status: "pending|in_progress|completed"
-      files: ["affected files"]
-  git_state:
-    branch: "current_branch"
-    staged: ["files"]
-    unstaged: ["files"]
-    untracked: ["files"]
-  conversation_summary:
-    - phase: "planning|implementation|debugging"
-      outcome: "what was accomplished"
-  next_steps:
-    - action: "continuation action"
-      context: "what to continue with"
-  preserved_context:
-    - "key decision or important detail"
-EOF
-
-# Display file path and contents
-echo "🔄 Handoff context written to: $HANDOFF_FILE"
-cat "$HANDOFF_FILE"
-```
-
-### 4. Provide Continuation Instruction
-
-Display the handoff summary and provide clear next steps:
+## Example Output
 
 ```text
 🔄 Handoff ready
@@ -120,53 +48,49 @@ To continue in a new thread:
   2. Tell the agent: "Continue from /tmp/handoff-20260125-092412.yaml"
 ```
 
-## Examples
+## Detailed Guides
 
-See [examples.md](examples.md) for detailed handoff scenarios:
-- Feature implementation handoff
-- Bug fix handoff with auditing
-- Context-preservation handoff
-- Planning to implementation handoff
+**Complete workflow**: See [workflow.md](workflow.md) - Step-by-step process
+**Trigger patterns**: See [patterns.md](patterns.md) - All detected phrases
+**Usage examples**: See [examples.md](examples.md) - Common scenarios
+**Output templates**: See [templates.md](templates.md) - YAML structures
 
-## Trigger Patterns
+## Common Scenarios
 
-See [patterns.md](patterns.md) for the complete list of detected patterns and how continuation actions are extracted.
+- After implementing a feature → move to next phase in fresh thread
+- Long thread → start fresh with preserved context
+- Bug fix → audit similar patterns elsewhere
+- Planning → implementation transition
 
 ## Error Handling
 
 | Scenario | Handling |
 |----------|----------|
-| No active git repo | Omit `git_state` section, proceed with conversation context |
-| No continuation action | Set `continuation_action: null`, mark as context-preservation |
-| Empty conversation | Provide minimal context with current message and working directory |
-| Malformed trigger | Best-effort extraction, warn user if action unclear |
-| Unable to determine current work | Summarize visible state, ask user to clarify |
+| No git repo | Omits git_state, proceeds with conversation context |
+| No action | Sets continuation_action: null |
+| Empty conversation | Provides minimal context with working directory |
+
+*See [workflow.md](workflow.md) for complete error handling scenarios.*
 
 ## Integration
 
-This skill integrates with other Base plugin capabilities:
-
+Works with:
 - **workflow-orchestrator**: Handoff detection during workflow execution
 - **crafting-commits**: Context preservation before committing
-- **systematic-debugging**: Handoff during debugging sessions preserves error context
-
-## Output Templates
-
-See [templates.md](templates.md) for context summary templates per handoff type.
+- **systematic-debugging**: Preserves error context during debugging
 
 ## Philosophy
 
 **Seamless continuation without losing context.**
 
-The goal is to let you stay in flow while transitioning to a fresh thread. No buttons to click, no commands to remember—just say "handoff" and continue working.
+No buttons to click, no commands to remember—just say "handoff" and continue working.
 
 ## Limitations
 
-- Does not automatically create new threads (that's a platform capability)
-- Context directories in `/tmp/` may be cleared on system reboot
+- Does not automatically create new threads (platform capability)
+- Context in `/tmp/` may be cleared on system reboot
 - Git state is captured at handoff time, not live-synced
-- Large conversations may produce extensive summaries
 
 ---
 
-*Rationale: This skill provides lightweight handoff detection and context preservation. Use when helpful, skip when the thread is still fresh and manageable.*
+*Use when transitioning to a fresh thread. Skip when the conversation is still manageable.*

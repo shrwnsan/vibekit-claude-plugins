@@ -105,7 +105,7 @@ Automatically activates when you want to transition to a new thread and preserve
 - Integrates with workflow-orchestrator for workflow-aware handoffs
 
 **Usage examples:**
-- "Handoff and build an admin panel for this"
+- "Handoff and refactor the authentication flow"
 - "Handoff to implement the plan"
 - "Start a new thread with this context"
 - "Continue in a fresh thread"

@@ -19,11 +19,16 @@ Generates structured context summaries for seamless thread continuation.
 - "Handoff to [agent/skill]" → targeted handoff
 - "Start a new thread with this" → explicit continuation
 
-**Basic usage:**
+**When triggered, execute this script:**
 ```bash
-# Run the handoff script
 bash plugins/base/skills/handoff-context/scripts/capture-context.sh
 ```
+
+This script:
+- Captures git state automatically
+- Generates unique timestamped YAML file
+- Displays output and continuation instructions
+- Handles errors gracefully (no git repo, permissions, etc.)
 
 Creates `/tmp/handoff-YYYYMMDD-HHMMSS.yaml` with current context.
 
@@ -66,11 +71,13 @@ To continue in a new thread:
 
 | Scenario | Handling |
 |----------|----------|
-| No git repo | Omits git_state, proceeds with conversation context |
-| No action | Sets continuation_action: null |
-| Empty conversation | Provides minimal context with working directory |
+| Script not found | Follow manual workflow in [workflow.md](workflow.md) |
+| Script execution fails | Fall back to manual workflow steps |
+| No git repo | Script omits git_state, proceeds with conversation context |
+| No action | Script sets continuation_action: null |
+| Empty conversation | Script provides minimal context with working directory |
 
-*See [workflow.md](workflow.md) for complete error handling scenarios.*
+*See [workflow.md](workflow.md) for complete manual workflow and error scenarios.*
 
 ## Integration
 

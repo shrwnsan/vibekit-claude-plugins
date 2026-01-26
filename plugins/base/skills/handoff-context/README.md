@@ -12,7 +12,7 @@ Say any of these phrases to trigger a handoff:
 
 The skill will:
 1. Capture your current context (git state, conversation summary, active work)
-2. Write it to `/tmp/handoff-TIMESTAMP.yaml`
+2. Create a private temp directory and write the context file
 3. Provide instructions to continue in a new thread
 
 ## What Gets Captured
@@ -89,7 +89,7 @@ No buttons to click, no commands to remember—just say "handoff" and continue w
 ## Limitations
 
 - Does not automatically create new threads (platform capability)
-- Context written to `/tmp/` may be cleared on system reboot
+- Context directories in `/tmp/` may be cleared on system reboot
 - Git state is captured at handoff time, not live-synced
 - Large conversations may produce extensive summaries
 

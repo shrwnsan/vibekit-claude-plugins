@@ -3,7 +3,9 @@ name: handoff-context
 description: Detects natural language handoff requests and generates structured context summaries for seamless thread continuation. Use when user says "handoff", "new thread", "continue in fresh thread", or similar phrases.
 allowed-tools:
   - bash(git:*)
-  - bash(write to /tmp/*)
+  - bash(mktemp:*)
+  - bash(chmod:*)
+  - bash(write to /tmp/handoff-*)
 ---
 
 # Handoff Context
@@ -65,8 +67,12 @@ git ls-files --others --exclude-standard  # Untracked files
 Generate unique filename and write structured context to `/tmp/`:
 
 ```bash
+# Create private temp directory (user-only, macOS/Linux/WSL compatible)
+HANDOFF_DIR=$(mktemp -d /tmp/handoff-XXXXXX)
+chmod 700 "$HANDOFF_DIR"
+
 # Generate unique filename with timestamp
-HANDOFF_FILE="/tmp/handoff-$(date +%Y%m%d-%H%M%S).yaml"
+HANDOFF_FILE="$HANDOFF_DIR/handoff-$(date +%Y%m%d-%H%M%S).yaml"
 
 # Write YAML context to file
 cat > "$HANDOFF_FILE" << 'EOF'
@@ -157,7 +163,7 @@ The goal is to let you stay in flow while transitioning to a fresh thread. No bu
 ## Limitations
 
 - Does not automatically create new threads (that's a platform capability)
-- Context written to `/tmp/` may be cleared on system reboot
+- Context directories in `/tmp/` may be cleared on system reboot
 - Git state is captured at handoff time, not live-synced
 - Large conversations may produce extensive summaries
 

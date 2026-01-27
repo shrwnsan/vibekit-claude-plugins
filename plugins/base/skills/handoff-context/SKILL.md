@@ -92,8 +92,20 @@ To continue in a new thread:
 **Preservation:** "Handoff this context" → full state saved
 **Targeted:** "Handoff to code-reviewer" → specific agent
 
-**Quick reference:** See [examples-quick.md](examples-quick.md) - 4 concrete scenarios
-**Detailed examples:** See [examples.md](examples.md) - Full YAML output
+**Quick reference:** See [examples.md](examples.md) - 4 concrete scenarios:
+1. Continuation Handoff - "Handoff and build an admin panel"
+2. Context Preservation - "Handoff this context"
+3. Targeted Handoff - "Handoff to code-reviewer for security check"
+4. Fresh Thread for Next Phase - "Continue in a fresh thread"
+
+## Documentation
+
+| File | Purpose |
+|------|---------|
+| [patterns.md](patterns.md) | All trigger patterns and regex matching rules |
+| [workflow.md](workflow.md) | Complete step-by-step workflow manual |
+| [examples.md](examples.md) | Quick reference scenarios |
+| [templates.md](templates.md) | YAML template structures |
 
 ## Evaluations
 

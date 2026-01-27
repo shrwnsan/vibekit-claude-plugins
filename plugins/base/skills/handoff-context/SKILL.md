@@ -40,7 +40,9 @@ Generates structured context summaries for seamless thread continuation.
 
 1. **Execute the script first:**
 ```bash
-bash plugins/base/skills/handoff-context/scripts/capture-context.sh
+# Find script in plugin cache (works across different directories)
+# Alternative locations: ~/.claude/plugins, ~/.agent/skills
+bash $(find ~/.claude/plugins -name "capture-context.sh" 2>/dev/null | head -1)
 ```
 
 2. **Capture the HANDOFF_FILE path** from script output (format: `HANDOFF_FILE=/tmp/...`)

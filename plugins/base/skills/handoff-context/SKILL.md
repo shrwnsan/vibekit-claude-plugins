@@ -3,9 +3,18 @@ name: handoff-context
 description: Detects natural language handoff requests and generates structured context summaries for seamless thread continuation. Use when user says "handoff", "new thread", "continue in fresh thread", or similar phrases.
 allowed-tools:
   - bash(git:*)
-  - bash(mktemp:*)
-  - bash(chmod:*)
+  - bash(mktemp:-d)
+  - bash(chmod:700)
+  - bash(touch:*)
+  - bash(rm:-f)
+  - bash(date:*)
+  - bash(tr:*)
+  - bash(sed:*)
+  - bash(cat:*)
+  - bash(echo:*)
   - bash(write to /tmp/handoff-*)
+  - Read(/tmp/handoff-*)
+  - Write(/tmp/handoff-*)
 ---
 
 # Handoff Context

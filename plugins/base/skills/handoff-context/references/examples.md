@@ -1,4 +1,4 @@
-# Handoff Context Quick Examples
+# Handoff Context Examples
 
 Concrete input/output examples for common handoff scenarios.
 
@@ -95,4 +95,4 @@ context:
 | "Handoff this context" | context-preservation | null |
 | "Continue in fresh thread" | explicit-continuation | null |
 
-*See [examples.md](examples.md) for detailed scenarios with full context and YAML output.*
+*See [examples-detailed.md](examples-detailed.md) for detailed scenarios with full context and complete YAML output.*

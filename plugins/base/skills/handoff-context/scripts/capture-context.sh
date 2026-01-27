@@ -60,10 +60,14 @@ $GIT_STATE
     - "Key decision or important detail to preserve"
 EOF
 
-# Display file path and contents
-echo "🔄 Handoff context written to: $HANDOFF_FILE"
+# Display file path for Claude to capture
+echo "HANDOFF_FILE=$HANDOFF_FILE"
 echo ""
 cat "$HANDOFF_FILE"
+echo ""
+echo "🔄 Handoff context template written to: $HANDOFF_FILE"
+echo ""
+echo "Next: Populate this file with conversation context and overwrite with complete handoff summary."
 echo ""
 echo "To continue in a new thread:"
 echo "  1. Start a new AI agent conversation"

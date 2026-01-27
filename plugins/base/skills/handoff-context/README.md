@@ -93,9 +93,82 @@ The output is agent-agnostic and works across platforms that support:
 ## Documentation
 
 - [SKILL.md](SKILL.md) - Core workflow and implementation details
-- [patterns.md](patterns.md) - Complete trigger pattern reference
-- [examples.md](examples.md) - Detailed handoff scenarios
-- [templates.md](templates.md) - Context summary templates per handoff type
+- [references/patterns.md](references/patterns.md) - Complete trigger pattern reference
+- [references/examples.md](references/examples.md) - Detailed handoff scenarios
+- [references/templates.md](references/templates.md) - Context summary templates per handoff type
+
+## Skill Structure
+
+This skill follows the [agentskills.io](https://agentskills.io) standard structure:
+
+```
+handoff-context/
+├── SKILL.md                    # Main instructions (entry point)
+├── scripts/                    # Executable code
+│   └── capture-context.sh      # Git state capture script
+├── references/                 # Documentation (progressive disclosure)
+│   ├── patterns.md             # Trigger patterns and regex
+│   ├── workflow.md             # Complete step-by-step workflow
+│   ├── examples.md             # Quick scenarios
+│   ├── examples-detailed.md    # Full YAML output examples
+│   └── templates.md            # YAML templates per handoff type
+└── assets/                     # Evaluation files (flat structure)
+    ├── eval-continuation.json
+    ├── eval-context-preservation.json
+    ├── eval-targeted-handoff.json
+    └── eval-non-git-repo.json
+```
+
+## Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        User Request                              │
+│   "Handoff and build an admin panel"                            │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Skill Discovery                               │
+│   • Match trigger phrase to skill description                  │
+│   • Load SKILL.md into context                                  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 Execute Script (capture-context.sh)             │
+│   • Create private temp directory (/tmp/handoff-XXX)            │
+│   • Capture git state (branch, staged/unstaged/untracked)       │
+│   • Generate YAML template with timestamp                       │
+│   • Output HANDOFF_FILE path                                    │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Populate Context                              │
+│   • Read generated template file                                │
+│   • Fill in conversation summary                                │
+│   • Add current work tasks and status                           │
+│   • Extract continuation action from user request               │
+│   • Overwrite same file with complete context                   │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Display Summary                               │
+│   • Show handoff summary to user                                │
+│   • Provide continuation instruction                            │
+│   • Example: "Continue from /tmp/handoff-XXX/file.yaml"         │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   New Thread Continuation                        │
+│   • User starts new AI agent conversation                        │
+│   • Provides handoff file path                                  │
+│   • New agent reads context and continues work                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## Philosophy
 

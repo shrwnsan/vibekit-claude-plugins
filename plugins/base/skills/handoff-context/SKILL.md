@@ -3,9 +3,18 @@ name: handoff-context
 description: Detects natural language handoff requests and generates structured context summaries for seamless thread continuation. Use when user says "handoff", "new thread", "continue in fresh thread", or similar phrases.
 allowed-tools:
   - bash(git:*)
-  - bash(mktemp:*)
-  - bash(chmod:*)
+  - bash(mktemp:-d)
+  - bash(chmod:700)
+  - bash(touch:*)
+  - bash(rm:-f)
+  - bash(date:*)
+  - bash(tr:*)
+  - bash(sed:*)
+  - bash(cat:*)
+  - bash(echo:*)
   - bash(write to /tmp/handoff-*)
+  - Read(/tmp/handoff-*)
+  - Write(/tmp/handoff-*)
 ---
 
 # Handoff Context
@@ -14,23 +23,49 @@ Generates structured context summaries for seamless thread continuation.
 
 ## Quick Start
 
-**Trigger phrases:**
+**Direct invocation (most reliable):**
+```bash
+/handoff-context
+```
+
+**Natural language trigger phrases:**
 - "Handoff and [action]" → continuation workflow
 - "Handoff to [agent/skill]" → targeted handoff
 - "Start a new thread with this" → explicit continuation
+- "Let's handoff" / "Lets handoff" / "Just handoff" → context preservation
 
-**When triggered, execute this script:**
+**Note:** The slash command works reliably across all agents. Natural language triggers depend on each agent's semantic understanding.
+
+**When this skill is triggered, you must:**
+
+1. **Execute the script first:**
 ```bash
-bash plugins/base/skills/handoff-context/scripts/capture-context.sh
+# Find script in plugin cache (works across different directories)
+# Alternative locations: ~/.claude/plugins, ~/.agent/skills
+bash $(find ~/.claude/plugins -name "capture-context.sh" 2>/dev/null | head -1)
 ```
 
-This script:
-- Captures git state automatically
-- Generates unique timestamped YAML file
-- Displays output and continuation instructions
-- Handles errors gracefully (no git repo, permissions, etc.)
+2. **Capture the HANDOFF_FILE path** from script output (format: `HANDOFF_FILE=/tmp/...`)
 
-Creates `/tmp/handoff-YYYYMMDD-HHMMSS.yaml` with current context.
+3. **Read that file** and populate conversation context:
+   - Current work (tasks, status, affected files)
+   - Conversation summary (phases, outcomes, decisions)
+   - Next steps (continuation action context)
+   - Preserved context (key details to remember)
+
+4. **Overwrite the same file** with complete context
+
+5. **Display summary** to user with file path
+
+**What the script captures:**
+- Git state (branch, staged/unstaged/untracked files)
+- YAML structure with dynamic timestamps
+- Secure temp directory with proper permissions
+
+**What you need to add:**
+- Current work, conversation summary, next steps, preserved_context
+
+**Result:** Complete `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml` with full context.
 
 ## What Gets Captured
 
@@ -59,16 +94,28 @@ To continue in a new thread:
 **Preservation:** "Handoff this context" → full state saved
 **Targeted:** "Handoff to code-reviewer" → specific agent
 
-**Quick reference:** See [examples-quick.md](examples-quick.md) - 4 concrete scenarios
-**Detailed examples:** See [examples.md](examples.md) - Full YAML output
+**Quick reference:** See [examples.md](examples.md) - 4 concrete scenarios:
+1. Continuation Handoff - "Handoff and build an admin panel"
+2. Context Preservation - "Handoff this context"
+3. Targeted Handoff - "Handoff to code-reviewer for security check"
+4. Fresh Thread for Next Phase - "Continue in a fresh thread"
+
+## Documentation
+
+| File | Purpose |
+|------|---------|
+| [references/patterns.md](references/patterns.md) | All trigger patterns and regex matching rules |
+| [references/workflow.md](references/workflow.md) | Complete step-by-step workflow manual |
+| [references/examples.md](references/examples.md) | Quick reference scenarios |
+| [references/templates.md](references/templates.md) | YAML template structures |
 
 ## Evaluations
 
 Test files for validating skill behavior:
-- [evaluations/eval-continuation.json](evaluations/eval-continuation.json)
-- [evaluations/eval-context-preservation.json](evaluations/eval-context-preservation.json)
-- [evaluations/eval-targeted-handoff.json](evaluations/eval-targeted-handoff.json)
-- [evaluations/eval-non-git-repo.json](evaluations/eval-non-git-repo.json)
+- [assets/eval-continuation.json](assets/eval-continuation.json)
+- [assets/eval-context-preservation.json](assets/eval-context-preservation.json)
+- [assets/eval-targeted-handoff.json](assets/eval-targeted-handoff.json)
+- [assets/eval-non-git-repo.json](assets/eval-non-git-repo.json)
 
 Run evaluations to verify pattern detection and YAML generation.
 
@@ -83,13 +130,13 @@ Run evaluations to verify pattern detection and YAML generation.
 
 | Scenario | Handling |
 |----------|----------|
-| Script not found | Follow manual workflow in [workflow.md](workflow.md) |
+| Script not found | Follow manual workflow in [references/workflow.md](references/workflow.md) |
 | Script execution fails | Fall back to manual workflow steps |
 | No git repo | Script omits git_state, proceeds with conversation context |
 | No action | Script sets continuation_action: null |
 | Empty conversation | Script provides minimal context with working directory |
 
-*See [workflow.md](workflow.md) for complete manual workflow and error scenarios.*
+*See [references/workflow.md](references/workflow.md) for complete manual workflow and error scenarios.*
 
 ## Integration
 

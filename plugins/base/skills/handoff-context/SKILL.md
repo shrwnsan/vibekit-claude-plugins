@@ -104,18 +104,18 @@ To continue in a new thread:
 
 | File | Purpose |
 |------|---------|
-| [patterns.md](patterns.md) | All trigger patterns and regex matching rules |
-| [workflow.md](workflow.md) | Complete step-by-step workflow manual |
-| [examples.md](examples.md) | Quick reference scenarios |
-| [templates.md](templates.md) | YAML template structures |
+| [references/patterns.md](references/patterns.md) | All trigger patterns and regex matching rules |
+| [references/workflow.md](references/workflow.md) | Complete step-by-step workflow manual |
+| [references/examples.md](references/examples.md) | Quick reference scenarios |
+| [references/templates.md](references/templates.md) | YAML template structures |
 
 ## Evaluations
 
 Test files for validating skill behavior:
-- [evaluations/eval-continuation.json](evaluations/eval-continuation.json)
-- [evaluations/eval-context-preservation.json](evaluations/eval-context-preservation.json)
-- [evaluations/eval-targeted-handoff.json](evaluations/eval-targeted-handoff.json)
-- [evaluations/eval-non-git-repo.json](evaluations/eval-non-git-repo.json)
+- [assets/eval-continuation.json](assets/eval-continuation.json)
+- [assets/eval-context-preservation.json](assets/eval-context-preservation.json)
+- [assets/eval-targeted-handoff.json](assets/eval-targeted-handoff.json)
+- [assets/eval-non-git-repo.json](assets/eval-non-git-repo.json)
 
 Run evaluations to verify pattern detection and YAML generation.
 
@@ -130,13 +130,13 @@ Run evaluations to verify pattern detection and YAML generation.
 
 | Scenario | Handling |
 |----------|----------|
-| Script not found | Follow manual workflow in [workflow.md](workflow.md) |
+| Script not found | Follow manual workflow in [references/workflow.md](references/workflow.md) |
 | Script execution fails | Fall back to manual workflow steps |
 | No git repo | Script omits git_state, proceeds with conversation context |
 | No action | Script sets continuation_action: null |
 | Empty conversation | Script provides minimal context with working directory |
 
-*See [workflow.md](workflow.md) for complete manual workflow and error scenarios.*
+*See [references/workflow.md](references/workflow.md) for complete manual workflow and error scenarios.*
 
 ## Integration
 

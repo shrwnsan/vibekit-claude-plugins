@@ -28,14 +28,22 @@ User wants to preserve context without specifying a continuation action.
 
 | Pattern | Regex Match | Continuation Action |
 |---------|-------------|---------------------|
+| "/handoff-context" | Direct slash command invocation | `null` |
 | "Handoff this context" | `(?i)handoff\s+this\s+context` | `null` |
 | "Handoff context" | `(?i)handoff\s+context$` | `null` |
 | "Just handoff" | `(?i)just\s+handoff$` | `null` |
+| "Let's handoff" | `(?i)let'?s\s+handoff\s*$` | `null` |
+| "Lets handoff" | `(?i)lets?\s+handoff\s*$` | `null` |
 
 **Examples:**
+- "/handoff-context" → `null` (slash command, most reliable)
 - "Handoff this context" → `null`
 - "Handoff context" → `null`
 - "Just handoff" → `null`
+- "Let's handoff" → `null`
+- "Lets handoff" → `null`
+
+**Note:** The slash command `/handoff-context` is the most reliable invocation method and works across all AI agents implementing the agentskills.io standard. Natural language triggers depend on each agent's semantic understanding capabilities.
 
 ### 3. Explicit Thread Continuation
 

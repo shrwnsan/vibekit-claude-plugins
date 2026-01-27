@@ -14,10 +14,18 @@ Generates structured context summaries for seamless thread continuation.
 
 ## Quick Start
 
-**Trigger phrases:**
+**Direct invocation (most reliable):**
+```bash
+/handoff-context
+```
+
+**Natural language trigger phrases:**
 - "Handoff and [action]" → continuation workflow
 - "Handoff to [agent/skill]" → targeted handoff
 - "Start a new thread with this" → explicit continuation
+- "Let's handoff" / "Lets handoff" / "Just handoff" → context preservation
+
+**Note:** The slash command works reliably across all agents. Natural language triggers depend on each agent's semantic understanding.
 
 **When this skill is triggered, you must:**
 

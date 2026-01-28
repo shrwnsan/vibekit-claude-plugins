@@ -96,3 +96,53 @@ context:
 | "Continue in fresh thread" | explicit-continuation | null |
 
 *See [examples-detailed.md](examples-detailed.md) for detailed scenarios with full context and complete YAML output.*
+
+---
+
+## Anti-Patterns (Wrong Output)
+
+These outputs indicate the skill did not execute correctly. If you see these, re-invoke with `/handoff-context`.
+
+### ❌ Text-only display (no file created)
+
+**Output:**
+```
+Handoff Summary
+
+Session Overview: We worked on authentication...
+Key Work Completed: Implemented login flow...
+Next Steps: Continue with admin panel...
+```
+
+**Problem:** No file created, not machine-readable, breaks agent-to-agent handoff.
+
+### ❌ .txt file with Markdown content
+
+**Command executed:**
+```bash
+cat > /tmp/handoff-20260128.txt << 'EOF'
+# Context Handoff
+## Recent Work
+- Completed authentication
+## Next Steps
+- Build admin panel
+EOF
+```
+
+**Problems:**
+- Wrong extension (`.txt` instead of `.yaml`)
+- Wrong format (Markdown `##` headings instead of YAML structure)
+- Script was bypassed
+
+### ❌ YAML file without continuation instruction
+
+**Output:**
+```
+Context saved to /tmp/handoff-XXX/handoff-20260128.yaml
+```
+
+**Problem:** Missing "To continue: Continue from [path]" instruction for next agent.
+
+### ✅ Correct output for comparison
+
+See Examples 1-4 above for correct YAML structure and user display format.

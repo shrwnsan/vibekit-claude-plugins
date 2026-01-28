@@ -148,8 +148,9 @@ Test files for validating skill behavior:
 - [assets/eval-context-preservation.json](assets/eval-context-preservation.json)
 - [assets/eval-targeted-handoff.json](assets/eval-targeted-handoff.json)
 - [assets/eval-non-git-repo.json](assets/eval-non-git-repo.json)
+- [assets/eval-negative-cases.json](assets/eval-negative-cases.json) - Failure scenario detection
 
-Run evaluations to verify pattern detection and YAML generation.
+Run evaluations to verify pattern detection, YAML generation, and failure handling.
 
 ## Common Scenarios
 

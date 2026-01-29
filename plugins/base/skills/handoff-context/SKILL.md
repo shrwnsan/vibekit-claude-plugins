@@ -38,7 +38,18 @@ Generates structured context summaries for seamless thread continuation.
 
 **Note:** The slash command works reliably across all agents. Natural language triggers depend on each agent's semantic understanding.
 
-**When this skill is triggered, you must:**
+## Invocation Method Reliability
+
+| Method | Reliability | Output |
+|--------|-------------|--------|
+| `/handoff-context` | ✅ 100% | YAML file + structured display |
+| "Let's handoff" | ⚠️ Variable | May produce text-only or .txt file |
+
+**Recommendation:** Use `/handoff-context` for consistent cross-agent behavior.
+
+## Workflow Requirements
+
+**When this skill is triggered, you MUST follow these steps exactly:**
 
 1. **Execute the script first:**
 ```bash
@@ -59,6 +70,12 @@ bash $(find ~/.claude/plugins -name "capture-context.sh" 2>/dev/null | head -1)
 
 5. **Display summary** to user with file path
 
+⚠️ **CRITICAL REQUIREMENTS:**
+- ✅ MUST create .yaml file (not .txt)
+- ✅ MUST use YAML format in file (not Markdown)
+- ✅ MUST execute script (not bypass with manual commands)
+- ✅ MUST display file path with continuation instruction
+
 **What the script captures:**
 - Git state (branch, staged/unstaged/untracked files)
 - YAML structure with dynamic timestamps
@@ -68,6 +85,19 @@ bash $(find ~/.claude/plugins -name "capture-context.sh" 2>/dev/null | head -1)
 - Current work, conversation summary, next steps, preserved_context
 
 **Result:** Complete `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml` with full context.
+
+## Success Criteria
+
+Before completing handoff, verify:
+
+- [ ] Script was executed (find + bash, not manual commands)
+- [ ] File has .yaml extension (not .txt)
+- [ ] File contains valid YAML structure (not Markdown with ##)
+- [ ] File path is shown to user
+- [ ] Continuation instruction includes exact file path
+- [ ] Human-readable summary displayed alongside file
+
+**If any criteria fails:** Re-invoke with `/handoff-context` slash command.
 
 ## What Gets Captured
 
@@ -118,8 +148,9 @@ Test files for validating skill behavior:
 - [assets/eval-context-preservation.json](assets/eval-context-preservation.json)
 - [assets/eval-targeted-handoff.json](assets/eval-targeted-handoff.json)
 - [assets/eval-non-git-repo.json](assets/eval-non-git-repo.json)
+- [assets/eval-negative-cases.json](assets/eval-negative-cases.json) - Failure scenario detection
 
-Run evaluations to verify pattern detection and YAML generation.
+Run evaluations to verify pattern detection, YAML generation, and failure handling.
 
 ## Common Scenarios
 

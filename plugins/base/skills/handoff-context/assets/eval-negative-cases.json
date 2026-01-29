@@ -1,0 +1,74 @@
+{
+  "test_name": "Negative Test Cases - Handoff Context",
+  "description": "Failure scenarios that should be detected and remediated",
+  "failure_scenarios": [
+    {
+      "scenario": "text_only_display",
+      "description": "Agent displays summary but creates no file",
+      "trigger": "Natural language 'Let's handoff' without skill loading",
+      "detection": "Check for file existence in /tmp/handoff-*",
+      "expected_behavior": "YAML file should be created",
+      "remediation": "Re-invoke with /handoff-context slash command",
+      "severity": "critical"
+    },
+    {
+      "scenario": "wrong_file_extension",
+      "description": "Agent creates .txt instead of .yaml",
+      "trigger": "Agent improvises file creation without following script",
+      "detection": "Check file extension matches .yaml",
+      "expected_behavior": "File must have .yaml extension",
+      "remediation": "Delete .txt file, re-invoke skill",
+      "severity": "high"
+    },
+    {
+      "scenario": "markdown_in_yaml_file",
+      "description": "File contains ## headings instead of YAML structure",
+      "trigger": "Agent uses Markdown formatting in handoff file",
+      "detection": "Parse YAML, validate structure has handoff: and context: keys",
+      "expected_behavior": "Valid YAML with proper keys",
+      "remediation": "Overwrite with correct YAML format",
+      "severity": "high"
+    },
+    {
+      "scenario": "script_bypassed",
+      "description": "No bash script execution in tool calls",
+      "trigger": "Agent skips capture-context.sh and creates file manually",
+      "detection": "Check for capture-context.sh execution in tool calls",
+      "expected_behavior": "Script must be executed first",
+      "remediation": "Explicitly request script execution",
+      "severity": "medium"
+    },
+    {
+      "scenario": "missing_file_path_display",
+      "description": "File created but path not shown to user",
+      "trigger": "Agent writes file but omits path from output",
+      "detection": "Check output contains '/tmp/handoff-' path",
+      "expected_behavior": "File path must be displayed",
+      "remediation": "Display file path with continuation instruction",
+      "severity": "medium"
+    },
+    {
+      "scenario": "missing_continuation_instruction",
+      "description": "File path shown but no 'Continue from' instruction",
+      "trigger": "Agent shows path but omits usage instructions",
+      "detection": "Check output contains 'Continue from' or similar",
+      "expected_behavior": "Must include continuation instruction",
+      "remediation": "Add 'To continue: Continue from [path]' instruction",
+      "severity": "low"
+    }
+  ],
+  "validation_commands": [
+    {
+      "check": "file_exists",
+      "command": "ls /tmp/handoff-*/handoff-*.yaml 2>/dev/null | head -1"
+    },
+    {
+      "check": "yaml_valid",
+      "command": "python3 -c \"import yaml; yaml.safe_load(open('FILE'))\" 2>&1"
+    },
+    {
+      "check": "has_required_keys",
+      "command": "grep -E '^(handoff|context):' FILE"
+    }
+  ]
+}

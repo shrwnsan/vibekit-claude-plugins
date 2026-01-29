@@ -1,7 +1,7 @@
 {
   "name": "base",
   "description": "Essential Claude Code workflow and context engineering tools for productive development",
-  "version": "1.7.8",
+  "version": "1.7.9",
   "author": {
     "name": "shrwnsan"
   }

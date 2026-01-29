@@ -29,7 +29,7 @@ jobs:
           # - Top-level and plugin README.md, CHANGELOG.md
           # - .claude-plugin/marketplace.json
           # - plugins/*/.claude-plugin/plugin.json
-          # - docs/ directory (general documentation)
+          # - docs/ directory (general documentation - includes guides/, ref/, plans/)
           NON_ALLOWED=$(echo "$FILES" | grep -v -E '^(README|CHANGELOG|docs/).*\.md$|^\.claude-plugin/marketplace\.json$|^plugins/.*/\.claude-plugin/plugin\.json$|^plugins/.+/(README|CHANGELOG)\.md$' || true)
 
           if [ -n "$NON_ALLOWED" ]; then
@@ -56,14 +56,17 @@ jobs:
       - name: Comment on non-docs PR
         if: steps.check.outputs.docs_only == 'false'
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ This PR contains code changes and requires manual review.
-
-**Allowed auto-merge files:**
-- `README.md`, `CHANGELOG.md` (top-level and plugin-level)
-- `docs/*.md` (general documentation)
-- `.claude-plugin/marketplace.json` (marketplace manifest)
-- `plugins/*/.claude-plugin/plugin.json` (plugin manifests)
-
-All other changes (including agents/*, commands/*, skills/*) require manual review."
+          gh pr comment "$PR_NUMBER" --body "${COMMENT_BODY}"
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMENT_BODY: |
+            ⚠️ This PR contains code changes and requires manual review.
+
+            **Allowed auto-merge files:**
+            - README.md, CHANGELOG.md (top-level and plugin-level)
+            - docs/**/*.md (general documentation)
+            - .claude-plugin/marketplace.json (marketplace manifest)
+            - plugins/*/.claude-plugin/plugin.json (plugin manifests)
+
+            All other changes (including agents/, commands/, skills/) require manual review.

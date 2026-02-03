@@ -304,6 +304,33 @@ preserved_context: {}
 - Quick start guidance for continuation
 - Approach tracking (what worked/didn't)
 
+## Feature Origins
+
+| Feature | Source Type | Origin in everything-claude-code |
+|---------|-------------|----------------------------------|
+| **Confidence scoring** | Direct | `continuous-learning-v2/` instinct-based architecture (0.3-0.9 scale) |
+| **Session tracking** | Direct | `session-start.js` / `session-end.js` hooks (session IDs, timestamps) |
+| **Learnings section** | Direct | Session template "debugging techniques worth saving" |
+| **Iterative refinement** | Direct | `iterative-retrieval/` 4-phase loop (DISPATCH → EVALUATE → REFINE → LOOP) |
+| **What worked vs didn't** | Direct | Memory persistence philosophy ("what worked", "what didn't", "what's left") |
+| **Markdown format** | Direct | `orchestrate.md` agent-to-agent handoff structure |
+| **Quick start section** | Inspired | Session template "Context to Load" section |
+| **Package manager detection** | Inspired | `scripts/lib/package-manager.js` |
+| **Session metrics (tool calls)** | Inspired | `strategic-compact/` threshold detection |
+| **Confidence calculation formula** | Novel | eval-021 rule-based scoring (Base 0.5 +0.1 per section) |
+| **Cross-session handoff linking** | Novel | eval-021 extension for continuity |
+| **Project type detection** | Novel | eval-021 expansion beyond JS ecosystem (Python, Go, Rust) |
+| **Quality → recommendation mapping** | Novel | eval-021 actionable thresholds (<0.5, 0.5-0.7, 0.7-0.9, >0.9) |
+
+**Summary**: ~60% direct patterns, ~30% inspired adaptations, ~10% novel to this evaluation.
+
+**Attribution Note**: Features marked "Direct" are patterns extracted as-is from everything-claude-code. "Inspired" features adapt patterns to handoff-context use cases. "Novel" features are original to this evaluation.
+- Quality/completeness metrics
+- Session tracking (ID, duration)
+- Learnings/debugging insights
+- Quick start guidance for continuation
+- Approach tracking (what worked/didn't)
+
 ## Recommendations for Implementation
 
 ### Priority 1: High Impact, Low Effort

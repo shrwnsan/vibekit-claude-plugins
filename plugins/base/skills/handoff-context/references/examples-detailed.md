@@ -12,9 +12,72 @@ Real-world examples of handoff scenarios and their generated context summaries.
 
 ```yaml
 handoff:
-  timestamp: "2025-01-25T14:32:00Z"
+  timestamp: "2026-02-04T14:32:00Z"
   thread_id: "msg_ABC123"
   continuation_action: "build an admin panel for this"
+
+session:
+  id: "20260204-143200-a1b2c"
+  started: "2026-02-04T13:45:00Z"
+  ended: "2026-02-04T14:32:00Z"
+  duration_minutes: 47
+
+metadata:
+  confidence_score: 0.88
+  context_quality: "high"
+  missing_context: []
+  config:
+    source: "~/.config/agents/handoff-context-config.yml"
+    format: "yaml"
+
+quick_start:
+  project_types: ["javascript", "typescript"]
+  primary_type: "typescript"
+  package_manager: "pnpm"
+  verification_command: "test"
+  files_to_read_first: ["src/api/auth.ts", "src/middleware/auth.ts", "src/types/user.ts"]
+  context_priority: "Build admin panel for user and session management"
+  estimated_time_minutes: 90
+
+git_state:
+  branch: "feature/user-auth"
+  staged: ["src/api/auth.ts", "src/middleware/auth.ts", "src/types/user.ts"]
+  unstaged: []
+  untracked: []
+
+learnings:
+  - pattern: "OAuth2 flow requires careful state management"
+    evidence: "Implemented state parameter to prevent CSRF attacks"
+    confidence: 0.95
+  - pattern: "JWT RS256 signing requires key rotation strategy"
+    evidence: "Documented key rotation procedure for ops team"
+    confidence: 0.85
+  - technique: "Redis session storage enables horizontal scaling"
+    context: "Sessions survive server restarts and work across multiple instances"
+    confidence: 0.90
+
+approaches:
+  successful:
+    - approach: "OAuth2 with Google provider"
+      evidence: "Successfully integrated with Google Identity Platform"
+      files: ["src/api/auth.ts"]
+    - approach: "Redis session storage with 24-hour TTL"
+      evidence: "Sessions expire cleanly, no stale data issues"
+      files: ["src/api/auth.ts"]
+    - approach: "JWT with RS256 signing"
+      evidence: "Tokens are verifiable without database lookup"
+      files: ["src/middleware/auth.ts"]
+  attempted_but_failed:
+    - approach: "LocalStorage for session tokens"
+      reason: "Not accessible across subdomains, switched to cookies"
+      files: ["src/api/auth.ts"]
+  not_attempted:
+    - approach: "Multi-factor authentication"
+      reason: "Defer to phase 2, focus on core auth first"
+      priority: "medium"
+    - approach: "Social login providers beyond Google"
+      reason: "Start with Google, add GitHub/Facebook based on user demand"
+      priority: "low"
 
 context:
   current_work:

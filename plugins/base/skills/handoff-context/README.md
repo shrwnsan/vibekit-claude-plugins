@@ -15,26 +15,99 @@ The skill will:
 2. Create a private temp directory and write the context file
 3. Provide instructions to continue in a new thread
 
+## Configuration
+
+The skill supports flexible configuration through YAML files. Configuration is loaded in priority order:
+
+| Priority | Location | Use Case |
+|----------|----------|----------|
+| 1 | `~/.config/agents/handoff-context-config.yml` | Cross-tool standard (Amp, other AI tools) |
+| 2 | `~/.claude/handoff-context-config.yml` | Claude Code specific |
+| 3 | `.agents/handoff-context-config.yml` | Project-local |
+| 4 | Built-in defaults | Fallback |
+
+### Quick Setup
+
+**For multi-tool users (recommended):**
+```bash
+mkdir -p ~/.config/agents
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   ~/.config/agents/handoff-context-config.yml
+```
+
+**Claude Code specific:**
+```bash
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   ~/.claude/handoff-context-config.yml
+```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `format` | string | `yaml` | Output format (`yaml` or `markdown`) |
+| `include.learnings` | boolean | `true` | Include learnings section with confidence levels |
+| `include.approaches` | boolean | `true` | Include approaches section (what worked/didn't) |
+| `include.git_state` | boolean | `true` | Include git state (branch, staged/unstaged/untracked) |
+| `include.quick_start` | boolean | `true` | Include quick start section (project type, package manager) |
+| `confidence.minimum` | float | `0.3` | Floor score (0.3 = tentative, still some value) |
+| `confidence.threshold` | float | `0.7` | Warning threshold (below = add more context) |
+
 ## What Gets Captured
 
-| Category | Details |
-|----------|---------|
-| **Git State** | Branch, staged/unstaged/untracked files |
-| **Conversation** | Phase summaries, outcomes, decisions |
-| **Current Work** | Active tasks with status and affected files |
-| **Next Steps** | Continuation action (if specified) |
+For the complete YAML structure and all available sections, see **[templates.md](references/templates.md)**.
+
+Key sections include:
+- **handoff** - Timestamp, thread ID, continuation action
+- **session** - Unique session ID, start/end times, duration
+- **metadata** - Confidence score, quality level, config source
+- **quick_start** - Project type, package manager, priority files
+- **git_state** - Branch, staged/unstaged/untracked files
+- **learnings** - Patterns and techniques discovered
+- **approaches** - What worked, what didn't, what's left to try
+- **context** - Current work, conversation summary, next steps, preserved context
+
+## Quality & Confidence
+
+The skill evaluates context quality using a confidence score (0.3-0.95 scale):
+
+| Confidence Score | Quality Level | Recommendation |
+|------------------|---------------|----------------|
+| ≥ 0.9 | High | Comprehensive - ready for immediate continuation |
+| 0.7 - 0.9 | Medium | Good quality - minor gaps possible |
+| 0.5 - 0.7 | Low | Acceptable - consider adding more context |
+| < 0.5 | Poor | Critical gaps - add more context before handoff |
+
+### Validation Script
+
+Use the `validate-context.sh` script to check handoff quality:
+
+```bash
+validate-context.sh /tmp/handoff-*/handoff-*.yaml
+```
+
+The script checks:
+- Required sections are present (timestamp, session ID, confidence score)
+- Critical content is populated (not just template placeholders)
+- Git state structure is valid
+- Next steps or continuation action is specified
 
 ## Example Output
 
 ```text
 🔄 Handoff ready
 
-Context written to: /tmp/handoff-20260125-092412.yaml
+Context written to: /tmp/handoff-20260204-143022.yaml
 
 To continue in a new thread:
   1. Start a new AI agent conversation
-  2. Tell the agent: "Continue from /tmp/handoff-20260125-092412.yaml"
+  2. Tell the agent: "Continue from /tmp/handoff-20260204-143022.yaml"
 ```
+
+For complete YAML examples showing all sections, see:
+- **[examples.md](references/examples.md)** - Quick scenarios with input/output pairs
+- **[examples-detailed.md](references/examples-detailed.md)** - Full real-world scenarios with complete context
+- **[templates.md](references/templates.md)** - YAML templates per handoff type
 
 ## Screenshots
 
@@ -103,72 +176,30 @@ This skill follows the [agentskills.io](https://agentskills.io) standard structu
 
 ```
 handoff-context/
-├── SKILL.md                    # Main instructions (entry point)
-├── scripts/                    # Executable code
-│   └── capture-context.sh      # Git state capture script
-├── references/                 # Documentation (progressive disclosure)
-│   ├── patterns.md             # Trigger patterns and regex
-│   ├── workflow.md             # Complete step-by-step workflow
-│   ├── examples.md             # Quick scenarios
-│   ├── examples-detailed.md    # Full YAML output examples
-│   └── templates.md            # YAML templates per handoff type
-└── assets/                     # Evaluation files (flat structure)
+├── SKILL.md                          # Main instructions (entry point)
+├── handoff-context-config.example.yml # Configuration template
+├── scripts/                          # Executable code
+│   ├── capture-context.sh            # Enhanced context capture with config support
+│   └── validate-context.sh           # Quality validation script
+├── references/                       # Documentation (progressive disclosure)
+│   ├── patterns.md                   # Trigger patterns and regex
+│   ├── workflow.md                   # Complete step-by-step workflow
+│   ├── examples.md                   # Quick scenarios
+│   ├── examples-detailed.md          # Full YAML output examples
+│   └── templates.md                  # YAML templates per handoff type
+└── assets/                           # Evaluation files (flat structure)
     ├── eval-continuation.json
     ├── eval-context-preservation.json
     ├── eval-targeted-handoff.json
     └── eval-non-git-repo.json
 ```
 
-## Flow Diagram
+### Scripts
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        User Request                              │
-│   "Handoff and build an admin panel"                            │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Skill Discovery                               │
-│   • Match trigger phrase to skill description                  │
-│   • Load SKILL.md into context                                  │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                 Execute Script (capture-context.sh)             │
-│   • Create private temp directory (/tmp/handoff-XXX)            │
-│   • Capture git state (branch, staged/unstaged/untracked)       │
-│   • Generate YAML template with timestamp                       │
-│   • Output HANDOFF_FILE path                                    │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Populate Context                              │
-│   • Read generated template file                                │
-│   • Fill in conversation summary                                │
-│   • Add current work tasks and status                           │
-│   • Extract continuation action from user request               │
-│   • Overwrite same file with complete context                   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Display Summary                               │
-│   • Show handoff summary to user                                │
-│   • Provide continuation instruction                            │
-│   • Example: "Continue from /tmp/handoff-XXX/file.yaml"         │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   New Thread Continuation                        │
-│   • User starts new AI agent conversation                        │
-│   • Provides handoff file path                                  │
-│   • New agent reads context and continues work                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+- **[capture-context.sh](scripts/capture-context.sh)** - Generates YAML templates with config support, package manager detection, and session tracking
+- **[validate-context.sh](scripts/validate-context.sh)** - Validates handoff quality and provides actionable recommendations
+
+For complete workflow details, see **[workflow.md](references/workflow.md)**.
 
 ## Philosophy
 
@@ -182,6 +213,8 @@ No buttons to click, no commands to remember—just say "handoff" and continue w
 - Context directories in `/tmp/` may be cleared on system reboot
 - Git state is captured at handoff time, not live-synced
 - Large conversations may produce extensive summaries
+- Cross-tool compatibility requires hook integration (e.g., Warp Agent Mode)
+- Configuration priority complexity: project-local configs are searched up to 5 directories up
 
 ## Contributing
 

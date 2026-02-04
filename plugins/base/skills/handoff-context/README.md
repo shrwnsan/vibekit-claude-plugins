@@ -15,25 +15,165 @@ The skill will:
 2. Create a private temp directory and write the context file
 3. Provide instructions to continue in a new thread
 
+## Configuration
+
+The skill supports flexible configuration through YAML files. Configuration is loaded in priority order:
+
+| Priority | Location | Use Case |
+|----------|----------|----------|
+| 1 | `~/.config/agents/handoff-context-config.yml` | Cross-tool standard (Amp, other AI tools) |
+| 2 | `~/.claude/handoff-context-config.yml` | Claude Code specific |
+| 3 | `.agents/handoff-context-config.yml` | Project-local |
+| 4 | Built-in defaults | Fallback |
+
+### Quick Setup
+
+**For multi-tool users (recommended):**
+```bash
+mkdir -p ~/.config/agents
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   ~/.config/agents/handoff-context-config.yml
+```
+
+**Claude Code specific:**
+```bash
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   ~/.claude/handoff-context-config.yml
+```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `format` | string | `yaml` | Output format (`yaml` or `markdown`) |
+| `include.learnings` | boolean | `true` | Include learnings section with confidence levels |
+| `include.approaches` | boolean | `true` | Include approaches section (what worked/didn't) |
+| `include.git_state` | boolean | `true` | Include git state (branch, staged/unstaged/untracked) |
+| `include.quick_start` | boolean | `true` | Include quick start section (project type, package manager) |
+| `confidence.minimum` | float | `0.3` | Floor score (0.3 = tentative, still some value) |
+| `confidence.threshold` | float | `0.7` | Warning threshold (below = add more context) |
+
 ## What Gets Captured
 
 | Category | Details |
 |----------|---------|
+| **Session** | Unique ID, timestamps, duration (calculated by agent) |
+| **Metadata** | Confidence score (0.3-0.95), quality level, config source |
+| **Quick Start** | Project type, package manager, priority files, estimated time |
 | **Git State** | Branch, staged/unstaged/untracked files |
 | **Conversation** | Phase summaries, outcomes, decisions |
 | **Current Work** | Active tasks with status and affected files |
+| **Learnings** | Patterns discovered, debugging techniques, confidence levels |
+| **Approaches** | What worked, what didn't, what's left to try |
 | **Next Steps** | Continuation action (if specified) |
+| **Preserved Context** | Key decisions and important details |
+
+## Quality & Confidence
+
+The skill evaluates context quality using a confidence score (0.3-0.95 scale):
+
+| Confidence Score | Quality Level | Recommendation |
+|------------------|---------------|----------------|
+| ≥ 0.9 | High | Comprehensive - ready for immediate continuation |
+| 0.7 - 0.9 | Medium | Good quality - minor gaps possible |
+| 0.5 - 0.7 | Low | Acceptable - consider adding more context |
+| < 0.5 | Poor | Critical gaps - add more context before handoff |
+
+### Validation Script
+
+Use the `validate-context.sh` script to check handoff quality:
+
+```bash
+validate-context.sh /tmp/handoff-*/handoff-*.yaml
+```
+
+The script checks:
+- Required sections are present (timestamp, session ID, confidence score)
+- Critical content is populated (not just template placeholders)
+- Git state structure is valid
+- Next steps or continuation action is specified
 
 ## Example Output
 
 ```text
 🔄 Handoff ready
 
-Context written to: /tmp/handoff-20260125-092412.yaml
+Context written to: /tmp/handoff-20260204-143022.yaml
 
 To continue in a new thread:
   1. Start a new AI agent conversation
-  2. Tell the agent: "Continue from /tmp/handoff-20260125-092412.yaml"
+  2. Tell the agent: "Continue from /tmp/handoff-20260204-143022.yaml"
+```
+
+### Generated YAML Structure
+
+```yaml
+handoff:
+  timestamp: "2026-02-04T14:30:22Z"
+  thread_id: "manual-1738685422"
+  continuation_action: "build admin panel"
+
+session:
+  id: "20260204-143022-a3f7c"
+  started: "2026-02-04T14:15:00Z"
+  ended: "2026-02-04T14:30:22Z"
+  duration_minutes: 15
+
+metadata:
+  confidence_score: 0.85
+  context_quality: "high"
+  missing_context: []
+  config:
+    source: "~/.config/agents/handoff-context-config.yml"
+    format: "yaml"
+
+quick_start:
+  project_types: ["javascript"]
+  primary_type: "javascript"
+  package_manager: "pnpm"
+  verification_command: "test"
+  files_to_read_first: ["src/auth/session.ts (45-89)"]
+  context_priority: "Focus on token expiry logic"
+  estimated_time_minutes: 30
+
+git_state:
+  branch: "feature/auth"
+  staged: ["src/auth/session.ts"]
+  unstaged: ["src/auth/utils.ts"]
+  untracked: []
+
+learnings:
+  - pattern: "Token refresh requires 30s buffer"
+    evidence: "Tested with expiry timestamps"
+    confidence: 0.9
+
+approaches:
+  successful:
+    - approach: "JWT with refresh token pattern"
+      evidence: "Passes all integration tests"
+      files: ["src/auth/session.ts"]
+  attempted_but_failed:
+    - approach: "LocalStorage only"
+      reason: "Lost on page refresh"
+      files: ["src/auth/storage.ts"]
+  not_attempted:
+    - approach: "Cookie-based auth"
+      reason: "Out of scope for MVP"
+      priority: "low"
+
+context:
+  current_work:
+    - task: "Implement token refresh logic"
+      status: "in_progress"
+      files: ["src/auth/session.ts"]
+  conversation_summary:
+    - phase: "implementation"
+      outcome: "Base auth flow working, refresh in progress"
+  next_steps:
+    - action: "Complete token refresh implementation"
+      context: "Add 30s buffer before expiry"
+  preserved_context:
+    - "Decision: Use localStorage for tokens, cookies for session flags"
 ```
 
 ## Screenshots
@@ -103,21 +243,39 @@ This skill follows the [agentskills.io](https://agentskills.io) standard structu
 
 ```
 handoff-context/
-├── SKILL.md                    # Main instructions (entry point)
-├── scripts/                    # Executable code
-│   └── capture-context.sh      # Git state capture script
-├── references/                 # Documentation (progressive disclosure)
-│   ├── patterns.md             # Trigger patterns and regex
-│   ├── workflow.md             # Complete step-by-step workflow
-│   ├── examples.md             # Quick scenarios
-│   ├── examples-detailed.md    # Full YAML output examples
-│   └── templates.md            # YAML templates per handoff type
-└── assets/                     # Evaluation files (flat structure)
+├── SKILL.md                          # Main instructions (entry point)
+├── handoff-context-config.example.yml # Configuration template
+├── scripts/                          # Executable code
+│   ├── capture-context.sh            # Enhanced context capture with config support
+│   └── validate-context.sh           # Quality validation script
+├── references/                       # Documentation (progressive disclosure)
+│   ├── patterns.md                   # Trigger patterns and regex
+│   ├── workflow.md                   # Complete step-by-step workflow
+│   ├── examples.md                   # Quick scenarios
+│   ├── examples-detailed.md          # Full YAML output examples
+│   └── templates.md                  # YAML templates per handoff type
+└── assets/                           # Evaluation files (flat structure)
     ├── eval-continuation.json
     ├── eval-context-preservation.json
     ├── eval-targeted-handoff.json
     └── eval-non-git-repo.json
 ```
+
+### Scripts
+
+**capture-context.sh** - Enhanced with:
+- Configuration loading from multiple locations (cross-tool, user, project-local)
+- Package manager auto-detection (lock files → binaries → npm fallback)
+- Project type detection with monorepo support
+- Session tracking with unique IDs (YYYYMMDD-HHMMSS-XXXXX format)
+- Structured YAML generation with conditional sections
+
+**validate-context.sh** - Quality validation:
+- Checks required sections are present
+- Validates content is populated (not just template placeholders)
+- Calculates confidence score based on completeness
+- Provides actionable recommendations for improving context
+- Exit codes: 0 (good), 1 (poor quality), 2 (acceptable but gaps)
 
 ## Flow Diagram
 
@@ -182,6 +340,8 @@ No buttons to click, no commands to remember—just say "handoff" and continue w
 - Context directories in `/tmp/` may be cleared on system reboot
 - Git state is captured at handoff time, not live-synced
 - Large conversations may produce extensive summaries
+- Cross-tool compatibility requires hook integration (e.g., Warp Agent Mode)
+- Configuration priority complexity: project-local configs are searched up to 5 directories up
 
 ## Contributing
 

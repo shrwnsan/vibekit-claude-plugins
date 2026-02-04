@@ -7,55 +7,129 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-02-04
+
+### handoff-context skill
+
+P1/P2 improvements from eval-021 analysis:
+
+#### Added
+- Confidence/completeness scoring (0.3-0.95 scale) with missing context detection
+- Enhanced session tracking (unique session IDs, timestamps, duration)
+- Learnings/debugging section for tracking patterns and techniques
+- Quick start section (package manager detection, project type detection)
+- Approaches tracking (what worked, what didn't, what's left to try)
+- Iterative validation with `validate-context.sh` script
+- YAML-based configuration system with multi-location support
+  - `~/.config/agents/` (cross-tool standard)
+  - `~/.claude/` (Claude Code specific)
+  - `.agents/` (project-local)
+- Monorepo support with multi-type project detection
+
+#### Changed
+- Updated templates with new YAML sections
+- Updated documentation (eval-021, tasks-003, SKILL.md, templates.md)
+- Improved package manager detection (npm, pnpm, yarn, bun with fallback chain)
+- macOS-compatible random generation using openssl rand
+
+## [1.7.7] - 2026-02-03
+
+### handoff-context skill
+
+#### Added
+- `/handoff-context` slash command as the most reliable invocation method
+- "Let's handoff" and "Lets handoff" trigger patterns
+- Confidence scoring system (0.3-0.95 scale) for quality evaluation
+- Validation script (`validate-context.sh`) for checking completeness
+- `HANDOFF_FILE` output variable for easy file path capture
+
+#### Changed
+- Restructured to follow [agentskills.io](https://agentskills.io) standard
+- Improved workflow to populate template in-place (single file)
+- Tightened bash tool permissions for security
+- Enhanced documentation with progressive disclosure structure
+
+#### Fixed
+- Script execution issue with imperative "you must:" language
+- Cross-directory compatibility with `find ~/.claude/plugins`
+- Double file creation issue
+- Missing trigger patterns causing skill to be ignored
+
+## [1.7.0] - 2026-02-03
+
+### handoff-context skill
+
+#### Added
+- Progressive disclosure implementation with capture-context.sh
+- Automated git state capture (branch, staged/unstaged files)
+- Structured YAML context generation with unique timestamps
+- Error handling for non-git repos and script failures
+- Quick reference examples (examples-quick.md)
+- Evaluation test suite for validation scenarios
+- Screenshots demonstrating usage
+
+#### Changed
+- Refactored documentation with progressive disclosure
+- Simplified SKILL.md with quick start section
+- Moved detailed workflow to references/workflow.md
+
+### CI workflow
+
+#### Added
+- docs-bypass.yml for auto-merging documentation-only changes
+
 ## [1.6.0] - 2026-01-26
 
-### Added
-- **handoff-context skill** for natural language thread continuation
-  - Detects handoff triggers: "handoff and", "handoff to", "start a new thread with this"
-  - Captures git state, conversation summary, active work, next steps
-  - Writes to `/tmp/` with private temp directory for security
-  - Agent-agnostic output compatible with agentskills.io standard
-  - Complements Claude Code Tasks system for clean slate continuation
+### handoff-context skill
 
-### Changed
-- Updated plugin version to 1.6.0
+#### Added
+- Natural language thread continuation
+- Detects handoff triggers: "handoff and", "handoff to", "start a new thread with this"
+- Captures git state, conversation summary, active work, next steps
+- Writes to `/tmp/` with private temp directory for security
+- Agent-agnostic output compatible with agentskills.io standard
+- Complements Claude Code Tasks system for clean slate continuation
 
 ## [1.5.0] - 2026-01-11
 
-### Added
-- **systematic-debugging skill** for structured debugging approach
-  - 5-step workflow: capture context, reproduce, isolate, fix, verify
-  - Guardrails against common debugging pitfalls
-  - Multi-component system debugging guidance
-  - Architecture questioning when 3+ fixes fail
-  - Auto-activates on error language and debugging context
-- **/review-arch command** for comprehensive architecture reviews
-  - Analyzes components, data flows, and risks
-  - Provides prioritized improvement opportunities
-  - Supports optional focus areas (backend, frontend, auth, performance)
-  - Delivers actionable insights with concrete next steps
+### systematic-debugging skill
 
-### Changed
-- Updated plugin version to 1.5.0 for marketplace consistency
+#### Added
+- Structured debugging approach with 5-step workflow: capture context, reproduce, isolate, fix, verify
+- Guardrails against common debugging pitfalls
+- Multi-component system debugging guidance
+- Architecture questioning when 3+ fixes fail
+- Auto-activates on error language and debugging context
+
+### /review-arch command
+
+#### Added
+- Comprehensive architecture reviews
+- Analyzes components, data flows, and risks
+- Provides prioritized improvement opportunities
+- Supports optional focus areas (backend, frontend, auth, performance)
+- Delivers actionable insights with concrete next steps
 
 ## [1.3.0] - 2025-12-08
 
-### Added
-- **Enhanced /commit command** with flexible CLI modes:
-  - `-f` or `--fast` flag for quick commits with minimal validation
-  - `-v` or `--verbose` flag for detailed analysis and comprehensive review
-  - Auto-detection based on change complexity (default behavior)
+### /commit command
+
+#### Added
+- Flexible CLI modes: `-f`/`--fast` for quick commits, `-v`/`--verbose` for detailed analysis
+- Auto-detection based on change complexity (default behavior)
 - Support for both short (`-f`, `-v`) and long (`--fast`, `--verbose`) flags
 - Progressive disclosure design - simple by default, detailed when needed
-- Updated terminology from "complex" to "detailed" for positive framing
 - Enhanced argument-hint showing all available options
 
-### Changed
+#### Changed
 - Improved command description to include flag hints
 - Better UX with user choice over verbosity level based on context
+- Updated terminology from "complex" to "detailed" for positive framing
 
 ### Documentation
-- Added comprehensive evaluation document (`eval-014`) comparing with Anthropic's official commit-commands plugin
+
+#### Added
+- Comprehensive evaluation document (`eval-014`) comparing with Anthropic's official commit-commands plugin
 - Reframed positioning to emphasize "adaptive productivity" for VibeKit's brand
 
 ## [1.2.0] - Previous
@@ -65,7 +139,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Crafting-commits skill for intelligent commit message creation
 - Essential Claude Code workflow tools
 
-[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.7.7...v1.8.0
+[1.7.7]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.7.0...v1.7.7
+[1.7.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.3.0...v1.5.0
 [1.3.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.2.0...v1.3.0

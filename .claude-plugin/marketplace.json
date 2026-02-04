@@ -26,7 +26,7 @@
       "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging"],
       "agents": ["./agents/workflow-orchestrator"],
       "commands": ["./commands/commit", "./commands/review-arch"],
-      "skills": ["./skills/crafting-commits", "./skills/handoff-context", "./skills/session-id", "./skills/systematic-debugging"]
+      "skills": ["./skills/crafting-commits", "./skills/handoff-context", "./skills/systematic-debugging"]
     },
     {
       "name": "search-plus",

@@ -38,6 +38,83 @@ Generates structured context summaries for seamless thread continuation.
 
 **Note:** The slash command works reliably across all agents. Natural language triggers depend on each agent's semantic understanding.
 
+## Configuration
+
+### Config File Locations
+
+The handoff-context skill looks for configuration in the following order (highest to lowest priority):
+
+| Priority | Location | Scope | Use Case |
+|----------|----------|-------|----------|
+| 1 | `~/.config/agents/handoff-context-config.yml` | Cross-tool | Amp, other AI tools |
+| 2 | `~/.claude/handoff-context-config.yml` | Claude Code | Claude Code specific |
+| 3 | `.agents/handoff-context-config.yml` | Project-local | Per-project overrides |
+| 4 | Built-in defaults | Fallback | Ships with plugin |
+
+### Quick Setup
+
+Copy the example config to your preferred location:
+
+```bash
+# Cross-tool location (recommended for multi-tool users)
+mkdir -p ~/.config/agents
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   ~/.config/agents/handoff-context-config.yml
+
+# Claude Code specific
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   ~/.claude/handoff-context-config.yml
+
+# Project-local
+mkdir -p .agents
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   .agents/handoff-context-config.yml
+```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `format` | string | `yaml` | Output format: `yaml` or `markdown` |
+| `include.learnings` | boolean | `true` | Include learnings section |
+| `include.approaches` | boolean | `true` | Include approaches section (what worked/didn't) |
+| `include.git_state` | boolean | `true` | Include git state (branch, files) |
+| `include.quick_start` | boolean | `true` | Include quick_start section |
+| `confidence.minimum` | float | `0.3` | Minimum confidence score floor |
+| `confidence.threshold` | float | `0.7` | Warning threshold for low quality |
+
+### Example Configuration
+
+```yaml
+# ~/.config/agents/handoff-context-config.yml
+
+# Output format
+format: yaml  # yaml | markdown
+
+# Include optional sections
+include:
+  learnings: true
+  approaches: true
+  git_state: true
+  quick_start: true
+
+# Confidence scoring thresholds
+confidence:
+  minimum: 0.3      # Floor score (0.3 = tentative, still some value)
+  threshold: 0.7    # Warning threshold (below = add more context)
+```
+
+### Config Metadata in Handoff
+
+Each handoff file includes metadata about which config was used:
+
+```yaml
+metadata:
+  config:
+    source: "/home/user/.config/agents/handoff-context-config.yml"
+    format: "yaml"
+```
+
 ## Invocation Method Reliability
 
 | Method | Reliability | Output |
@@ -77,12 +154,28 @@ bash $(find ~/.claude/plugins -name "capture-context.sh" 2>/dev/null | head -1)
 - ✅ MUST display file path with continuation instruction
 
 **What the script captures:**
+- Session tracking (unique ID, timestamps)
+- Metadata (confidence score, quality indicators)
+- Quick start info (project type, package manager)
 - Git state (branch, staged/unstaged/untracked files)
 - YAML structure with dynamic timestamps
 - Secure temp directory with proper permissions
 
 **What you need to add:**
 - Current work, conversation summary, next steps, preserved_context
+- **Update confidence_score** based on populated content:
+  - Base: 0.5
+  - +0.1 if git_state has files
+  - +0.1 if conversation_summary has 1+ items
+  - +0.1 if current_work has 1+ items
+  - +0.1 if next_steps has 1+ items
+  - +0.1 if continuation_action is not null
+  - -0.1 for each empty critical section
+  - Cap: 0.3 minimum, 0.95 maximum
+- **Populate learnings** with patterns/techniques discovered (0.3-0.9 confidence)
+- **Populate approaches** (successful, failed, not attempted)
+- **Fill session.started** and **session.duration_minutes**
+- **Fill quick_start** fields (verification_command, files_to_read_first, context_priority, estimated_time_minutes)
 
 **Result:** Complete `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml` with full context.
 
@@ -96,17 +189,35 @@ Before completing handoff, verify:
 - [ ] File path is shown to user
 - [ ] Continuation instruction includes exact file path
 - [ ] Human-readable summary displayed alongside file
+- [ ] **Confidence score ≥ 0.7** (or document reason for lower score)
+- [ ] **Session tracking populated** (started, duration_minutes)
+- [ ] **Critical sections filled** (current_work, conversation_summary)
 
 **If any criteria fails:** Re-invoke with `/handoff-context` slash command.
+
+## Quality Thresholds
+
+| Confidence Score | Quality Level | Recommendation |
+|------------------|---------------|----------------|
+| ≥ 0.9 | Comprehensive | Ready for immediate continuation |
+| 0.7 - 0.9 | Good | Acceptable, minor gaps possible |
+| 0.5 - 0.7 | Acceptable | Consider adding more context |
+| < 0.5 | Needs Work | Add more context before handoff |
 
 ## What Gets Captured
 
 | Category | Details |
 |----------|---------|
+| **Session** | Unique ID, timestamps, duration (calculated by agent) |
+| **Metadata** | Confidence score (0.3-0.95), quality level, missing context flags |
+| **Quick Start** | Project type, package manager, priority files, estimated time |
 | **Git State** | Branch, staged/unstaged/untracked files |
 | **Conversation** | Phase summaries, outcomes, decisions |
 | **Current Work** | Active tasks with status and affected files |
+| **Learnings** | Patterns discovered, debugging techniques, confidence levels |
+| **Approaches** | What worked, what didn't, what's left to try |
 | **Next Steps** | Continuation action (if specified) |
+| **Preserved Context** | Key decisions and important details |
 
 ## Example Output
 

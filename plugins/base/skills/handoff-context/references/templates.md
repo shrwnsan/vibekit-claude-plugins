@@ -14,12 +14,107 @@ handoff:
   thread_id: "{{THREAD_ID}}"
   continuation_action: "{{EXTRACTED_ACTION_OR_NULL}}"
 
+session:
+  id: "{{SESSION_ID}}"
+  started: "{{SESSION_START}}"
+  ended: "{{SESSION_END}}"
+  duration_minutes: {{DURATION}}
+
+metadata:
+  confidence_score: {{CONFIDENCE_0.3_TO_0.95}}
+  context_quality: "high|medium|low"
+  missing_context: []
+
+quick_start:
+  project_types: ["javascript", "python"]
+  primary_type: "javascript"
+  package_manager: "npm|pnpm|yarn|bun"
+  verification_command: "{{COMMAND}}"
+  files_to_read_first: ["{{FILE_PATH}}"]
+  context_priority: "{{FOCUS_AREA}}"
+  estimated_time_minutes: {{ESTIMATE}}
+
+learnings:
+  - pattern: "{{LEARNED_PATTERN}}"
+    evidence: "{{VALIDATION}}"
+    confidence: 0.7
+  - technique: "{{TECHNIQUE}}"
+    context: "{{WHEN_TO_USE}}"
+    confidence: 0.6
+
+approaches:
+  successful:
+    - approach: "{{WHAT_WORKED}}"
+      evidence: "{{EVIDENCE}}"
+      files: []
+  attempted_but_failed:
+    - approach: "{{WHAT_FAILED}}"
+      reason: "{{WHY}}"
+      files: []
+  not_attempted:
+    - approach: "{{NOT_TRIED}}"
+      reason: "{{WHY_DEFERRED}}"
+      priority: "high|medium|low"
+
 context:
   current_work: []
   git_state: {}
   conversation_summary: []
   next_steps: []
   preserved_context: []
+```
+
+## Config Metadata
+
+When configuration is loaded, it's included in the `metadata` section of the handoff:
+
+```yaml
+metadata:
+  confidence_score: 0.85
+  context_quality: "high"
+  missing_context: []
+  config:
+    source: "/home/user/.config/agents/handoff-context-config.yml"
+    format: "yaml"
+```
+
+### Config Source Values
+
+| Source | Meaning |
+|--------|---------|
+| `builtin` | Using built-in defaults (no config file found) |
+| `/home/user/.config/agents/handoff-context-config.yml` | Cross-tool config (Amp, others) |
+| `/home/user/.claude/handoff-context-config.yml` | Claude Code specific config |
+| `/project/.agents/handoff-context-config.yml` | Project-local config |
+
+### Conditional Sections
+
+Based on configuration, some sections may be omitted:
+
+```yaml
+{{IF_INCLUDE_QUICK_START}}
+quick_start:
+  project_types: ["javascript"]
+  ...
+{{END_IF}}
+
+{{IF_INCLUDE_LEARNINGS}}
+learnings:
+  - pattern: "..."
+  ...
+{{END_IF}}
+
+{{IF_INCLUDE_APPROACHES}}
+approaches:
+  successful: []
+  ...
+{{END_IF}}
+
+{{IF_INCLUDE_GIT_STATE}}
+git_state:
+  branch: "main"
+  ...
+{{END_IF}}
 ```
 
 ## Template: Continuation Handoff
@@ -31,6 +126,43 @@ handoff:
   timestamp: "{{TIMESTAMP}}"
   thread_id: "{{THREAD_ID}}"
   continuation_action: "{{EXTRACTED_ACTION}}"
+
+session:
+  id: "{{SESSION_ID}}"
+  started: "{{SESSION_START}}"
+  ended: "{{TIMESTAMP}}"
+  duration_minutes: {{DURATION}}
+
+metadata:
+  confidence_score: 0.85
+  context_quality: "high"
+  missing_context: []
+
+quick_start:
+  project_types: ["javascript"]
+  primary_type: "javascript"
+  package_manager: "npm"
+  verification_command: "test"
+  files_to_read_first:
+    - "src/auth/session.ts (45-89)"
+  context_priority: "Token expiry logic in session-manager.ts"
+  estimated_time_minutes: 45
+
+learnings:
+  - pattern: "JWT tokens expire after 15 minutes"
+    evidence: "Confirmed in auth config"
+    confidence: 0.9
+
+approaches:
+  successful:
+    - approach: "Using JWT for authentication"
+      evidence: "Tests pass, security review approved"
+      files: ["src/auth/tokens.ts"]
+  attempted_but_failed: []
+  not_attempted:
+    - approach: "OAuth2 integration"
+      reason: "Deferred to sprint 2"
+      priority: "medium"
 
 context:
   current_work:
@@ -73,6 +205,34 @@ handoff:
   thread_id: "{{THREAD_ID}}"
   continuation_action: null
 
+session:
+  id: "{{SESSION_ID}}"
+  started: "{{SESSION_START}}"
+  ended: "{{TIMESTAMP}}"
+  duration_minutes: {{DURATION}}
+
+metadata:
+  confidence_score: 0.75
+  context_quality: "medium"
+  missing_context:
+    - "No continuation action specified"
+
+quick_start:
+  project_types: ["javascript"]
+  primary_type: "javascript"
+  package_manager: "npm"
+  verification_command: null
+  files_to_read_first: []
+  context_priority: null
+  estimated_time_minutes: null
+
+learnings: []
+
+approaches:
+  successful: []
+  attempted_but_failed: []
+  not_attempted: []
+
 context:
   current_work:
     - task: "{{CURRENT_TASK}}"
@@ -106,6 +266,49 @@ handoff:
   timestamp: "{{TIMESTAMP}}"
   thread_id: "{{THREAD_ID}}"
   continuation_action: "{{ACTION_OR_NULL}}"
+
+session:
+  id: "{{SESSION_ID}}"
+  started: "{{SESSION_START}}"
+  ended: "{{TIMESTAMP}}"
+  duration_minutes: {{DURATION}}
+
+metadata:
+  confidence_score: 0.70
+  context_quality: "medium"
+  missing_context: []
+
+quick_start:
+  project_types: ["javascript"]
+  primary_type: "javascript"
+  package_manager: "npm"
+  verification_command: null
+  files_to_read_first:
+    - "src/utils/parser.ts (120-145)"
+  context_priority: "Focus on error handling in parseJSON function"
+  estimated_time_minutes: 30
+
+learnings:
+  - technique: "Add debug logging before error-prone operations"
+    context: "Helped identify race condition in async handler"
+    confidence: 0.8
+  - pattern: "Always validate input before parsing"
+    evidence: "3 crashes traced to null input"
+    confidence: 0.9
+
+approaches:
+  successful:
+    - approach: "Added input validation"
+      evidence: "Crashes reduced from 12/hour to 0"
+      files: ["src/utils/parser.ts"]
+  attempted_but_failed:
+    - approach: "Adding try-catch wrapper"
+      reason: "Masked the real error, made debugging harder"
+      files: ["src/utils/parser.ts (abandoned)"]
+  not_attempted:
+    - approach: "Rewrite parser with formal grammar"
+      reason: "Too complex for current timeline"
+      priority: "low"
 
 context:
   current_work:
@@ -151,6 +354,44 @@ handoff:
   thread_id: "{{THREAD_ID}}"
   continuation_action: "{{ACTION_OR_NULL}}"
 
+session:
+  id: "{{SESSION_ID}}"
+  started: "{{SESSION_START}}"
+  ended: "{{TIMESTAMP}}"
+  duration_minutes: {{DURATION}}
+
+metadata:
+  confidence_score: 0.90
+  context_quality: "high"
+  missing_context: []
+
+quick_start:
+  project_types: ["javascript"]
+  primary_type: "javascript"
+  package_manager: "npm"
+  verification_command: "build"
+  files_to_read_first:
+    - "docs/plan-implementation.md"
+    - "src/api/index.ts"
+  context_priority: "Start with authentication endpoints"
+  estimated_time_minutes: 120
+
+learnings:
+  - pattern: "API design should precede implementation"
+    evidence: "Reduced rework by 40% in this project"
+    confidence: 0.8
+
+approaches:
+  successful:
+    - approach: "Using OpenAPI spec for API design"
+      evidence: "Clear contract for frontend team"
+      files: ["docs/api-spec.yaml"]
+  attempted_but_failed: []
+  not_attempted:
+    - approach: "GraphQL implementation"
+      reason: "Team lacks GraphQL experience"
+      priority: "low"
+
 context:
   current_work:
     - task: "{{PLANNING_TASK}}"
@@ -195,6 +436,34 @@ handoff:
   thread_id: "{{THREAD_ID}}"
   continuation_action: "{{ACTION_OR_NULL}}"
 
+session:
+  id: "{{SESSION_ID}}"
+  started: "{{SESSION_START}}"
+  ended: "{{TIMESTAMP}}"
+  duration_minutes: {{DURATION}}
+
+metadata:
+  confidence_score: 0.45
+  context_quality: "low"
+  missing_context:
+    - "Not a git repository - no file change tracking"
+
+quick_start:
+  project_types: ["unknown"]
+  primary_type: "unknown"
+  package_manager: "npm"
+  verification_command: null
+  files_to_read_first: []
+  context_priority: null
+  estimated_time_minutes: null
+
+learnings: []
+
+approaches:
+  successful: []
+  attempted_but_failed: []
+  not_attempted: []
+
 context:
   current_work:
     - task: "{{CURRENT_TASK}}"
@@ -228,6 +497,35 @@ handoff:
   thread_id: "{{THREAD_ID}}"
   continuation_action: "{{ACTION_OR_NULL}}"
 
+session:
+  id: "{{SESSION_ID}}"
+  started: "{{SESSION_START}}"
+  ended: "{{TIMESTAMP}}"
+  duration_minutes: {{DURATION}}
+
+metadata:
+  confidence_score: 0.40
+  context_quality: "low"
+  missing_context:
+    - "Minimal conversation history"
+    - "No active work recorded"
+
+quick_start:
+  project_types: ["javascript"]
+  primary_type: "javascript"
+  package_manager: "npm"
+  verification_command: null
+  files_to_read_first: []
+  context_priority: null
+  estimated_time_minutes: null
+
+learnings: []
+
+approaches:
+  successful: []
+  attempted_but_failed: []
+  not_attempted: []
+
 context:
   current_work: []
 
@@ -258,6 +556,10 @@ context:
 |----------|-------------|---------|
 | `{{TIMESTAMP}}` | ISO 8601 timestamp | `"2025-01-25T14:32:00Z"` |
 | `{{THREAD_ID}}` | Current thread identifier | `"msg_ABC123"` |
+| `{{SESSION_ID}}` | Unique session identifier | `"20260203-143022-a7b3c"` |
+| `{{SESSION_START}}` | Session start time | `"2025-01-25T14:00:00Z"` |
+| `{{DURATION}}` | Session duration in minutes | `45` |
+| `{{CONFIDENCE_0.3_TO_0.95}}` | Quality/confidence score | `0.85` |
 | `{{CONTINUATION_ACTION}}` | Extracted action or `null` | `"build an admin panel"` |
 | `{{GIT_BRANCH}}` | Current git branch | `"feature/user-auth"` |
 | `{{STAGED_FILES}}` | List of staged files | `["src/api/auth.ts"]` |
@@ -265,6 +567,21 @@ context:
 | `{{UNTRACKED_FILES}}` | List of untracked files | `["newfile.ts"]` |
 | `{{STATUS}}` | Task status | `"pending"`, `"in_progress"`, `"completed"` |
 | `{{PHASE}}` | Conversation phase | `"planning"`, `"implementation"`, `"debugging"` |
+| `{{LEARNED_PATTERN}}` | Discovered pattern | `"Always validate input first"` |
+| `{{TECHNIQUE}}` | Debugging technique | `"Add logging before error"` |
+| `{{EVIDENCE}}` | Validation evidence | `"3 bugs traced to this"` |
+| `{{WHAT_WORKED}}` | Successful approach | `"Using JWT for auth"` |
+| `{{WHAT_FAILED}}` | Failed approach | `"Redis for sessions"` |
+| `{{NOT_TRIED}}` | Unattempted approach | `"OAuth2 flow"` |
+
+### Confidence Scale
+
+| Score | Level | Meaning |
+|-------|-------|---------|
+| 0.3 | Tentative | Suggested but not enforced |
+| 0.5 | Moderate | Applied when relevant |
+| 0.7 | Strong | Auto-approved for application |
+| 0.9 | Near-certain | Core behavior, verified |
 
 ## Selecting the Right Template
 

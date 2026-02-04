@@ -1,0 +1,25 @@
+# Handoff Context Configuration
+# Location: Copy to one of these locations:
+#   ~/.config/agents/handoff-context-config.yml    # Cross-tool standard (Amp, others)
+#   ~/.claude/handoff-context-config.yml           # Claude Code specific
+#   .agents/handoff-context-config.yml             # Project-local
+#
+# If no config file exists, these defaults will be used.
+
+# Output format for handoff files
+format: yaml  # yaml | markdown
+
+# Include optional sections in handoff output
+include:
+  learnings: true    # Include learnings section
+  approaches: true   # Include approaches section (what worked/didn't)
+  git_state: true    # Include git state (branch, staged/unstaged/untracked files)
+  quick_start: true  # Include quick_start section (project type, package manager, etc.)
+
+# Confidence scoring thresholds (0.0-1.0 scale)
+confidence:
+  minimum: 0.3      # Floor score (0.3 = tentative, still some value)
+  threshold: 0.7    # Warning threshold (below = add more context)
+
+# Note: Package manager detection is automatic (lock files -> installed binaries -> npm fallback)
+# Manual override available via PACKAGE_MANAGER environment variable if needed

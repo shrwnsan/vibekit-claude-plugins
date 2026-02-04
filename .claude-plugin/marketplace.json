@@ -7,42 +7,36 @@
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
     "version": "1.3.0",
-    "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins",
-    "pluginRoot": "./plugins"
+    "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins"
   },
   "plugins": [
     {
       "name": "base",
-      "source": "base",
+      "source": "./plugins/base",
       "description": "Essential Claude Code workflow and context engineering tools for productive development",
       "version": "1.8.0",
       "author": {
         "name": "shrwnsan"
       },
-      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/base",
+      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/base/README.md",
       "license": "Apache-2.0",
       "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation", "debugging"],
       "category": "productivity",
-      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging"],
-      "commands": ["./commands/commit", "./commands/review-arch"],
-      "skills": ["./skills/crafting-commits", "./skills/handoff-context", "./skills/systematic-debugging"]
+      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging"]
     },
     {
       "name": "search-plus",
-      "source": "search-plus",
+      "source": "./plugins/search-plus",
       "description": "Enhanced web search with multi-service comprehensive error handling and fallback architecture",
       "version": "2.10.1",
       "author": {
         "name": "shrwnsan"
       },
-      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus",
+      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus/README.md",
       "license": "Apache-2.0",
       "keywords": ["search", "web", "error-handling", "rate-limiting", "schema-validation", "productivity", "url-extraction"],
       "category": "productivity",
-      "tags": ["search", "web", "tavily", "error-recovery", "schema-validation", "url-extraction"],
-      "commands": ["./commands/search-plus"],
-      "hooks": "./hooks/hooks.json",
-      "skills": ["./skills/meta-searching"]
+      "tags": ["search", "web", "tavily", "error-recovery", "schema-validation", "url-extraction"]
     }
   ]
 }

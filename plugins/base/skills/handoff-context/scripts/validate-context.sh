@@ -111,7 +111,8 @@ check_section_populated "current_work:" "Current work populated" || true
 has_next_steps=0
 has_continuation=0
 
-if grep -A 2 "^  next_steps:" "$HANDOFF_FILE" 2>/dev/null | grep -q -v "^  next_steps:" | grep -q -v "^  $" 2>/dev/null; then
+# More robust check: look for list items under next_steps section
+if sed -n '/^  next_steps:/,/^  [^ ]/p' "$HANDOFF_FILE" 2>/dev/null | grep -q "^    - " 2>/dev/null; then
   has_next_steps=1
 fi
 
@@ -136,8 +137,8 @@ if [ $total_checks -gt 0 ]; then
   quality_percentage=$((passed_checks * 100 / total_checks))
 fi
 
-# Convert to 0-1 scale for confidence
-confidence_score=$(echo "scale=2; $passed_checks / $total_checks" | bc 2>/dev/null || echo "0.5")
+# Convert to 0-1 scale for confidence (use awk for portability - bc not guaranteed)
+confidence_score=$(awk "BEGIN { printf \"%.2f\", $passed_checks / $total_checks }" 2>/dev/null || echo "0.5")
 
 # Map to quality level
 if [ "$quality_percentage" -ge 90 ]; then

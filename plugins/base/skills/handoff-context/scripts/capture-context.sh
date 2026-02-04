@@ -33,6 +33,7 @@ parse_config_value() {
     local child="${key#*.}"
 
     # Find the parent section and extract the child value
+    # NOTE: Assumes 2-space YAML indentation (standard for this project)
     # This handles YAML like:
     #   include:
     #     learnings: false
@@ -235,19 +236,24 @@ detect_project_type() {
 
   # Default to unknown if no types detected
   if [ ${#types[@]} -eq 0 ]; then
-    echo "unknown"
+    echo "\"unknown\""
   elif [ ${#types[@]} -eq 1 ]; then
-    echo "${types[0]}"
+    echo "\"${types[0]}\""
   else
-    # Multiple types detected (monorepo)
-    echo "${types[@]}"
+    # Multiple types detected (monorepo) - format for YAML array
+    local formatted=""
+    for t in "${types[@]}"; do
+      formatted="${formatted:+${formatted}, }\"${t}\""
+    done
+    echo "$formatted"
   fi
 }
 
 # Detect package manager and project type
 PACKAGE_MANAGER=$(detect_package_manager)
 PROJECT_TYPES=$(detect_project_type)
-PRIMARY_TYPE=$(echo "$PROJECT_TYPES" | awk '{print $1}')
+# Extract first type and strip quotes for primary_type display
+PRIMARY_TYPE=$(echo "$PROJECT_TYPES" | awk '{print $1}' | tr -d '"')
 
 # Capture git state if in a git repository
 GIT_STATE=""

@@ -24,7 +24,6 @@
       "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation", "debugging"],
       "category": "productivity",
       "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging"],
-      "agents": ["./agents/workflow-orchestrator"],
       "commands": ["./commands/commit", "./commands/review-arch"],
       "skills": ["./skills/crafting-commits", "./skills/handoff-context", "./skills/systematic-debugging"]
     },
@@ -41,7 +40,6 @@
       "keywords": ["search", "web", "error-handling", "rate-limiting", "schema-validation", "productivity", "url-extraction"],
       "category": "productivity",
       "tags": ["search", "web", "tavily", "error-recovery", "schema-validation", "url-extraction"],
-      "agents": ["./agents/search-plus"],
       "commands": ["./commands/search-plus"],
       "hooks": "./hooks/hooks.json",
       "skills": ["./skills/meta-searching"]

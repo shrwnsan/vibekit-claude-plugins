@@ -372,46 +372,177 @@ bash plugins/base/skills/handoff-context/scripts/validate-context.sh /tmp/handof
 
 ---
 
+## Limitations & Trade-offs
+
+This section documents known limitations and design trade-offs in the handoff-context implementation.
+
+### Package Manager Detection
+
+**Limitation**: The detected package manager may not be available in the recipient's environment.
+
+**Trade-off**:
+- **Pro**: Helps same-environment continuation by providing accurate PM-specific commands
+- **Con**: Less useful if recipient doesn't have the same PM installed
+- **Mitigation**: Users can override via `PACKAGE_MANAGER` environment variable if needed
+
+**Example**:
+```yaml
+# Source environment has bun installed
+quick_start:
+  package_manager: "bun"  # Detected from bun.lockb
+  verification_command: "bun test"
+
+# Recipient environment only has npm
+# The verification_command "bun test" won't work
+# User would need to manually adjust or override detection
+```
+
+**Decision**: Package manager detection provides value for same-environment continuation (most common case) while documenting the limitation for cross-environment scenarios.
+
+### Cross-Tool Compatibility
+
+**Limitation**: Phase 3 hooks only work in Claude Code, not other AI CLI tools.
+
+**Trade-off**:
+- **Pro**: Hooks provide proactive suggestions when available
+- **Con**: Hook-based features are Claude Code-specific
+- **Mitigation**: Handoff files work universally across tools (file-based continuity)
+
+**Supported Tools** (for file-based handoff):
+- Claude Code
+- Cursor
+- Windsurf
+- Gemini CLI
+- Qwen Code
+- Any AI tool that can read files
+
+### Manual Trigger Required
+
+**Limitation**: Without Phase 3 hooks, users must manually trigger handoff via:
+- `/handoff-context` slash command (most reliable)
+- Natural language "handoff" phrases (variable reliability)
+
+**Trade-off**:
+- **Pro**: Universal compatibility - no platform-specific features required
+- **Con**: Requires user decision-making about when to handoff
+- **Mitigation**: Phase 3 hooks can add proactive suggestions when available
+
+### Temp File Persistence
+
+**Limitation**: Handoff files stored in `/tmp/` may be cleared on system reboot.
+
+**Trade-off**:
+- **Pro**: `/tmp/` is standard, OS-managed, no cleanup code needed
+- **Con**: Files lost after reboot
+- **Mitigation**: Users can copy important handoffs to persistent storage if needed
+
+### Config File Priority
+
+**Limitation**: Multiple config locations may cause confusion about which config is active.
+
+**Trade-off**:
+- **Pro**: Flexible configuration for different use cases (cross-tool, user-specific, project-local)
+- **Con**: Complexity in understanding which config takes precedence
+- **Mitigation**: Config metadata in handoff output shows which config was used
+
+---
+
 ## Phase 3: Advanced Features (P3 - Future)
 
 **Status**: Deferred pending platform verification
 
 **Deferral Reasoning**:
-1. **Hook Availability Unknown**: Eval-021 patterns come from `everything-claude-code` targeting Claude Code CLI. Warp Agent Mode hook support (PreToolUse, PreCompact, SessionStart, etc.) is unverified.
+1. **Hook Platform Dependency**: Eval-021 patterns come from `everything-claude-code` targeting Claude Code CLI. Warp Agent Mode hook support (PreToolUse, PreCompact, SessionStart, etc.) is unverified.
 2. **Dependencies**: Tasks 3.1 and 3.2 depend on hook infrastructure that may not exist in current platform.
 3. **Priority**: P1 (confidence scoring, session tracking, learnings) and P2 (quick start, validation) deliver immediate value without platform dependencies.
-4. **Research Required**: Before implementing P3, need to verify:
-   - Does Warp Agent Mode support hooks?
-   - If not, are there alternative trigger mechanisms?
-   - Should we wait for platform feature parity?
+4. **Current State**: As of 2026-02-04, Claude Code supports hooks in both `settings.json` (JSON) and SKILL.md frontmatter (YAML), but Warp Agent Mode support is unverified.
+
+**New Finding (2026-02-04)**: Hooks can be defined in SKILL.md frontmatter using YAML syntax:
+
+```yaml
+---
+name: handoff-context
+description: Detects natural language handoff requests...
+hooks:
+  PreToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "./plugins/base/skills/handoff-context/scripts/suggest-handoff.sh"
+---
+```
+
+**Benefits of SKILL.md frontmatter hooks**:
+- No `settings.json` modification required by users
+- Hooks travel with the skill/plugin
+- Cleaner installation experience
+- Component-scoped lifecycle (only active when skill is loaded)
+
+**Limitations**:
+- Only works in Claude Code (not universal across AI tools)
+- Warp Agent Mode support unknown
+- Other AI CLI tools (Cursor, Windsurf, etc.) may have different hook mechanisms
 
 **Next Steps for P3**:
-- Document findings in a separate investigation issue
+- Verify if Warp Agent Mode supports hooks in SKILL.md frontmatter
 - If hooks unavailable, explore alternatives (e.g., manual triggers via slash commands)
 - Re-evaluate priority after P1/P2 validation shows user demand
+- Consider hybrid approach: hooks in Claude Code + manual triggers for other tools
 
 ### Task 3.1: PreToolUse Hook for Handoff Suggestion (Deferred)
 
 **Estimated Time**: 3-4 hours
 **Status**: Requires hook availability verification in Warp Agent Mode
 
+**Purpose**: Proactively suggest handoff at logical boundaries instead of requiring manual user decision.
+
+**Mental Model**: The PreToolUse hook is for **proactive suggestion**, not forcing continuation. Users can:
+- Ignore the suggestion and continue working
+- Dismiss the reminder
+- Act on it when ready
+- Start fresh without handoff if preferred
+
 **Subtasks** (for future implementation):
-- [ ] Verify hooks available in Warp Agent Mode
+- [ ] Verify hooks available in target platform (Claude Code / Warp Agent Mode)
+- [ ] Add `hooks` section to SKILL.md frontmatter
 - [ ] Create `suggest-handoff.sh` script
-- [ ] Track tool call count in temp file
+- [ ] Implement threshold detection mechanism (TBD: session-based counter vs other approach)
 - [ ] Suggest handoff at thresholds (50, 100, 150 calls)
 - [ ] Detect logical boundaries (after commit, after test pass)
+- [ ] Display suggestion to stderr (non-blocking)
+- [ ] Allow user to disable via config (`suggestion.enable: false`)
 
 ### Task 3.2: Cross-Session Continuity (Deferred)
 
 **Estimated Time**: 2-3 hours
 **Status**: Depends on Task 3.1 and hook availability
 
+**Purpose**: Help users discover relevant previous handoffs when starting a new session.
+
+**Mental Model**: This is about **discovery assistance**, not automatic continuation. Users:
+- May not want/need session continuity (can start fresh anytime)
+- May switch between different AI tools/agents
+- Should have the option to load previous context if relevant
+
 **Subtasks** (for future implementation):
 - [ ] Detect previous handoff files in /tmp/handoff-*
-- [ ] Assess relevance based on git branch, timestamp
-- [ ] Add `previous_handoffs` section to YAML
-- [ ] Link related handoffs
+- [ ] Assess relevance based on git branch, timestamp, files touched
+- [ ] Add `previous_handoffs` section to handoff metadata
+- [ ] Display suggestion at session start (via SessionStart hook if available)
+- [ ] Allow users to opt-out via config (`cross_session.enable: false`)
+
+**Example flow**:
+```
+[Session Start] Found relevant handoff from 2 hours ago on same branch:
+/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml
+
+Key points from previous session:
+- JWT tokens expire after 15 minutes
+- Using JWT for authentication (tests passing)
+- Next: Add rate limiting
+
+Load this context? (y/n/Skip to start fresh)
+```
 
 ### Task 3.3: Alternative Format Support - Markdown (Deferred)
 

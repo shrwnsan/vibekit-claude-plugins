@@ -64,6 +64,59 @@ context:
   preserved_context: []
 ```
 
+## Config Metadata
+
+When configuration is loaded, it's included in the `metadata` section of the handoff:
+
+```yaml
+metadata:
+  confidence_score: 0.85
+  context_quality: "high"
+  missing_context: []
+  config:
+    source: "/home/user/.config/agents/handoff-context-config.yml"
+    format: "yaml"
+```
+
+### Config Source Values
+
+| Source | Meaning |
+|--------|---------|
+| `builtin` | Using built-in defaults (no config file found) |
+| `/home/user/.config/agents/handoff-context-config.yml` | Cross-tool config (Amp, others) |
+| `/home/user/.claude/handoff-context-config.yml` | Claude Code specific config |
+| `/project/.agents/handoff-context-config.yml` | Project-local config |
+
+### Conditional Sections
+
+Based on configuration, some sections may be omitted:
+
+```yaml
+{{IF_INCLUDE_QUICK_START}}
+quick_start:
+  project_types: ["javascript"]
+  ...
+{{END_IF}}
+
+{{IF_INCLUDE_LEARNINGS}}
+learnings:
+  - pattern: "..."
+  ...
+{{END_IF}}
+
+{{IF_INCLUDE_APPROACHES}}
+approaches:
+  successful: []
+  ...
+{{END_IF}}
+
+{{IF_INCLUDE_GIT_STATE}}
+git_state:
+  branch: "main"
+  ...
+{{END_IF}}
+```
+
 ## Template: Continuation Handoff
 
 **Use when:** User specifies a continuation action ("Handoff and {action}")

@@ -38,6 +38,83 @@ Generates structured context summaries for seamless thread continuation.
 
 **Note:** The slash command works reliably across all agents. Natural language triggers depend on each agent's semantic understanding.
 
+## Configuration
+
+### Config File Locations
+
+The handoff-context skill looks for configuration in the following order (highest to lowest priority):
+
+| Priority | Location | Scope | Use Case |
+|----------|----------|-------|----------|
+| 1 | `~/.config/agents/handoff-context-config.yml` | Cross-tool | Amp, other AI tools |
+| 2 | `~/.claude/handoff-context-config.yml` | Claude Code | Claude Code specific |
+| 3 | `.agents/handoff-context-config.yml` | Project-local | Per-project overrides |
+| 4 | Built-in defaults | Fallback | Ships with plugin |
+
+### Quick Setup
+
+Copy the example config to your preferred location:
+
+```bash
+# Cross-tool location (recommended for multi-tool users)
+mkdir -p ~/.config/agents
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   ~/.config/agents/handoff-context-config.yml
+
+# Claude Code specific
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   ~/.claude/handoff-context-config.yml
+
+# Project-local
+mkdir -p .agents
+cp ~/.claude/plugins/base/skills/handoff-context/handoff-context-config.example.yml \
+   .agents/handoff-context-config.yml
+```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `format` | string | `yaml` | Output format: `yaml` or `markdown` |
+| `include.learnings` | boolean | `true` | Include learnings section |
+| `include.approaches` | boolean | `true` | Include approaches section (what worked/didn't) |
+| `include.git_state` | boolean | `true` | Include git state (branch, files) |
+| `include.quick_start` | boolean | `true` | Include quick_start section |
+| `confidence.minimum` | float | `0.3` | Minimum confidence score floor |
+| `confidence.threshold` | float | `0.7` | Warning threshold for low quality |
+
+### Example Configuration
+
+```yaml
+# ~/.config/agents/handoff-context-config.yml
+
+# Output format
+format: yaml  # yaml | markdown
+
+# Include optional sections
+include:
+  learnings: true
+  approaches: true
+  git_state: true
+  quick_start: true
+
+# Confidence scoring thresholds
+confidence:
+  minimum: 0.3      # Floor score (0.3 = tentative, still some value)
+  threshold: 0.7    # Warning threshold (below = add more context)
+```
+
+### Config Metadata in Handoff
+
+Each handoff file includes metadata about which config was used:
+
+```yaml
+metadata:
+  config:
+    source: "/home/user/.config/agents/handoff-context-config.yml"
+    format: "yaml"
+```
+
 ## Invocation Method Reliability
 
 | Method | Reliability | Output |

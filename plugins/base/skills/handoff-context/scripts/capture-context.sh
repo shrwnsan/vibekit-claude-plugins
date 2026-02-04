@@ -4,6 +4,134 @@
 
 set -euo pipefail
 
+# ============================================================================
+# CONFIGURATION LOADER
+# ============================================================================
+
+# Default configuration values
+CONFIG_FORMAT="yaml"
+CONFIG_INCLUDE_LEARNINGS="true"
+CONFIG_INCLUDE_APPROACHES="true"
+CONFIG_INCLUDE_GIT_STATE="true"
+CONFIG_INCLUDE_QUICK_START="true"
+CONFIG_CONFIDENCE_MINIMUM="0.3"
+CONFIG_CONFIDENCE_THRESHOLD="0.7"
+CONFIG_SOURCE="builtin"
+
+# Function: Parse YAML config file (handles nested keys like "include.learnings")
+parse_config_value() {
+  local file="$1"
+  local key="$2"
+  local default_value="$3"
+
+  local value
+
+  # Handle nested keys (e.g., "include.learnings")
+  if [[ "$key" == *"."* ]]; then
+    # Split key into parent and child
+    local parent="${key%%.*}"
+    local child="${key#*.}"
+
+    # Find the parent section and extract the child value
+    # This handles YAML like:
+    #   include:
+    #     learnings: false
+    value=$(awk -v parent="$parent" -v child="$child" '
+      BEGIN { found = 0 }
+      /^'"$parent"':/ { found = 1; next }
+      found && /^  [^ ]+:/ {
+        # Check if this is the child key we are looking for
+        # Must be indented exactly 2 spaces and match the child name
+        if ($0 ~ /^  '"$child"':/) {
+          # Extract value (everything after the colon and space)
+          sub(/^  '"$child"':[[:space:]]*/, "")
+          # Remove comments
+          gsub(/[[:space:]]*#.*/, "")
+          # Remove carriage returns
+          gsub(/\r/, "")
+          print $0
+          exit
+        }
+      }
+      found && /^[^ ]/ { exit }  # End of parent section
+    ' "$file" 2>/dev/null)
+  else
+    # Handle flat keys (e.g., "format: yaml")
+    value=$(grep "^${key}:" "$file" 2>/dev/null | sed 's/^.*:[[:space:]]*//' | sed 's/[[:space:]]*#.*$//' | tr -d '\r')
+  fi
+
+  if [ -z "$value" ]; then
+    echo "$default_value"
+  else
+    echo "$value"
+  fi
+}
+
+# Function: Load configuration from file
+load_config_file() {
+  local config_file="$1"
+
+  if [ ! -f "$config_file" ]; then
+    return 1
+  fi
+
+  CONFIG_FORMAT=$(parse_config_value "$config_file" "format" "$CONFIG_FORMAT")
+  CONFIG_INCLUDE_LEARNINGS=$(parse_config_value "$config_file" "include.learnings" "$CONFIG_INCLUDE_LEARNINGS")
+  CONFIG_INCLUDE_APPROACHES=$(parse_config_value "$config_file" "include.approaches" "$CONFIG_INCLUDE_APPROACHES")
+  CONFIG_INCLUDE_GIT_STATE=$(parse_config_value "$config_file" "include.git_state" "$CONFIG_INCLUDE_GIT_STATE")
+  CONFIG_INCLUDE_QUICK_START=$(parse_config_value "$config_file" "include.quick_start" "$CONFIG_INCLUDE_QUICK_START")
+  CONFIG_CONFIDENCE_MINIMUM=$(parse_config_value "$config_file" "confidence.minimum" "$CONFIG_CONFIDENCE_MINIMUM")
+  CONFIG_CONFIDENCE_THRESHOLD=$(parse_config_value "$config_file" "confidence.threshold" "$CONFIG_CONFIDENCE_THRESHOLD")
+
+  CONFIG_SOURCE="$config_file"
+  return 0
+}
+
+# Function: Find and load configuration (priority order)
+load_configuration() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  # Priority 1: Cross-tool standard (~/.config/agents/handoff-context-config.yml)
+  if load_config_file "$HOME/.config/agents/handoff-context-config.yml"; then
+    return 0
+  fi
+
+  # Priority 2: Claude Code specific (~/.claude/handoff-context-config.yml)
+  if load_config_file "$HOME/.claude/handoff-context-config.yml"; then
+    return 0
+  fi
+
+  # Priority 3: Project-local (.agents/handoff-context-config.yml)
+  # Start from script directory, go up to find project root
+  local check_dir="$PWD"
+  local max_depth=5
+  local depth=0
+
+  while [ "$depth" -lt "$max_depth" ]; do
+    if load_config_file "$check_dir/.agents/handoff-context-config.yml"; then
+      return 0
+    fi
+    # Go up one directory
+    if [ "$check_dir" = "/" ]; then
+      break
+    fi
+    check_dir="$(dirname "$check_dir")"
+    depth=$((depth + 1))
+  done
+
+  # Priority 4: Built-in defaults (already set above)
+  CONFIG_SOURCE="builtin"
+  return 0
+}
+
+# Load configuration
+load_configuration
+
+# ============================================================================
+# HANDOFF FILE CREATION
+# ============================================================================
+
 # Create private temp directory (user-only, macOS/Linux/WSL compatible)
 HANDOFF_DIR=$(mktemp -d /tmp/handoff-XXXXXX)
 chmod 700 "$HANDOFF_DIR"
@@ -149,7 +277,10 @@ else
   CONTEXT_QUALITY="low"
 fi
 
-# Write YAML context template to file
+# Build YAML template conditionally based on config
+# Note: We use printf with a heredoc for better control over conditional sections
+
+# Start with header
 cat > "$HANDOFF_FILE" << EOF
 handoff:
   timestamp: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -163,9 +294,18 @@ session:
   duration_minutes: null  # To be calculated by agent
 
 metadata:
-  confidence_score: $CONFIDENCE_SCORE  # Will be updated by agent: 0.3-0.95
+  confidence_score: $CONFIDENCE_SCORE  # Will be updated by agent: ${CONFIG_CONFIDENCE_MINIMUM}-0.95
   context_quality: "$CONTEXT_QUALITY"  # high|medium|low
   missing_context: []  # Will be populated by agent
+  # Config source: $CONFIG_SOURCE
+  config:
+    source: "$CONFIG_SOURCE"
+    format: "$CONFIG_FORMAT"
+EOF
+
+# Add quick_start section if enabled
+if [ "$CONFIG_INCLUDE_QUICK_START" = "true" ]; then
+  cat >> "$HANDOFF_FILE" << EOF
 
 quick_start:
   project_types: [$PROJECT_TYPES]
@@ -175,6 +315,12 @@ quick_start:
   files_to_read_first: []  # Agent fills: ["src/auth/session.ts (45-89)"]
   context_priority: null  # Agent fills: "Focus on token expiry logic"
   estimated_time_minutes: null  # Agent fills
+EOF
+fi
+
+# Add learnings section if enabled
+if [ "$CONFIG_INCLUDE_LEARNINGS" = "true" ]; then
+  cat >> "$HANDOFF_FILE" << EOF
 
 learnings:  # Agent fills with patterns and techniques discovered
   - pattern: "Description of learned pattern"
@@ -183,6 +329,12 @@ learnings:  # Agent fills with patterns and techniques discovered
   - technique: "Debugging technique that worked"
     context: "When to use this technique"
     confidence: 0.6
+EOF
+fi
+
+# Add approaches section if enabled
+if [ "$CONFIG_INCLUDE_APPROACHES" = "true" ]; then
+  cat >> "$HANDOFF_FILE" << EOF
 
 approaches:  # Agent fills with what worked, what didn't, what's left
   successful:
@@ -197,13 +349,26 @@ approaches:  # Agent fills with what worked, what didn't, what's left
     - approach: "Alternative not yet tried"
       reason: "Why it was deferred"
       priority: "high|medium|low"
+EOF
+fi
+
+# Add context section (always included)
+cat >> "$HANDOFF_FILE" << EOF
 
 context:
   current_work:
     - task: "Describe current work"
       status: "pending|in_progress|completed"
       files: ["affected-files"]
-$GIT_STATE
+EOF
+
+# Add git_state if enabled and in a git repo
+if [ "$CONFIG_INCLUDE_GIT_STATE" = "true" ] && [ -n "$GIT_STATE" ]; then
+  echo "$GIT_STATE" >> "$HANDOFF_FILE"
+fi
+
+# Add remaining context sections
+cat >> "$HANDOFF_FILE" << EOF
   conversation_summary:
     - phase: "planning|implementation|debugging"
       outcome: "What was accomplished in this phase"

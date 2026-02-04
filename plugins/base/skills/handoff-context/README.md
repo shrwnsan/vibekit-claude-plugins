@@ -107,74 +107,19 @@ To continue in a new thread:
 
 ### Generated YAML Structure
 
-```yaml
-handoff:
-  timestamp: "2026-02-04T14:30:22Z"
-  thread_id: "manual-1738685422"
-  continuation_action: "build admin panel"
+For complete YAML examples showing all sections (session, metadata, quick_start, learnings, approaches), see:
+- **[examples.md](references/examples.md)** - Quick scenarios with input/output pairs
+- **[examples-detailed.md](references/examples-detailed.md)** - Full real-world scenarios with complete context
 
-session:
-  id: "20260204-143022-a3f7c"
-  started: "2026-02-04T14:15:00Z"
-  ended: "2026-02-04T14:30:22Z"
-  duration_minutes: 15
-
-metadata:
-  confidence_score: 0.85
-  context_quality: "high"
-  missing_context: []
-  config:
-    source: "~/.config/agents/handoff-context-config.yml"
-    format: "yaml"
-
-quick_start:
-  project_types: ["javascript"]
-  primary_type: "javascript"
-  package_manager: "pnpm"
-  verification_command: "test"
-  files_to_read_first: ["src/auth/session.ts (45-89)"]
-  context_priority: "Focus on token expiry logic"
-  estimated_time_minutes: 30
-
-git_state:
-  branch: "feature/auth"
-  staged: ["src/auth/session.ts"]
-  unstaged: ["src/auth/utils.ts"]
-  untracked: []
-
-learnings:
-  - pattern: "Token refresh requires 30s buffer"
-    evidence: "Tested with expiry timestamps"
-    confidence: 0.9
-
-approaches:
-  successful:
-    - approach: "JWT with refresh token pattern"
-      evidence: "Passes all integration tests"
-      files: ["src/auth/session.ts"]
-  attempted_but_failed:
-    - approach: "LocalStorage only"
-      reason: "Lost on page refresh"
-      files: ["src/auth/storage.ts"]
-  not_attempted:
-    - approach: "Cookie-based auth"
-      reason: "Out of scope for MVP"
-      priority: "low"
-
-context:
-  current_work:
-    - task: "Implement token refresh logic"
-      status: "in_progress"
-      files: ["src/auth/session.ts"]
-  conversation_summary:
-    - phase: "implementation"
-      outcome: "Base auth flow working, refresh in progress"
-  next_steps:
-    - action: "Complete token refresh implementation"
-      context: "Add 30s buffer before expiry"
-  preserved_context:
-    - "Decision: Use localStorage for tokens, cookies for session flags"
-```
+Key sections in the generated YAML:
+- **handoff** - Timestamp, thread ID, continuation action
+- **session** - Unique session ID, start/end times, duration
+- **metadata** - Confidence score, quality level, config source
+- **quick_start** - Project type, package manager, priority files
+- **git_state** - Branch, staged/unstaged/untracked files
+- **learnings** - Patterns and techniques discovered
+- **approaches** - What worked, what didn't, what's left to try
+- **context** - Current work, conversation summary, next steps, preserved context
 
 ## Screenshots
 

@@ -6,13 +6,14 @@
   },
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
-    "version": "1.2.0",
-    "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins"
+    "version": "1.3.0",
+    "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins",
+    "pluginRoot": "./plugins"
   },
   "plugins": [
     {
       "name": "base",
-      "source": "./plugins/base",
+      "source": "./base",
       "description": "Essential Claude Code workflow and context engineering tools for productive development",
       "version": "1.8.0",
       "author": {
@@ -22,11 +23,14 @@
       "license": "Apache-2.0",
       "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation", "debugging"],
       "category": "productivity",
-      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging"]
+      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging"],
+      "agents": ["./agents/workflow-orchestrator"],
+      "commands": ["./commands/commit", "./commands/review-arch"],
+      "skills": ["./skills/crafting-commits", "./skills/handoff-context", "./skills/session-id", "./skills/systematic-debugging"]
     },
     {
       "name": "search-plus",
-      "source": "./plugins/search-plus",
+      "source": "./search-plus",
       "description": "Enhanced web search with multi-service comprehensive error handling and fallback architecture",
       "version": "2.10.1",
       "author": {
@@ -36,7 +40,11 @@
       "license": "Apache-2.0",
       "keywords": ["search", "web", "error-handling", "rate-limiting", "schema-validation", "productivity", "url-extraction"],
       "category": "productivity",
-      "tags": ["search", "web", "tavily", "error-recovery", "schema-validation", "url-extraction"]
+      "tags": ["search", "web", "tavily", "error-recovery", "schema-validation", "url-extraction"],
+      "agents": ["./agents/search-plus"],
+      "commands": ["./commands/search-plus"],
+      "hooks": "./hooks/hooks.json",
+      "skills": ["./skills/meta-searching"]
     }
   ]
 }

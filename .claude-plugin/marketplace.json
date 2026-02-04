@@ -13,7 +13,7 @@
   "plugins": [
     {
       "name": "base",
-      "source": "./base",
+      "source": "base",
       "description": "Essential Claude Code workflow and context engineering tools for productive development",
       "version": "1.8.0",
       "author": {
@@ -29,7 +29,7 @@
     },
     {
       "name": "search-plus",
-      "source": "./search-plus",
+      "source": "search-plus",
       "description": "Enhanced web search with multi-service comprehensive error handling and fallback architecture",
       "version": "2.10.1",
       "author": {

@@ -67,6 +67,8 @@ Intelligent automation that adapts to your changes. Use for phrases like:
 
 ### Systematic Debugging
 
+**Slash command:** `/systematic-debugging`
+
 Automatically activates when you encounter errors, test failures, or unexpected behavior. No command needed—just describe the issue.
 
 **When it activates:**
@@ -90,6 +92,8 @@ Automatically activates when you encounter errors, test failures, or unexpected 
 **Key principle:** Understand the root cause before attempting fixes. Systematic debugging is faster than random fixes.
 
 ### Handoff Context
+
+**Slash command:** `/handoff-context` (recommended)
 
 Automatically activates when you want to transition to a new thread and preserve your conversation context. No command needed—just say "handoff" naturally.
 
@@ -196,4 +200,4 @@ export VIBEKIT_BASE_QA_SCOPE=standard        # Quality assurance level: standard
 
 ---
 
-License: Apache 2.0 | Plugin Version: 1.6.0
+License: Apache 2.0 | Plugin Version: 1.9.0

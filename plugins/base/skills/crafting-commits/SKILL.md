@@ -1,8 +1,20 @@
 ---
 name: crafting-commits
 description: Generates git commit messages following conventional commit standards with collaborative attribution. Use when user requests commit message creation, drafting, or help with formatting.
+user-invocable: true
 allowed-tools:
   - bash(git:*)
+  - Read
+
+# Dynamic context injection
+Current git status:
+!`git status --porcelain 2>/dev/null || echo "No git repo"`
+
+Recent commits for style consistency:
+!`git log --oneline -5 2>/dev/null || echo "No git history"`
+
+Branch information:
+!`git branch --show-current 2>/dev/null || echo "Not in git repo"`
 ---
 
 # Crafting Git Commits

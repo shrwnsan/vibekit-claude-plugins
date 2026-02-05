@@ -1,8 +1,23 @@
 ---
 name: systematic-debugging
 description: Systematic debugging approach for errors, test failures, and unexpected behavior. Use when encountering bugs, test failures, errors, or when debugging is needed. Prevents common anti-patterns like random fixes, skipping root cause analysis, and thrashing.
+user-invocable: true
 allowed-tools:
   - bash(*)
+  - Read
+  - Grep
+  - Glob
+  - Bash
+
+# Dynamic context injection
+Current error state:
+!`git log --oneline -5 2>/dev/null || echo "No git history"`
+
+Recent test failures:
+!`find . -name "*.log" -mtime -1 2>/dev/null | head -5 || echo "No recent logs"`
+
+Recent build output:
+!`find . -name "build*.log" -o -name "webpack*.log" 2>/dev/null | head -3 || echo "No build logs"`
 ---
 
 # Systematic Debugging

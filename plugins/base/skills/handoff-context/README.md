@@ -4,7 +4,18 @@ A lightweight skill for natural language thread continuation in AI agent convers
 
 ## Quick Start
 
-Say any of these phrases to trigger a handoff:
+**Recommended: Use the slash command**
+```bash
+/handoff-context
+```
+
+**Or say any of these phrases to trigger automatically:**
+- "Handoff and [action]" → continuation workflow
+- "Handoff to [agent/skill]" → targeted handoff
+- "Start a new thread with this" → explicit continuation
+- "Continue in a fresh thread" → explicit continuation
+
+The skill will:
 - "Handoff and [action]" → continuation workflow
 - "Handoff to [agent/skill]" → targeted handoff
 - "Start a new thread with this" → explicit continuation

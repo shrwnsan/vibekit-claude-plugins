@@ -1,6 +1,8 @@
 ---
 name: handoff-context
 description: Detects natural language handoff requests and generates structured context summaries for seamless thread continuation. Use when user says "handoff", "new thread", "continue in fresh thread", or similar phrases.
+user-invocable: true
+disable-model-invocation: true
 allowed-tools:
   - bash(git:*)
   - bash(mktemp:-d)

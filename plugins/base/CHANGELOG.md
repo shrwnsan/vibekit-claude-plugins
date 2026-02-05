@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-02-05
+
+### Skill Frontmatter Improvements
+
+#### Added
+- `user-invocable: true` to all skills for reliable slash command invocation
+- `disable-model-invocation: true` to handoff-context to prevent accidental activation
+- Dynamic context injection (`!` syntax) to systematic-debugging and crafting-commits skills
+  - systematic-debugging: git log, recent test logs, build output
+  - crafting-commits: git status, recent commits, branch information
+- Expanded `allowed-tools` lists with explicit tool declarations for clarity
+
+#### Changed
+- Skills now support reliable `/skill-name` slash command invocation
+- systematic-debugging skill pre-loads error context for faster debugging
+- crafting-commits skill pre-loads git history for style consistency
+- handoff-context no longer auto-activates during normal conversation
+
 ## [1.8.0] - 2026-02-04
 
 ### handoff-context skill

@@ -167,7 +167,7 @@ P1/P2 improvements from eval-021 analysis:
 - Essential Claude Code workflow tools
 
 [Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.10.0...HEAD
-[1.10.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.9.0...v1.10.0
+[1.10.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.9.1...v1.10.0
 [1.9.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.7.7...v1.8.0
 [1.7.7]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.7.0...v1.7.7

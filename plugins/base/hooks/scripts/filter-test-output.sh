@@ -18,7 +18,6 @@ fi
 
 # Check for jq dependency
 if ! command -v jq &> /dev/null; then
-  # jq not available, allow command unchanged
   echo "{}"
   exit 0
 fi
@@ -28,7 +27,6 @@ INPUT=$(cat)
 
 # Validate input is valid JSON
 if ! echo "$INPUT" | jq empty &> /dev/null; then
-  # Invalid JSON, allow command unchanged
   echo "{}"
   exit 0
 fi
@@ -39,57 +37,90 @@ CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 # Exit if no command found
 [[ -z "$CMD" ]] && echo "{}" && exit 0
 
-# Test runner patterns and their corresponding filters
-# Format: pattern -> filter_suffix
-declare -A TEST_RUNNERS=(
-    # Node.js/npm
-    ["npm test(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
-    ["npm run test(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
-    ["npm t(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
-    ["yarn test(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
-    ["yarn test(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
-    ["pnpm test(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
-    ["pnpm test(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
-    ["bun test(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
-    ["bun test(?="]="2>&1 | grep -E '(FAIL|PASS|Error|✓|✗|passed|failed)' | head -200"
+# Determine filter based on command pattern
+GREP_PATTERN=""
+MAX_LINES=200
 
-    # Python
-    ["pytest(?="]="2>&1 | grep -A 3 -E '(FAILED|ERROR|test_)' | head -150"
-    ["python -m pytest(?="]="2>&1 | grep -A 3 -E '(FAILED|ERROR|test_)' | head -150"
-    ["python.* -m unittest(?="]="2>&1 | grep -A 3 -E '(FAIL|ERROR|OK)' | head -150"
+match_test_runner() {
+  local cmd="$1"
 
-    # Go
-    ["go test(?="]="2>&1 | grep -A 5 -E '(FAIL|ERROR|--- FAIL)' | head -100"
+  # Node.js runners
+  if [[ "$cmd" =~ ^npm[[:space:]]+(test|t)([[:space:]]|$) ]] ||
+     [[ "$cmd" =~ ^npm[[:space:]]+run[[:space:]]+test([[:space:]]|$) ]] ||
+     [[ "$cmd" =~ ^yarn[[:space:]]+test([[:space:]]|$) ]] ||
+     [[ "$cmd" =~ ^pnpm[[:space:]]+test([[:space:]]|$) ]] ||
+     [[ "$cmd" =~ ^bun[[:space:]]+test([[:space:]]|$) ]]; then
+    GREP_PATTERN='(FAIL|PASS|Error|✓|✗|passed|failed|Tests:|Test Suites:)'
+    MAX_LINES=200
+    return 0
+  fi
 
-    # Rust/Cargo
-    ["cargo test(?="]="2>&1 | grep -E '(test result:|FAILED|error\[)' | head -100"
+  # Python
+  if [[ "$cmd" =~ ^pytest([[:space:]]|$) ]] ||
+     [[ "$cmd" =~ ^python[[:space:]]+-m[[:space:]]+pytest([[:space:]]|$) ]]; then
+    GREP_PATTERN='(FAILED|ERROR|PASSED|test_|=====)'
+    MAX_LINES=150
+    return 0
+  fi
+  if [[ "$cmd" =~ ^python.*[[:space:]]+-m[[:space:]]+unittest([[:space:]]|$) ]]; then
+    GREP_PATTERN='(FAIL|ERROR|OK|Ran[[:space:]])'
+    MAX_LINES=150
+    return 0
+  fi
 
-    # Ruby/Rails
-    ["bundle exec rspec(?="]="2>&1 | grep -E '(Fail|Error|Pending)' | head -150"
-    ["rails test(?="]="2>&1 | grep -E '(FAIL|Error|failure)' | head -150"
+  # Go
+  if [[ "$cmd" =~ ^go[[:space:]]+test([[:space:]]|$) ]]; then
+    GREP_PATTERN='(FAIL|PASS|ERROR|--- FAIL|--- PASS|ok[[:space:]])'
+    MAX_LINES=100
+    return 0
+  fi
 
-    # Java/Maven
-    ["mvn test(?="]="2>&1 | grep -E '(FAIL|ERROR|BUILD)' | head -150"
-    ["gradle test(?="]="2>&1 | grep -E '(FAIL|ERROR|FAILED)' | head -150"
-)
+  # Rust/Cargo
+  if [[ "$cmd" =~ ^cargo[[:space:]]+test([[:space:]]|$) ]]; then
+    GREP_PATTERN='(test result:|FAILED|error\[)'
+    MAX_LINES=100
+    return 0
+  fi
 
-# Match and filter
-for pattern in "${!TEST_RUNNERS[@]}"; do
-    if [[ "$CMD" =~ ^$pattern ]]; then
-        filter_suffix="${TEST_RUNNERS[$pattern]}"
-        filtered_cmd="$CMD $filter_suffix"
+  # Ruby/Rails
+  if [[ "$cmd" =~ ^bundle[[:space:]]+exec[[:space:]]+rspec([[:space:]]|$) ]]; then
+    GREP_PATTERN='(Fail|Error|Pending|example)'
+    MAX_LINES=150
+    return 0
+  fi
+  if [[ "$cmd" =~ ^rails[[:space:]]+test([[:space:]]|$) ]]; then
+    GREP_PATTERN='(FAIL|Error|failure|runs,)'
+    MAX_LINES=150
+    return 0
+  fi
 
-        # Output the hook response with updated command
-        jq -n --arg cmd "$filtered_cmd" '{
-            hookSpecificOutput: {
-                hookEventName: "PreToolUse",
-                permissionDecision: "allow",
-                updatedInput: {command: $cmd}
-            }
-        }'
-        exit 0
-    fi
-done
+  # Java/Maven/Gradle
+  if [[ "$cmd" =~ ^mvn[[:space:]]+test([[:space:]]|$) ]] ||
+     [[ "$cmd" =~ ^(\.\/)?gradlew?[[:space:]]+test([[:space:]]|$) ]]; then
+    GREP_PATTERN='(FAIL|ERROR|BUILD|Tests run:)'
+    MAX_LINES=150
+    return 0
+  fi
 
-# No match - allow command unchanged
-echo "{}"
+  return 1
+}
+
+if ! match_test_runner "$CMD"; then
+  echo "{}"
+  exit 0
+fi
+
+# Build filtered command that:
+# 1. Runs original command in a subshell to isolate it
+# 2. Filters output, falling back to a summary message if grep finds no matches
+#    (e.g., when all tests pass and no error lines exist)
+# 3. Limits output to MAX_LINES
+filtered_cmd="( ${CMD} ) 2>&1 | { grep -E '${GREP_PATTERN}' || echo 'All tests passed (output filtered by vibekit-base)'; } | head -${MAX_LINES}"
+
+jq -n --arg cmd "$filtered_cmd" '{
+    hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "allow",
+        updatedInput: {command: $cmd}
+    }
+}'

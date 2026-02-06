@@ -1,0 +1,17 @@
+{
+  "description": "PreToolUse hook for filtering verbose test output to reduce token costs",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/filter-test-output.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

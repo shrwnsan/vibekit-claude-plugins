@@ -9,6 +9,7 @@ A Claude Code plugin providing foundational workflow automation tools for produc
 - **Systematic Debugging**: Structured debugging approach that finds root causes efficiently
 - **Handoff Context**: Natural language handoff detection for seamless thread continuation
 - **Workflow Orchestration**: Coordinates development workflows and quality assurance (beta)
+- **Test Output Filtering**: Automatic PreToolUse hook that filters verbose test output (npm, pytest, cargo, go, yarn, pnpm) to reduce token costs
 
 ## Quick Start
 
@@ -116,6 +117,25 @@ Automatically activates when you want to transition to a new thread and preserve
 
 **Key principle:** Seamless continuation without losing context. Stay in flow while transitioning to a fresh thread.
 
+### Test Output Filtering
+
+**Automatic activation** - No command needed, filters test output by default to reduce token costs.
+
+**Supported runners**: npm test, pytest, go test, cargo test, yarn test, pnpm test, bun test, rspec, rails test, mvn test, gradle test
+
+**How it works**: Intercepts test commands and pipes output through filters that show only errors, failures, and key results (typically 50-95% token reduction).
+
+**Disable filtering**:
+```bash
+export VIBEKIT_BASE_TEST_FILTER=none
+# or
+export VIBEKIT_BASE_TEST_FILTER=disable
+```
+
+**Requirements**: `jq` for JSON parsing (hook gracefully degrades if jq is missing)
+
+For detailed documentation, see [test-output-filtering.md](docs/test-output-filtering.md).
+
 ### Workflow Orchestrator (beta)
 The workflow orchestrator coordinates complex development workflows, integrating git operations, quality assurance, and productivity automation. It manages parallel development, enforces quality gates, and sequences tasks for smooth development processes.
 
@@ -177,8 +197,13 @@ plugins/base/
 │   └── handoff-context/            # Natural language handoff detection
 ├── agents/
 │   └── workflow-orchestrator.md    # Workflow coordination (beta)
+├── hooks/
+│   ├── hooks.json                  # PreToolUse hook registration
+│   └── scripts/
+│       └── filter-test-output.sh   # Test output filtering script
 ├── docs/
-│   └── commit-approaches-comparison.md  # Usage guidance
+│   ├── commit-approaches-comparison.md  # Usage guidance
+│   └── test-output-filtering.md    # Feature documentation
 ├── README.md                      # This file
 ├── CHANGELOG.md                   # Version history
 └── LICENSE                        # Apache 2.0
@@ -200,4 +225,4 @@ export VIBEKIT_BASE_QA_SCOPE=standard        # Quality assurance level: standard
 
 ---
 
-License: Apache 2.0 | Plugin Version: 1.9.0
+License: Apache 2.0 | Plugin Version: 1.10.0

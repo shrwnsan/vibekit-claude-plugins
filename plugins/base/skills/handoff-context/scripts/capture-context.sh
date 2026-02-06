@@ -134,7 +134,8 @@ load_configuration
 # ============================================================================
 
 # Create private temp directory (user-only, macOS/Linux/WSL compatible)
-HANDOFF_DIR=$(mktemp -d /tmp/handoff-XXXXXX)
+# Use TMPDIR for sandbox compatibility (falls back to /tmp if not set)
+HANDOFF_DIR=$(mktemp -d "${TMPDIR:-/tmp}/handoff-XXXXXX")
 chmod 700 "$HANDOFF_DIR"
 
 # Validate write permissions to temp directory

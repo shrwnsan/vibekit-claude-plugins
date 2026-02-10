@@ -15,11 +15,13 @@ The Base plugin includes a PreToolUse hook that automatically filters verbose te
 
 ### Node.js/JavaScript
 - `npm test`, `npm run test`, `npm t`
+- `npm test -- <pattern>` (file-specific tests)
+- `npm test && npm run build` (compound commands)
 - `yarn test`
 - `pnpm test`
 - `bun test`
 
-Filter: Shows FAIL, PASS, Error, checkmarks (✓/✗), passed/failed status. Max 200 lines.
+Filter: Shows FAIL, PASS, Error, checkmarks (✓/✗), passed/failed status. Excludes application logs (timestamps, console output). Max 200 lines.
 
 ### Python
 - `pytest`
@@ -173,12 +175,24 @@ Pattern matching against TEST_RUNNERS
     ↓
 Match found: "npm test"
     ↓
-Append filter: "2>&1 | grep -E '(FAIL|PASS|Error|✓|✗)' | head -200"
+Append filter: "2>&1 | grep -vE 'timestamps' | grep -E '(FAIL|PASS|Error|✓|✗)' | head -200"
     ↓
 Return updated command in JSON response
     ↓
 Claude Code executes filtered command
 ```
+
+### Filter Pipeline
+
+The filter uses a multi-stage pipeline:
+
+1. **Capture stderr**: `2>&1` redirects stderr to stdout
+2. **Exclude application logs**: `grep -vE` removes timestamp-prefixed lines
+   - ISO timestamps: `2026-02-07T15:33:23.830Z`
+   - Time-only: `[15:33:23]` or `15:33:23`
+3. **Include test output**: `grep -E` matches test framework patterns
+4. **Limit lines**: `head -N` prevents excessive output
+5. **Fallback**: If grep finds nothing, shows "All tests passed" message
 
 ### File Locations
 

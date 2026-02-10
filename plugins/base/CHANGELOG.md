@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-02-10
+
+### Changed
+- Test output filter: removed `^` anchor from patterns to match `npm test -- <args>`, compound commands like `npm test && build`
+- Test output filter: added negative grep to exclude application logs (ISO timestamps, time-only stamps)
+- Test output filter: removed redundant subshell wrapper and outer redirection for cleaner command syntax
+
 ## [1.10.0] - 2026-02-06
 
 ### Added

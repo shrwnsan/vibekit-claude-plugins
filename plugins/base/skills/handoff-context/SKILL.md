@@ -6,7 +6,9 @@ disable-model-invocation: true
 allowed-tools:
   - bash(git:*)
   - bash(mktemp:-d)
+  - bash(mkdir:-p /tmp/claude/handoff-*)
   - bash(mkdir:-p /tmp/handoff-*)
+  - bash(ls:-la /tmp/claude/handoff-*)
   - bash(ls:-la /tmp/handoff-*)
   - bash(chmod:700)
   - bash(touch:*)
@@ -14,10 +16,14 @@ allowed-tools:
   - bash(date:*)
   - bash(tr '\n' ' ')
   - bash(sed 's/ $//')
+  - bash(cat /tmp/claude/handoff-*)
   - bash(cat /tmp/handoff-*)
   - bash(echo:*)
+  - bash(write to /tmp/claude/handoff-*)
   - bash(write to /tmp/handoff-*)
+  - Read(/tmp/claude/handoff-*)
   - Read(/tmp/handoff-*)
+  - Write(/tmp/claude/handoff-*)
   - Write(/tmp/handoff-*)
 ---
 
@@ -116,6 +122,23 @@ metadata:
     source: "/home/user/.config/agents/handoff-context-config.yml"
     format: "yaml"
 ```
+
+### Temp Directory Behavior
+
+Handoff files respect the following temp directory priority:
+
+| Environment | Priority | Default Path |
+|-------------|----------|--------------|
+| **Claude Code** | `CLAUDE_CODE_TMPDIR` (1st) | `/tmp/claude/handoff-XXX/` |
+| **Amp, Droid, others** | `TMPDIR` (2nd) | System temp (e.g., `/var/folders/.../T/` on macOS) |
+| **Fallback** | `/tmp` (3rd) | `/tmp/handoff-XXX/` |
+
+**Why this priority?** Claude Code's sandbox denies direct `/tmp/` writes but allows writes to `CLAUDE_CODE_TMPDIR` (default: `/tmp/claude`). Other tools respect the standard `TMPDIR` environment variable.
+
+**Typical paths by tool:**
+- Claude Code: `/tmp/claude/handoff-a1b2c3/handoff-20260111-143022.yaml`
+- Amp (macOS): `/var/folders/xx/.../T/handoff-d4e5f6/handoff-20260111-143022.yaml`
+- Droid (Linux): `/tmp/handoff-g7h8i9/handoff-20260111-143022.yaml`
 
 ## Invocation Method Reliability
 

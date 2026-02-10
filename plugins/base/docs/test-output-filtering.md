@@ -20,6 +20,8 @@ The Base plugin includes a PreToolUse hook that automatically filters verbose te
 - `yarn test`
 - `pnpm test`
 - `bun test`
+- `npx vitest`, `npx jest`, `npx playwright test`, `npx cypress run`
+- `bunx vitest`, `bunx jest`, `bunx playwright test`
 
 Filter: Shows FAIL, PASS, Error, checkmarks (✓/✗), passed/failed status. Excludes application logs (timestamps, console output). Max 200 lines.
 

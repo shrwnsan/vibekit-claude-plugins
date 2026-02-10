@@ -62,7 +62,9 @@ match_test_runner() {
     MAX_LINES=150
     return 0
   fi
-  if [[ "$cmd" =~ python.*[[:space:]]+-m[[:space:]]+unittest([[:space:]]|$|\||&) ]]; then
+  # Pattern matches: python -m unittest, python -m unittest discover, etc.
+  # Note: Uses explicit -m unittest pattern (not .*) to avoid matching unrelated commands
+  if [[ "$cmd" =~ python[[:space:]]+-m[[:space:]]+unittest([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(FAIL|ERROR|OK|Ran[[:space:]])'
     MAX_LINES=150
     return 0

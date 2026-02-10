@@ -71,8 +71,10 @@ echo "  - Token ratio: ~4 chars per token"
 echo ""
 
 if [[ "$FILTERED" -gt 0 ]]; then
-  # Calculate savings
+  # Calculate savings based on observed session averages
+  # 800 lines × 50 chars/line ÷ 4 chars/token = ~10,000 tokens for unfiltered output
   UNFILTERED_TOKENS=$((800 * 50 / 4))
+  # Filtered output uses measured average lines × same char/token ratios
   FILTERED_TOKENS=$((AVG_FILTERED_LINES * 50 / 4))
   SAVINGS_PER_RUN=$((UNFILTERED_TOKENS - FILTERED_TOKENS))
   TOTAL_SAVINGS=$((SAVINGS_PER_RUN * FILTERED))

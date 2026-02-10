@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-02-10
+
+### Changed
+- Test output filter: removed `^` anchor from patterns to match `npm test -- <args>`, compound commands like `npm test && build`
+- Test output filter: added negative grep to exclude application logs (ISO timestamps, time-only stamps)
+- Test output filter: removed redundant subshell wrapper and outer redirection for cleaner command syntax
+
 ## [1.10.0] - 2026-02-06
 
 ### Added
@@ -166,7 +173,8 @@ P1/P2 improvements from eval-021 analysis:
 - Crafting-commits skill for intelligent commit message creation
 - Essential Claude Code workflow tools
 
-[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.10.1...HEAD
+[1.10.1]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.9.1...v1.10.0
 [1.9.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.7.7...v1.8.0

@@ -44,59 +44,61 @@ MAX_LINES=200
 match_test_runner() {
   local cmd="$1"
 
-  # Node.js runners
-  if [[ "$cmd" =~ ^npm[[:space:]]+(test|t)([[:space:]]|$) ]] ||
-     [[ "$cmd" =~ ^npm[[:space:]]+run[[:space:]]+test([[:space:]]|$) ]] ||
-     [[ "$cmd" =~ ^yarn[[:space:]]+test([[:space:]]|$) ]] ||
-     [[ "$cmd" =~ ^pnpm[[:space:]]+test([[:space:]]|$) ]] ||
-     [[ "$cmd" =~ ^bun[[:space:]]+test([[:space:]]|$) ]]; then
+  # Node.js runners — prefix boundary allows compound commands (e.g., npm test && build)
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])npm[[:space:]]+(test|t)([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])npm[[:space:]]+run[[:space:]]+test([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])yarn[[:space:]]+test([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])pnpm[[:space:]]+test([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])bun[[:space:]]+test([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(FAIL|PASS|Error|✓|✗|passed|failed|Tests:|Test Suites:)'
     MAX_LINES=200
     return 0
   fi
 
-  # Python
-  if [[ "$cmd" =~ ^pytest([[:space:]]|$) ]] ||
-     [[ "$cmd" =~ ^python[[:space:]]+-m[[:space:]]+pytest([[:space:]]|$) ]]; then
+  # Python — prefix boundary prevents false positives in quoted strings
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])pytest([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])python[[:space:]]+-m[[:space:]]+pytest([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(FAILED|ERROR|PASSED|test_|=====)'
     MAX_LINES=150
     return 0
   fi
-  if [[ "$cmd" =~ ^python.*[[:space:]]+-m[[:space:]]+unittest([[:space:]]|$) ]]; then
+  # Pattern matches: python -m unittest, python -m unittest discover, etc.
+  # Note: Uses explicit -m unittest pattern (not .*) to avoid matching unrelated commands
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])python[[:space:]]+-m[[:space:]]+unittest([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(FAIL|ERROR|OK|Ran[[:space:]])'
     MAX_LINES=150
     return 0
   fi
 
   # Go
-  if [[ "$cmd" =~ ^go[[:space:]]+test([[:space:]]|$) ]]; then
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])go[[:space:]]+test([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(FAIL|PASS|ERROR|--- FAIL|--- PASS|ok[[:space:]])'
     MAX_LINES=100
     return 0
   fi
 
   # Rust/Cargo
-  if [[ "$cmd" =~ ^cargo[[:space:]]+test([[:space:]]|$) ]]; then
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])cargo[[:space:]]+test([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(test result:|FAILED|error\[)'
     MAX_LINES=100
     return 0
   fi
 
   # Ruby/Rails
-  if [[ "$cmd" =~ ^bundle[[:space:]]+exec[[:space:]]+rspec([[:space:]]|$) ]]; then
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])bundle[[:space:]]+exec[[:space:]]+rspec([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(Fail|Error|Pending|example)'
     MAX_LINES=150
     return 0
   fi
-  if [[ "$cmd" =~ ^rails[[:space:]]+test([[:space:]]|$) ]]; then
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])rails[[:space:]]+test([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(FAIL|Error|failure|runs,)'
     MAX_LINES=150
     return 0
   fi
 
   # Java/Maven/Gradle
-  if [[ "$cmd" =~ ^mvn[[:space:]]+test([[:space:]]|$) ]] ||
-     [[ "$cmd" =~ ^(\.\/)?gradlew?[[:space:]]+test([[:space:]]|$) ]]; then
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])mvn[[:space:]]+test([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])(\.\/)?gradlew?[[:space:]]+test([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(FAIL|ERROR|BUILD|Tests run:)'
     MAX_LINES=150
     return 0
@@ -110,14 +112,16 @@ if ! match_test_runner "$CMD"; then
   exit 0
 fi
 
-# Build filtered command that:
-# 1. Runs original command in a subshell to isolate it
-# 2. Filters output, falling back to a summary message if grep finds no matches
-#    (e.g., when all tests pass and no error lines exist)
-# 3. Limits output to MAX_LINES
-filtered_cmd="( ${CMD} ) 2>&1 | { grep -E '${GREP_PATTERN}' || echo 'All tests passed (output filtered by vibekit-base)'; } | head -${MAX_LINES}"
+# Build filtered command
+# Using a subshell approach to properly handle the pipe chain
+# The filter: 1) captures stderr, 2) excludes timestamps, 3) includes test output, 4) limits lines
+FILTERED_CMD="( ${CMD} ) 2>&1 \
+  | grep -vE '^\\[?[0-9]{4}-[0-9]{2}-[0-9]{2}' \
+  | grep -vE '^\\[?[0-9]{2}:[0-9]{2}:[0-9]{2}' \
+  | ( grep -E '${GREP_PATTERN}' || echo 'All tests passed (output filtered by vibekit-base plugin)' ) \
+  | head -${MAX_LINES}"
 
-jq -n --arg cmd "$filtered_cmd" '{
+jq -n --arg cmd "$FILTERED_CMD" '{
     hookSpecificOutput: {
         hookEventName: "PreToolUse",
         permissionDecision: "allow",

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-02-11
+
+### Added
+- Test output filter: added npx/bunx support (vitest, jest, playwright, cypress, mocha, ava, tape)
+- Supports compound commands (e.g., `npm run build && npx vitest`)
+- Covers common one-off test runs, CI/CD workflows, and tool evaluation patterns
+- Added 11 new test cases for npx/bunx pattern validation
+
 ## [1.10.1] - 2026-02-10
 
 ### Changed
@@ -173,7 +181,8 @@ P1/P2 improvements from eval-021 analysis:
 - Crafting-commits skill for intelligent commit message creation
 - Essential Claude Code workflow tools
 
-[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.10.1...v1.11.0
 [1.10.1]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.9.1...v1.10.0
 [1.9.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.8.0...v1.9.0

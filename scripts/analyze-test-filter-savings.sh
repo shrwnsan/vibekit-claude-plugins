@@ -24,12 +24,16 @@ if [[ ! -d "$DEBUG_DIR" ]]; then
   exit 1
 fi
 
+# Cache file list to avoid redundant filesystem scans
+ALL_DEBUG_FILES=$(find "$DEBUG_DIR" -name "*.txt" -type f 2>/dev/null)
+
 # Count sessions with test commands
-TEST_SESSIONS=$(find "$DEBUG_DIR" -name "*.txt" -type f -exec grep -l "npm test\|yarn test\|pnpm test\|bun test\|pytest\|go test\|cargo test" {} \; 2>/dev/null | wc -l | tr -d ' ')
+TEST_SESSIONS=$(echo "$ALL_DEBUG_FILES" | xargs grep -l "npm test\|yarn test\|pnpm test\|bun test\|pytest\|go test\|cargo test" 2>/dev/null | wc -l | tr -d ' ')
 echo "📊 Sessions with test commands: $TEST_SESSIONS"
 
-# Find sessions where hook was applied
-FILTERED=$(find "$DEBUG_DIR" -name "*.txt" -type f -exec grep -l "output filtered by vibekit-base" {} \; 2>/dev/null | wc -l | tr -d ' ')
+# Find sessions where hook was applied (cache for reuse)
+FILTERED_FILES=$(echo "$ALL_DEBUG_FILES" | xargs grep -l "output filtered by vibekit-base" 2>/dev/null || true)
+FILTERED=$(echo "$FILTERED_FILES" | grep -c . 2>/dev/null || echo 0)
 echo "✅ Sessions with filtered output: $FILTERED"
 
 # Calculate filter adoption rate
@@ -42,9 +46,10 @@ fi
 echo ""
 echo "=== Sample Output Analysis ==="
 
-SAMPLE_FILES=$(find "$DEBUG_DIR" -name "*.txt" -type f -exec grep -l "output filtered by vibekit-base" {} \; 2>/dev/null | head -5)
+SAMPLE_FILES=$(echo "$FILTERED_FILES" | head -5)
 SAMPLE_COUNT=0
 TOTAL_FILTERED_LINES=0
+AVG_FILTERED_LINES=30
 
 for file in $SAMPLE_FILES; do
   if [[ -f "$file" ]]; then

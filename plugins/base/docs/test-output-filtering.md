@@ -167,20 +167,29 @@ Typical token reduction:
 ```
 User runs "npm test"
     ↓
-PreToolUse Hook Triggered
+PreToolUse Hook Triggered (for ALL Bash commands)
     ↓
-filter-test-output.sh reads JSON input
+filter-test-output.sh reads JSON input from stdin
     ↓
-Pattern matching against TEST_RUNNERS
+Pattern matching via match_test_runner()
     ↓
-Match found: "npm test"
+    ├─ Match found? → Continue to filter pipeline
+    └─ No match? → Return "{}" (no changes)
     ↓
-Append filter: "2>&1 | grep -vE 'timestamps' | grep -E '(FAIL|PASS|Error|✓|✗)' | head -200"
+Build filtered command with:
+  - Negative grep: Exclude timestamp-prefixed lines
+  - Positive grep: Include test framework patterns
+  - Fallback: "All tests passed" message if no matches
+  - Limit: head -${MAX_LINES}
     ↓
-Return updated command in JSON response
+Return JSON response with updatedInput.command
     ↓
-Claude Code executes filtered command
+Claude Code executes the filtered command
+    ↓
+Filtered output displayed to user
 ```
+
+**Key point**: The hook is triggered for every Bash command, but returns `{}` (no changes) for non-test commands.
 
 ### Filter Pipeline
 

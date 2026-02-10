@@ -56,11 +56,13 @@ match_test_runner() {
   fi
 
   # npx/bunx test runners — common for one-off test runs, CI/CD, and tool evaluation
-  # Covers: vitest, jest, playwright, cypress, mocha, ava, tape, node test
-  if [[ "$cmd" =~ (^|[;\&\|[:space:]])npx[[:space:]]+(vitest|jest|playwright|cypress|mocha|ava|tape)([[:space:]]|$|\||&) ]] ||
+  # Covers: vitest, jest, mocha, ava, tape (generic), playwright test, cypress run (specific)
+  if [[ "$cmd" =~ (^|[;\&\|[:space:]])npx[[:space:]]+(vitest|jest|mocha|ava|tape)([[:space:]]|$|\||&) ]] ||
      [[ "$cmd" =~ (^|[;\&\|[:space:]])npx[[:space:]]+playwright[[:space:]]+test([[:space:]]|$|\||&) ]] ||
-     [[ "$cmd" =~ (^|[;\&\|[:space:]])bunx[[:space:]]+(vitest|jest|playwright|cypress|mocha|ava|tape)([[:space:]]|$|\||&) ]] ||
-     [[ "$cmd" =~ (^|[;\&\|[:space:]])bunx[[:space:]]+playwright[[:space:]]+test([[:space:]]|$|\||&) ]]; then
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])npx[[:space:]]+cypress[[:space:]]+run([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])bunx[[:space:]]+(vitest|jest|mocha|ava|tape)([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])bunx[[:space:]]+playwright[[:space:]]+test([[:space:]]|$|\||&) ]] ||
+     [[ "$cmd" =~ (^|[;\&\|[:space:]])bunx[[:space:]]+cypress[[:space:]]+run([[:space:]]|$|\||&) ]]; then
     GREP_PATTERN='(FAIL|PASS|Error|✓|✗|passed|failed|Tests:|Test Suites:)'
     MAX_LINES=200
     return 0

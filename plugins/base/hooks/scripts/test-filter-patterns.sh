@@ -74,6 +74,7 @@ assert_match "bunx vitest"
 assert_match "bunx jest"
 assert_match "bunx playwright test"
 assert_match "bunx vitest run"
+assert_match "bunx cypress run"
 assert_match "npm run build && npx vitest"      "npx vitest in compound &&"
 
 # --- npx/bunx: should NOT match ---
@@ -81,6 +82,8 @@ assert_no_match 'echo "npx vitest"'             "npx vitest inside echo quotes"
 assert_no_match "npx create-vite"               "npx non-test command"
 assert_no_match "bunx create-vite"              "bunx non-test command"
 assert_no_match "npx tsc"                       "npx tsc (compiler, not test runner)"
+assert_no_match "npx playwright install"        "npx playwright install (setup, not test)"
+assert_no_match "npx cypress open"              "npx cypress open (interactive, not test run)"
 
 # --- Python: should match ---
 assert_match "pytest"

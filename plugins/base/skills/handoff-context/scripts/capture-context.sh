@@ -134,8 +134,9 @@ load_configuration
 # ============================================================================
 
 # Create private temp directory (user-only, macOS/Linux/WSL compatible)
-# Use TMPDIR for sandbox compatibility (falls back to /tmp if not set)
-HANDOFF_DIR=$(mktemp -d "${TMPDIR:-/tmp}/handoff-XXXXXX")
+# Priority: CLAUDE_CODE_TMPDIR (Claude Code) → TMPDIR (system standard) → /tmp (fallback)
+# Claude Code's sandbox denies /tmp/ writes but allows CLAUDE_CODE_TMPDIR (default: /tmp/claude)
+HANDOFF_DIR=$(mktemp -d "${CLAUDE_CODE_TMPDIR:-${TMPDIR:-/tmp}}/handoff-XXXXXX")
 chmod 700 "$HANDOFF_DIR"
 
 # Validate write permissions to temp directory

@@ -57,7 +57,8 @@ Generate unique filename and write structured context to `/tmp/`:
 
 ```bash
 # Create private temp directory (user-only, macOS/Linux/WSL compatible)
-HANDOFF_DIR=$(mktemp -d /tmp/handoff-XXXXXX)
+# Priority: CLAUDE_CODE_TMPDIR → TMPDIR → /tmp
+HANDOFF_DIR=$(mktemp -d "${CLAUDE_CODE_TMPDIR:-${TMPDIR:-/tmp}}/handoff-XXXXXX")
 chmod 700 "$HANDOFF_DIR"
 
 # Generate unique filename with timestamp (dynamic, not hardcoded)
@@ -96,8 +97,8 @@ cat "$HANDOFF_FILE"
 ```
 
 **Note:** The timestamp in the filename is generated dynamically via `$(date +%Y%m%d-%H%M%S)`. Each handoff creates a unique file like:
-- `/tmp/handoff-20260126-143022.yaml`
-- `/tmp/handoff-20260126-153145.yaml`
+- `/tmp/claude/handoff-20260126-143022.yaml` (Claude Code)
+- `/tmp/handoff-20260126-153145.yaml` (other tools, or `$TMPDIR` on macOS)
 
 ## Step 4: Provide Continuation Instruction
 
@@ -106,16 +107,18 @@ Display the handoff summary and provide clear next steps:
 ```text
 🔄 Handoff ready
 
-Context written to: /tmp/handoff-20260126-143022.yaml
+Context written to: /tmp/claude/handoff-20260126-143022.yaml
 
 To continue in a new thread:
   1. Start a new AI agent conversation
-  2. Tell the agent: "Continue from /tmp/handoff-20260126-143022.yaml"
+  2. Tell the agent: "Continue from /tmp/claude/handoff-20260126-143022.yaml"
 ```
 
+**Note:** Paths may vary by tool (Claude Code: `/tmp/claude/handoff-XXX/`, others: `$TMPDIR/handoff-XXX/` or `/tmp/handoff-XXX/`).
+
 **Important workflow note:** When using the capture-context.sh script:
-1. Script generates template at `/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml`
-2. Script outputs `HANDOFF_FILE=/tmp/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml`
+1. Script generates template at `$TMPDIR/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml`
+2. Script outputs `HANDOFF_FILE=$TMPDIR/handoff-XXX/handoff-YYYYMMDD-HHMMSS.yaml`
 3. Read the file, populate conversation context
 4. **Overwrite the same file** with complete summary
 5. Display the final file path to user

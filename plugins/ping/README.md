@@ -23,20 +23,38 @@ The Ping plugin is part of the VibeKit marketplace. Install via:
 claude plugin install https://github.com/shrwnsan/vibekit-claude-plugins
 ```
 
-## Configuration
+### Quick Start with Warcraft Sounds
 
-Add environment variables to your `~/.claude/settings.json`:
+After installation, copy the included Warcraft sounds to the plugin's cache directory:
+
+```bash
+# Find your installed ping version (e.g., 1.2.0)
+PING_VERSION=$(ls ~/.claude/plugins/cache/vibekit/ping/ | tail -1)
+
+# Copy sounds to cache
+cp ~/.claude/plugins/cache/vibekit/ping/$PING_VERSION/sounds/Peon*.wav \
+   ~/.claude/plugins/cache/vibekit/ping/$PING_VERSION/sounds/
+```
+
+Then add to your `~/.claude/settings.json`:
 
 ```json
 {
   "env": {
     "PING_ENABLED": "true",
-    "PING_SOUNDS_DIR": "${CLAUDE_PLUGIN_ROOT}/sounds"
+    "PING_SOUND_SESSION_START": "PeonReady1.wav",
+    "PING_SOUND_USER_PROMPT": "PeonYes4.wav",
+    "PING_SOUND_NOTIFICATION": "PeonWhat3.wav",
+    "PING_SOUND_STOP": "PeonBuildingComplete1.wav"
   }
 }
 ```
 
-Or override individual sounds (relative to `PING_SOUNDS_DIR`, or use absolute paths):
+Restart Claude Code and the sounds will play on session events.
+
+## Configuration
+
+Override individual sounds with environment variables in `~/.claude/settings.json` (relative paths are resolved against the plugin's `sounds/` directory, or use absolute paths):
 
 ```json
 {

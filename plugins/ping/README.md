@@ -23,28 +23,29 @@ claude plugin install https://github.com/shrwnsan/vibekit-claude-plugins
 
 ## Configuration
 
-### Environment Variables
+Add environment variables to your `~/.claude/settings.json`:
 
-Enable/disable sounds:
-
-```bash
-export PING_ENABLED=true  # Default: true
+```json
+{
+  "env": {
+    "PING_ENABLED": "true",
+    "PING_SOUND_SESSION_START": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonReady1.wav",
+    "PING_SOUND_USER_PROMPT": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonYes4.wav",
+    "PING_SOUND_NOTIFICATION": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonWhat3.wav",
+    "PING_SOUND_STOP": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonBuildingComplete1.wav"
+  }
+}
 ```
 
-Override sound directory:
+**Available settings:**
+- `PING_ENABLED` - Enable/disable sounds (default: `true`)
+- `PING_SOUNDS_DIR` - Override default sound directory
+- `PING_SOUND_SESSION_START` - Sound for session start event
+- `PING_SOUND_USER_PROMPT` - Sound when Claude needs your input
+- `PING_SOUND_NOTIFICATION` - Sound for general notifications
+- `PING_SOUND_STOP` - Sound when session completes
 
-```bash
-export PING_SOUNDS_DIR=/path/to/your/sounds
-```
-
-Override per-event sounds:
-
-```bash
-export PING_SOUND_SESSION_START=/path/to/start.wav
-export PING_SOUND_USER_PROMPT=/path/to/prompt.wav
-export PING_SOUND_NOTIFICATION=/path/to/notification.wav
-export PING_SOUND_STOP=/path/to/stop.wav
-```
+**Note:** `${CLAUDE_PLUGIN_ROOT}` will be automatically resolved to the plugin's installation directory.
 
 ### Custom Sounds
 
@@ -70,16 +71,7 @@ Follow Delba's tip and use nostalgic game sounds! Here are some popular sources:
 - [MyInstants: SpongeBob sounds](https://www.myinstants.com/en/search/?name=spongebob)
 - [MyInstants: Star Wars sounds](https://www.myinstants.com/en/search/?name=star+wars)
 
-Place downloaded sounds in your `sounds/` directory and configure via environment variables.
-
-**Example using Warcraft Peon sounds:**
-
-```bash
-export PING_SOUND_SESSION_START="${CLAUDE_PLUGIN_ROOT}/sounds/PeonReady1.wav"
-export PING_SOUND_USER_PROMPT="${CLAUDE_PLUGIN_ROOT}/sounds/PeonYes4.wav"
-export PING_SOUND_NOTIFICATION="${CLAUDE_PLUGIN_ROOT}/sounds/PeonWhat3.wav"
-export PING_SOUND_STOP="${CLAUDE_PLUGIN_ROOT}/sounds/PeonBuildingComplete1.wav"
-```
+Place downloaded sounds in your `sounds/` directory and reference them in your `settings.json` (see Configuration above).
 
 ## Platform Support
 

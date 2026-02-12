@@ -15,23 +15,34 @@ SOUNDS_DIR="${PING_SOUNDS_DIR:-${CLAUDE_PLUGIN_ROOT}/sounds}"
 
 # Map event types to sound files
 # Environment variables can override per-event sounds
+# Set to empty string to disable a specific event
 case "${1:-}" in
   session-start)
-    SOUND="${PING_SOUND_SESSION_START:-${SOUNDS_DIR}/session-start.wav}"
+    SOUND="${PING_SOUND_SESSION_START-session-start.wav}"
     ;;
   user-prompt)
-    SOUND="${PING_SOUND_USER_PROMPT:-${SOUNDS_DIR}/user-prompt.wav}"
+    SOUND="${PING_SOUND_USER_PROMPT-user-prompt.wav}"
     ;;
   notification)
-    SOUND="${PING_SOUND_NOTIFICATION:-${SOUNDS_DIR}/notification.wav}"
+    SOUND="${PING_SOUND_NOTIFICATION-notification.wav}"
     ;;
   stop)
-    SOUND="${PING_SOUND_STOP:-${SOUNDS_DIR}/stop.wav}"
+    SOUND="${PING_SOUND_STOP-stop.wav}"
     ;;
   *)
     exit 0
     ;;
 esac
+
+# Empty value explicitly disables sound for this event
+if [[ -z "$SOUND" ]]; then
+  exit 0
+fi
+
+# Resolve relative filenames against SOUNDS_DIR
+if [[ "$SOUND" != /* ]]; then
+  SOUND="${SOUNDS_DIR}/${SOUND}"
+fi
 
 # Fallback to system sound if custom file doesn't exist
 if [[ ! -f "$SOUND" ]]; then

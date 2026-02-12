@@ -103,6 +103,37 @@ Enhanced web search with advanced error handling for 403, 429, 451, and connecti
 
 [→ Detailed Documentation](plugins/search-plus/README.md)
 
+### 🔔 Ping
+
+Sound notifications and alerts for Claude Code tasks. Get audio feedback when tasks complete, when Claude needs your input, or when sessions start/end.
+
+**Key Features:**
+- 🎵 **Session Events**: Sounds for session start and stop
+- 💬 **User Prompts**: Audio alert when Claude needs your input
+- 🔔 **Notifications**: General notification sounds
+- 🎮 **Custom Sounds**: Use nostalgic game sounds or custom audio files
+- 🖥️ **Cross-Platform**: Support for macOS, Linux, and Windows
+
+**Platform Support:**
+- **macOS**: Uses `afplay` command
+- **Linux**: Uses `paplay` (PulseAudio) or `aplay` (ALSA)
+- **Windows**: Uses PowerShell `Media.SoundPlayer`
+
+**Example Usage:**
+```bash
+# Enable sounds
+export PING_ENABLED=true
+
+# Override default sound directory
+export PING_SOUNDS_DIR=/path/to/your/sounds
+
+# Override specific sounds
+export PING_SOUND_SESSION_START=/path/to/start.wav
+export PING_SOUND_USER_PROMPT=/path/to/prompt.wav
+```
+
+[→ Detailed Documentation](plugins/ping/README.md)
+
 ## 🎯 What You Can Do
 
 Our plugins help developers:
@@ -140,7 +171,7 @@ Have an idea for a new plugin or improvement? Please share:
 - 👀 **Watch for updates** when new plugins are released
 - 🐛 **Report issues** at [github.com/shrwnsan/vibekit-claude-plugins/issues](https://github.com/shrwnsan/vibekit-claude-plugins/issues)
 
-Your feedback helps prioritize development and ensures VibeKit continues to solve real-world development challenges!
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on reporting issues, requesting features, and providing feedback.
 
 ## 🏗️ Plugin Architecture
 
@@ -155,31 +186,11 @@ Each plugin includes:
 
 ## 🛠️ Development
 
-### Project Structure
-
-```
-vibekit-claude-plugins/
-├── .claude-plugin/
-│   └── marketplace.json          # Marketplace configuration
-├── plugins/                      # Plugins directory
-│   └── your-plugin/              # Individual plugin directories
-│       ├── .claude-plugin/
-│       │   └── plugin.json       # Plugin manifest (required)
-│       ├── agents/               # Custom AI agents (optional)
-│       ├── commands/             # Slash commands (optional)
-│       ├── hooks/                # Workflow hooks (optional)
-│       ├── skills/               # Auto-discoverable capabilities (optional)
-│       └── README.md             # Plugin documentation (required)
-├── README.md                     # Marketplace documentation
-└── AGENTS.md                     # AI agent guidelines
-```
-
-### Security
-
-- All plugins are designed with security best practices
-- API keys and sensitive data are handled securely
-- Requests respect website terms of service
-- No data is stored beyond what's necessary for functionality
+See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Project structure and guidelines
+- How to create new plugins
+- Security best practices
+- Code style conventions
 
 ## 📄 License
 

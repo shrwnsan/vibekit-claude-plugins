@@ -55,7 +55,7 @@ Place custom sound files in `hooks/sounds/`:
 - `notification.wav` - General notification
 - `stop.wav` - Session complete notification
 
-Supported formats: `.wav`, `.aiff`, `.mp3`, `.m4a` (depending on platform)
+Supported formats: `.wav`, `.aiff` (AIFF/AIFC on macOS and Linux), `.mp3` and `.m4a` (macOS only with afplay)
 
 ### Using Game Sounds
 

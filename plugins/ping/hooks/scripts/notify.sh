@@ -15,7 +15,7 @@ SOUNDS_DIR="${PING_SOUNDS_DIR:-${CLAUDE_PLUGIN_ROOT}/hooks/sounds}"
 
 # Map event types to sound files
 # Environment variables can override per-event sounds
-case "${1:-}" in
+case "${1}" in
   session-start)
     SOUND="${PING_SOUND_SESSION_START:-${SOUNDS_DIR}/session-start.wav}"
     ;;
@@ -35,15 +35,22 @@ esac
 
 # Fallback to system sound if custom file doesn't exist
 if [[ ! -f "$SOUND" ]]; then
-  # Use macOS system sound as fallback
-  SOUND="/System/Library/Sounds/Glass.aiff"
+  case "$OSTYPE" in
+    darwin*)
+      SOUND="/System/Library/Sounds/Glass.aiff"
+      ;;
+    *)
+      # No system sound fallback for non-macOS, will gracefully exit below
+      SOUND=""
+      ;;
+  esac
 fi
 
 # Play sound based on platform
 case "$OSTYPE" in
   darwin*)
     if command -v afplay &>/dev/null && [[ -f "$SOUND" ]]; then
-      afplay "$SOUND" 2>/dev/null || true
+      timeout 5 afplay "$SOUND" 2>/dev/null || true
     fi
     ;;
   linux*)

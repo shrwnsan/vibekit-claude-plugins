@@ -23,32 +23,44 @@ claude plugin install https://github.com/shrwnsan/vibekit-claude-plugins
 
 ## Configuration
 
-### Environment Variables
+Add environment variables to your `~/.claude/settings.json`:
 
-Enable/disable sounds:
-
-```bash
-export PING_ENABLED=true  # Default: true
+```json
+{
+  "env": {
+    "PING_ENABLED": "true",
+    "PING_SOUNDS_DIR": "${CLAUDE_PLUGIN_ROOT}/sounds"
+  }
+}
 ```
 
-Override sound directory:
+Or override individual sounds:
 
-```bash
-export PING_SOUNDS_DIR=/path/to/your/sounds
+```json
+{
+  "env": {
+    "PING_ENABLED": "true",
+    "PING_SOUND_SESSION_START": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonReady1.wav",
+    "PING_SOUND_USER_PROMPT": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonYes4.wav",
+    "PING_SOUND_NOTIFICATION": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonWhat3.wav",
+    "PING_SOUND_STOP": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonBuildingComplete1.wav"
+  }
+}
 ```
 
-Override per-event sounds:
+**Available settings:**
+- `PING_ENABLED` - Enable/disable sounds (default: `true`)
+- `PING_SOUNDS_DIR` - Override default sound directory
+- `PING_SOUND_SESSION_START` - Sound for session start event
+- `PING_SOUND_USER_PROMPT` - Sound when Claude needs your input
+- `PING_SOUND_NOTIFICATION` - Sound for general notifications
+- `PING_SOUND_STOP` - Sound when session completes
 
-```bash
-export PING_SOUND_SESSION_START=/path/to/start.wav
-export PING_SOUND_USER_PROMPT=/path/to/prompt.wav
-export PING_SOUND_NOTIFICATION=/path/to/notification.wav
-export PING_SOUND_STOP=/path/to/stop.wav
-```
+**Note:** `${CLAUDE_PLUGIN_ROOT}` will be automatically resolved to the plugin's installation directory.
 
 ### Custom Sounds
 
-Place custom sound files in `hooks/sounds/`:
+Place custom sound files in `sounds/`:
 
 - `session-start.wav` - Session start notification
 - `user-prompt.wav` - User prompt notification
@@ -59,13 +71,18 @@ Supported formats: `.wav`, `.aiff` (AIFF/AIFC on macOS and Linux), `.mp3` and `.
 
 ### Using Game Sounds
 
-Follow Delba's tip and use nostalgic game sounds! Download sounds from:
-- Starcraft
-- Warcraft
-- Mario
-- Any other game you love
+Follow Delba's tip and use nostalgic game sounds! Here are some popular sources:
 
-Place them in your sounds directory and configure via environment variables.
+**Warcraft Sounds:**
+- [WoWhead: Peon sounds](https://www.wowhead.com/sounds/name:peon)
+- [WoWhead: Peasant sounds](https://www.wowhead.com/sounds/name:peasant)
+
+**MyInstants (instant sound buttons):**
+- [MyInstants: Mario sounds](https://www.myinstants.com/en/search/?name=mario)
+- [MyInstants: SpongeBob sounds](https://www.myinstants.com/en/search/?name=spongebob)
+- [MyInstants: Star Wars sounds](https://www.myinstants.com/en/search/?name=star+wars)
+
+Place downloaded sounds in your `sounds/` directory and reference them in your `settings.json` (see Configuration above).
 
 ## Platform Support
 
@@ -76,3 +93,7 @@ Place them in your sounds directory and configure via environment variables.
 ## License
 
 Apache 2.0
+
+## Acknowledgments
+
+Inspired by [Delba Oliveira](https://x.com/delba_oliveira/status/2020515010985005255)'s tip on using game sounds for Claude Code notifications.

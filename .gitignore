@@ -65,3 +65,7 @@ backups/*
 
 # Social media content (private marketing materials)
 social-*.md
+
+# Plugin sound files (users can add their own)
+plugins/ping/sounds/*.*
+!plugins/ping/sounds/README.md

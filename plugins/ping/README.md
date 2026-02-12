@@ -6,6 +6,8 @@ Sound notifications and alerts for Claude Code tasks.
 
 Ping provides audio feedback for key Claude Code events through hook-based sound notifications. Get notified when tasks complete, when Claude needs your input, or when sessions start/end.
 
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
 ## Features
 
 - **Session Start** - Sound notification when a Claude Code session begins

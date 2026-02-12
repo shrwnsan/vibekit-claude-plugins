@@ -68,9 +68,20 @@ To disable a specific event, set it to an empty string:
 - `PING_SOUND_NOTIFICATION` - Sound for general notifications (set to `""` to disable)
 - `PING_SOUND_STOP` - Sound when session completes (set to `""` to disable)
 
-**Note:** `${CLAUDE_PLUGIN_ROOT}` will be automatically resolved to the plugin's installation directory.
+**Note:** `${CLAUDE_PLUGIN_ROOT}` resolves to the plugin's cache directory (e.g., `~/.claude/plugins/cache/vibekit/ping/1.2.0/`) when hooks execute. Custom sound files should be placed in the installed plugin's `sounds/` directory within that cache path. The cache persists across Claude Code restarts and is not automatically cleared.
 
 ### Custom Sounds
+
+Place custom sound files in the plugin's installed `sounds/` directory:
+
+```bash
+# Example: Copy sounds to the cache directory after installation
+cp my-sound.wav ~/.claude/plugins/cache/vibekit/ping/1.2.0/sounds/session-start.wav
+```
+
+Or use environment variables to reference any sound files by absolute path.
+
+**Default sound filenames** (used if no environment variables are set):
 
 Place custom sound files in `sounds/`:
 

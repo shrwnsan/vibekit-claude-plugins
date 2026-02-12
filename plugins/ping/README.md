@@ -29,6 +29,17 @@ Add environment variables to your `~/.claude/settings.json`:
 {
   "env": {
     "PING_ENABLED": "true",
+    "PING_SOUNDS_DIR": "${CLAUDE_PLUGIN_ROOT}/sounds"
+  }
+}
+```
+
+Or override individual sounds:
+
+```json
+{
+  "env": {
+    "PING_ENABLED": "true",
     "PING_SOUND_SESSION_START": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonReady1.wav",
     "PING_SOUND_USER_PROMPT": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonYes4.wav",
     "PING_SOUND_NOTIFICATION": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonWhat3.wav",

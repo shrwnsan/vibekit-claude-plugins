@@ -1,0 +1,8 @@
+{
+  "name": "ping",
+  "description": "Sound notifications and alerts for Claude Code tasks",
+  "version": "1.0.0",
+  "author": {
+    "name": "shrwnsan"
+  }
+}

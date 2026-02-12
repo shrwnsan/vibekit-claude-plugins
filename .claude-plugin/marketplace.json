@@ -37,6 +37,20 @@
       "keywords": ["search", "web", "error-handling", "rate-limiting", "schema-validation", "productivity", "url-extraction"],
       "category": "productivity",
       "tags": ["search", "web", "tavily", "error-recovery", "schema-validation", "url-extraction"]
+    },
+    {
+      "name": "ping",
+      "source": "./plugins/ping",
+      "description": "Sound notifications and alerts for Claude Code tasks",
+      "version": "1.0.0",
+      "author": {
+        "name": "shrwnsan"
+      },
+      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/ping/README.md",
+      "license": "Apache-2.0",
+      "keywords": ["notification", "audio", "alert", "productivity", "sound"],
+      "category": "productivity",
+      "tags": ["notification", "audio-alert", "sound", "hooks"]
     }
   ]
 }

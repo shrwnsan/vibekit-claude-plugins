@@ -34,27 +34,37 @@ Add environment variables to your `~/.claude/settings.json`:
 }
 ```
 
-Or override individual sounds:
+Or override individual sounds (relative to `PING_SOUNDS_DIR`, or use absolute paths):
 
 ```json
 {
   "env": {
     "PING_ENABLED": "true",
-    "PING_SOUND_SESSION_START": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonReady1.wav",
-    "PING_SOUND_USER_PROMPT": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonYes4.wav",
-    "PING_SOUND_NOTIFICATION": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonWhat3.wav",
-    "PING_SOUND_STOP": "${CLAUDE_PLUGIN_ROOT}/sounds/PeonBuildingComplete1.wav"
+    "PING_SOUND_SESSION_START": "PeonReady1.wav",
+    "PING_SOUND_USER_PROMPT": "PeonYes4.wav",
+    "PING_SOUND_NOTIFICATION": "PeonWhat3.wav",
+    "PING_SOUND_STOP": "PeonBuildingComplete1.wav"
+  }
+}
+```
+
+To disable a specific event, set it to an empty string:
+
+```json
+{
+  "env": {
+    "PING_SOUND_USER_PROMPT": ""
   }
 }
 ```
 
 **Available settings:**
-- `PING_ENABLED` - Enable/disable sounds (default: `true`)
+- `PING_ENABLED` - Enable/disable all sounds (default: `true`)
 - `PING_SOUNDS_DIR` - Override default sound directory
-- `PING_SOUND_SESSION_START` - Sound for session start event
-- `PING_SOUND_USER_PROMPT` - Sound when Claude needs your input
-- `PING_SOUND_NOTIFICATION` - Sound for general notifications
-- `PING_SOUND_STOP` - Sound when session completes
+- `PING_SOUND_SESSION_START` - Sound for session start event (set to `""` to disable)
+- `PING_SOUND_USER_PROMPT` - Sound when Claude needs your input (set to `""` to disable)
+- `PING_SOUND_NOTIFICATION` - Sound for general notifications (set to `""` to disable)
+- `PING_SOUND_STOP` - Sound when session completes (set to `""` to disable)
 
 **Note:** `${CLAUDE_PLUGIN_ROOT}` will be automatically resolved to the plugin's installation directory.
 

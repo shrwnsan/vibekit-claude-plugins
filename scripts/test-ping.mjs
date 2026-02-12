@@ -87,7 +87,7 @@ async function checkSoundCommand(platform) {
 
 // Test notify.sh script
 async function testNotifyScript() {
-  const notifyScript = join(__dirname, '..', 'plugins', 'ping', 'hooks', 'scripts', 'notify.sh');
+  const notifyScript = join(__dirname, '..', 'plugins', 'ping', 'scripts', 'notify.sh');
 
   log('\n' + '='.repeat(60));
   log('Ping Plugin Test Script');
@@ -194,16 +194,15 @@ async function testNotifyScript() {
   log('\n' + '-'.repeat(60));
   log('Next Steps');
   log('-'.repeat(60));
-  log('1. Add custom sound files to: plugins/ping/hooks/sounds/');
+  log('1. Add custom sound files to: plugins/ping/sounds/');
   log('   - session-start.wav');
   log('   - user-prompt.wav');
   log('   - notification.wav');
   log('   - stop.wav');
-  log('\n2. Or set environment variables for custom sounds:');
-  log('   export PING_SOUND_SESSION_START=/path/to/sound.wav');
-  log('   export PING_SOUND_USER_PROMPT=/path/to/sound.wav');
-  log('   export PING_SOUND_NOTIFICATION=/path/to/sound.wav');
-  log('   export PING_SOUND_STOP=/path/to/sound.wav');
+  log('\n2. Or configure in ~/.claude/settings.json:');
+  log('   "PING_SOUNDS_DIR": "${CLAUDE_PLUGIN_ROOT}/sounds"');
+  log('   "PING_SOUND_SESSION_START": "MySound.wav"');
+  log('   "PING_SOUND_USER_PROMPT": ""          (empty to disable)');
   log('\n3. Test with actual sound playback:');
   log(`   CLAUDE_PLUGIN_ROOT=plugins/ping ${notifyScript} notification`);
 

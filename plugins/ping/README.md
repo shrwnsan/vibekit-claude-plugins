@@ -114,6 +114,37 @@ Then place your custom sounds using default filenames in that directory:
 
 This way your sounds work across plugin updates without needing to reconfigure.
 
+**Important**: Environment variables from `settings.json` are not passed to hook commands. Setting `PING_SOUNDS_DIR` in `settings.json` has no effect on hook execution—use individual `PING_SOUND_*` variables or copy files directly to cache instead.
+
+**Alternative approaches for custom sounds:**
+
+**Option 1**: Set individual `PING_SOUND_*` variables to keep your custom filenames:
+
+```json
+{
+  "env": {
+    "PING_SOUND_SESSION_START": "PeonReady1.wav",
+    "PING_SOUND_USER_PROMPT": "PeonYes4.wav",
+    "PING_SOUND_NOTIFICATION": "PeonWhat3.wav",
+    "PING_SOUND_STOP": "PeonBuildingComplete1.wav"
+  }
+}
+```
+
+Place your files anywhere (e.g., `~/custom-sounds/`) and reference them directly—no need to rename to default filenames.
+
+**Option 2**: Copy sounds directly to the plugin's cache directory:
+
+```bash
+# Find your installed ping version (e.g., 1.2.0)
+PING_VERSION=$(ls ~/.claude/plugins/cache/vibekit/ping/ | tail -1)
+
+# Copy sounds to cache
+cp ~/custom-sounds/*.wav ~/.claude/plugins/cache/vibekit/ping/$PING_VERSION/sounds/
+```
+
+Then use default filenames (`session-start.wav`, `user-prompt.wav`, etc.) which the plugin expects.
+
 **Alternative**: Keep your custom filenames by setting individual sound variables:
 
 ```json

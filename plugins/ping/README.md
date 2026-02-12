@@ -88,6 +88,57 @@ To disable a specific event, set it to an empty string:
 
 **Note:** `${CLAUDE_PLUGIN_ROOT}` resolves to the plugin's cache directory (e.g., `~/.claude/plugins/cache/vibekit/ping/1.2.0/`) when hooks execute. Custom sound files should be placed in the installed plugin's `sounds/` directory within that cache path. The cache persists across Claude Code restarts and is not automatically cleared.
 
+### Managing Plugin Updates
+
+When you update the Ping plugin to a new version:
+
+- **Old version is preserved** - Previous cache directories (e.g., `1.2.0/`) remain when a new version (`1.2.1/`) is installed
+- **Custom sounds stay in old version** - Your custom sound files remain in their original version directories
+- **No automatic migration** - You'll need to manually copy sounds to the new version directory
+
+**Recommended**: Set `PING_SOUNDS_DIR` to a stable path outside the cache directory to avoid version-specific updates:
+
+```json
+{
+  "env": {
+    "PING_SOUNDS_DIR": "~/custom-sounds"
+  }
+}
+```
+
+Then place your custom sounds using default filenames in that directory:
+- `~/custom-sounds/session-start.wav`
+- `~/custom-sounds/user-prompt.wav`
+- `~/custom-sounds/notification.wav`
+- `~/custom-sounds/stop.wav`
+
+This way your sounds work across plugin updates without needing to reconfigure.
+
+**Alternative**: Keep your custom filenames by setting individual sound variables:
+
+```json
+{
+  "env": {
+    "PING_SOUND_SESSION_START": "PeonReady1.wav",
+    "PING_SOUND_USER_PROMPT": "PeonYes4.wav",
+    "PING_SOUND_NOTIFICATION": "PeonWhat3.wav",
+    "PING_SOUND_STOP": "PeonBuildingComplete1.wav"
+  }
+}
+```
+
+Place your files anywhere (e.g., `~/custom-sounds/`) and reference them directly—no need to rename to default filenames.
+
+To clean up old plugin versions and free disk space:
+
+```bash
+# List all versions
+ls ~/.claude/plugins/cache/vibekit/ping/
+
+# Remove old versions (optional)
+trash ~/.claude/plugins/cache/vibekit/ping/1.2.0
+```
+
 ### Custom Sounds
 
 Place custom sound files in the plugin's installed `sounds/` directory:

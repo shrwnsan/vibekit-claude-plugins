@@ -15,7 +15,7 @@ SOUNDS_DIR="${PING_SOUNDS_DIR:-${CLAUDE_PLUGIN_ROOT}/hooks/sounds}"
 
 # Map event types to sound files
 # Environment variables can override per-event sounds
-case "${1}" in
+case "${1:-}" in
   session-start)
     SOUND="${PING_SOUND_SESSION_START:-${SOUNDS_DIR}/session-start.wav}"
     ;;
@@ -50,7 +50,14 @@ fi
 case "$OSTYPE" in
   darwin*)
     if command -v afplay &>/dev/null && [[ -f "$SOUND" ]]; then
-      timeout 5 afplay "$SOUND" 2>/dev/null || true
+      if command -v timeout &>/dev/null; then
+        timeout 5 afplay "$SOUND" 2>/dev/null || true
+      else
+        afplay "$SOUND" 2>/dev/null &
+        AFPLAY_PID=$!
+        ( sleep 5 && kill "$AFPLAY_PID" 2>/dev/null ) &
+        wait "$AFPLAY_PID" 2>/dev/null || true
+      fi
     fi
     ;;
   linux*)
@@ -62,7 +69,7 @@ case "$OSTYPE" in
     ;;
   msys*|cygwin*|win*)
     if command -v powershell &>/dev/null && [[ -f "$SOUND" ]]; then
-      powershell -c "(New-Object Media.SoundPlayer '$SOUND').PlaySync()" 2>/dev/null || true
+      powershell -c "(New-Object Media.SoundPlayer \"$SOUND\").PlaySync()" 2>/dev/null || true
     fi
     ;;
 esac

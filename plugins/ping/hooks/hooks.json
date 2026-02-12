@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh session-start"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh session-start",
+            "timeout": 10
           }
         ]
       }
@@ -16,7 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh user-prompt"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh user-prompt",
+            "timeout": 10
           }
         ]
       }
@@ -26,7 +28,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh notification"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh notification",
+            "timeout": 10
           }
         ]
       }
@@ -36,7 +39,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh stop"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/notify.sh stop",
+            "timeout": 10
           }
         ]
       }

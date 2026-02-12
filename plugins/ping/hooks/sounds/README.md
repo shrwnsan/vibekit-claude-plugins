@@ -11,7 +11,7 @@ Place your custom sound files in this directory.
 
 ## Default Fallback
 
-If no custom sounds are provided, Ping falls back to the system "Glass" sound on macOS (`/System/Library/Sounds/Glass.aiff`).
+If no custom sounds are provided, Ping falls back to the system "Glass" sound on macOS (`/System/Library/Sounds/Glass.aiff`). On Linux and Windows, no system sound fallback is available — sounds will only play if custom sound files are provided.
 
 ## Game Sounds
 

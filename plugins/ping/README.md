@@ -48,7 +48,7 @@ export PING_SOUND_STOP=/path/to/stop.wav
 
 ### Custom Sounds
 
-Place custom sound files in `hooks/sounds/`:
+Place custom sound files in `sounds/`:
 
 - `session-start.wav` - Session start notification
 - `user-prompt.wav` - User prompt notification
@@ -59,13 +59,27 @@ Supported formats: `.wav`, `.aiff` (AIFF/AIFC on macOS and Linux), `.mp3` and `.
 
 ### Using Game Sounds
 
-Follow Delba's tip and use nostalgic game sounds! Download sounds from:
-- Starcraft
-- Warcraft
-- Mario
-- Any other game you love
+Follow Delba's tip and use nostalgic game sounds! Here are some popular sources:
 
-Place them in your sounds directory and configure via environment variables.
+**Warcraft Sounds:**
+- [WoWhead: Peon sounds](https://www.wowhead.com/sounds/name:peon)
+- [WoWhead: Peasant sounds](https://www.wowhead.com/sounds/name:peasant)
+
+**MyInstants (instant sound buttons):**
+- [MyInstants: Mario sounds](https://www.myinstants.com/en/search/?name=mario)
+- [MyInstants: SpongeBob sounds](https://www.myinstants.com/en/search/?name=spongebob)
+- [MyInstants: Star Wars sounds](https://www.myinstants.com/en/search/?name=star+wars)
+
+Place downloaded sounds in your `sounds/` directory and configure via environment variables.
+
+**Example using Warcraft Peon sounds:**
+
+```bash
+export PING_SOUND_SESSION_START="${CLAUDE_PLUGIN_ROOT}/sounds/PeonReady1.wav"
+export PING_SOUND_USER_PROMPT="${CLAUDE_PLUGIN_ROOT}/sounds/PeonYes4.wav"
+export PING_SOUND_NOTIFICATION="${CLAUDE_PLUGIN_ROOT}/sounds/PeonWhat3.wav"
+export PING_SOUND_STOP="${CLAUDE_PLUGIN_ROOT}/sounds/PeonBuildingComplete1.wav"
+```
 
 ## Platform Support
 
@@ -76,3 +90,7 @@ Place them in your sounds directory and configure via environment variables.
 ## License
 
 Apache 2.0
+
+## Acknowledgments
+
+Inspired by [Delba Oliveira](https://x.com/delba_oliveira/status/2020515010985005255)'s tip on using game sounds for Claude Code notifications.

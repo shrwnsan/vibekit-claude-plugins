@@ -11,7 +11,7 @@ if [[ "${PING_ENABLED:-true}" =~ ^(false|0|no|off)$ ]]; then
 fi
 
 # Sound directory - uses PING_SOUNDS_DIR env var or defaults to plugin's sounds directory
-SOUNDS_DIR="${PING_SOUNDS_DIR:-${CLAUDE_PLUGIN_ROOT}/hooks/sounds}"
+SOUNDS_DIR="${PING_SOUNDS_DIR:-${CLAUDE_PLUGIN_ROOT}/sounds}"
 
 # Map event types to sound files
 # Environment variables can override per-event sounds

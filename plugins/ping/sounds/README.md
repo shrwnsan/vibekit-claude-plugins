@@ -20,3 +20,17 @@ Add nostalgic game sounds here! Some classic sources:
 - Warcraft acknowledgements
 - Mario power-up sounds
 - Any game sounds you love
+
+## Audio Conversion (macOS)
+
+If you have OGG or other audio formats that need conversion to WAV, macOS has a built-in tool:
+
+```bash
+afconvert -f WAVE -d LEI16 input.ogg output.wav
+```
+
+To convert all OGG files in the current directory:
+
+```bash
+for f in *.ogg; do afconvert -f WAVE -d LEI16 "$f" "${f%.ogg}.wav"; done
+```

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-02-13
+
+### Added ✨
+- **Config File Support**: New `~/.claude/ping-config.json` configuration file that works with hook events
+- **JSON Schema**: `config-schema.json` for IDE autocomplete and validation
+- **Config Template**: `ping-config.json.example` for easy setup
+- **Relative Path Support**: `soundsDir` supports `~/` prefix for home directory paths
+
+### Changed 🔄
+- **Priority Order**: Config file → Environment variables → Defaults
+- **Documentation**: Restructured README with config file as recommended approach
+
+### Fixed 🐛
+- Custom sound directories now work with hook events (previously only env vars worked)
+
 ## [1.2.0] - 2026-02-13
 
 ### Added ✨
@@ -33,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Default Sounds**: Included Warcraft-inspired Peon sounds
 - **Hook-Based Integration**: Uses Claude Code hooks for event detection
 
-[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.0.0...v1.2.0
 [1.0.0]: https://github.com/shrwnsan/vibekit-claude-plugins/releases/tag/v1.0.0

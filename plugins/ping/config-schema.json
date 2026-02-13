@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shrwnsan/vibekit-claude-plugins/main/plugins/ping/config-schema.json",
+  "title": "Ping Plugin Configuration",
+  "description": "Configuration file for the Ping sound notification plugin. Place at ~/.claude/ping-config.json",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable all ping sounds. Set to false to mute the plugin completely."
+    },
+    "soundsDir": {
+      "type": "string",
+      "description": "Directory containing sound files. Can be an absolute path or relative to home directory (supports ~/ prefix). If not specified, uses the plugin's built-in sounds directory."
+    },
+    "sounds": {
+      "type": "object",
+      "description": "Per-sound overrides. Specify custom filenames for each event type, or set to empty string to disable a specific sound.",
+      "properties": {
+        "sessionStart": {
+          "type": "string",
+          "description": "Sound file for session-start event. Use empty string \"\" to disable this sound."
+        },
+        "userPrompt": {
+          "type": "string",
+          "description": "Sound file for user-prompt event. Use empty string \"\" to disable this sound."
+        },
+        "notification": {
+          "type": "string",
+          "description": "Sound file for notification event. Use empty string \"\" to disable this sound."
+        },
+        "stop": {
+          "type": "string",
+          "description": "Sound file for stop event. Use empty string \"\" to disable this sound."
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

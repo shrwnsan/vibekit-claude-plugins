@@ -15,6 +15,7 @@ scripts/
 ├── search-plus-service-matrix-testing.mjs # Service decision matrix testing
 ├── test-http-infra.js                     # HTTP infrastructure validation (451-error-free testing)
 ├── test-451-recovery.mjs                  # Dedicated 451 recovery enhancement testing
+├── verify_regex.sh                        # Regex pattern verification for test output filtering
 └── README.md                              # This file
 ```
 
@@ -85,6 +86,20 @@ node scripts/test-http-infra.js
 # Test 451 SecurityCompromiseError recovery improvements
 node scripts/test-451-recovery.mjs
 ```
+
+### Regex Pattern Verification
+```bash
+# Verify test output filtering regex patterns
+bash scripts/verify_regex.sh
+```
+
+**Purpose**: Standalone verification tool for test output filtering hook regex patterns (PR #63).
+
+Tests that patterns correctly:
+- ✅ Match test commands: `npx playwright test`, `npx cypress run`, `npx vitest`
+- ❌ Reject non-test subcommands: `npx playwright install`, `npx cypress open`
+
+**Usage**: Run directly to validate pattern behavior during development or troubleshooting.
 
 **🆕 Major Enhancement: Parallel 451 Recovery**
 - ✅ **89% Performance Improvement**: Reduced from ~8000ms sequential to ~870ms parallel execution

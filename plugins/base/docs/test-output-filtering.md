@@ -122,7 +122,7 @@ sudo yum install jq
 Some test runners produce extremely verbose output even when filtered. You can:
 
 1. **Disable filtering temporarily**: `export VIBEKIT_BASE_TEST_FILTER=none`
-2. **Modify the script**: Edit `~/.claude/plugins/base/hooks/scripts/filter-test-output.sh` to reduce line limits
+2. **Modify the script**: Edit `~/.claude/plugins/base/scripts/filter-test-output.sh` to reduce line limits
 3. **Use alternative invocation**: Run the command with extra arguments that bypass pattern matching
 
 ### Filter Too Aggressive
@@ -208,7 +208,7 @@ The filter uses a multi-stage pipeline:
 ### File Locations
 
 - **Hook registration**: `~/.claude/plugins/base/hooks/hooks.json`
-- **Filter script**: `~/.claude/plugins/base/hooks/scripts/filter-test-output.sh`
+- **Filter script**: `~/.claude/plugins/base/scripts/filter-test-output.sh`
 - **Plugin root**: `${CLAUDE_PLUGIN_ROOT}` (resolves to plugin directory)
 
 ## Security

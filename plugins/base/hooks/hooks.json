@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/filter-test-output.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/filter-test-output.sh",
             "timeout": 10
           }
         ]

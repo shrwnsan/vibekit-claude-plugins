@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-13
 **Plugin:** base (v1.11.0)
-**Scope:** `plugins/base/hooks/scripts/filter-test-output.sh`
+**Scope:** `plugins/base/scripts/filter-test-output.sh`
 **Status:** ✅ All issues fixed
 
 ## Summary

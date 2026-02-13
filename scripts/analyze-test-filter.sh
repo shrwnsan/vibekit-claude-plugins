@@ -70,6 +70,7 @@ echo ""
 echo "── Sessions with Filtered Tests ──"
 
 FILTERED_SESSION_FILES=$(echo "$ALL_FILES" | xargs grep -B 2 "hookSpecificOutput" 2>/dev/null \
+  | grep -v '^--$' \
   | grep "Hook PreToolUse:Bash (PreToolUse) success:" \
   | sed 's/:.*//;s/\.txt.*/.txt/' | sort -u)
 FILTERED_SESSIONS=$(echo "$FILTERED_SESSION_FILES" | grep -c . 2>/dev/null || echo 0)

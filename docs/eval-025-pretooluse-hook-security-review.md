@@ -3,7 +3,7 @@
 **Date:** 2026-02-13
 **Plugin:** base (v1.11.0)
 **Scope:** `plugins/base/hooks/scripts/filter-test-output.sh`
-**Status:** Issues found — fixes required
+**Status:** ✅ All issues fixed
 
 ## Summary
 
@@ -54,6 +54,16 @@ The fallback `grep -E '...' || echo 'All tests passed (output filtered by vibeki
 - `VIBEKIT_BASE_TEST_FILTER` env var for disabling
 - Comprehensive test suite (58/58 passing) with positive and negative cases
 - Debug logs confirm hook is loaded and executed by Claude Code
+
+## Fixes applied
+
+All three issues were fixed in a single change to `filter-test-output.sh`:
+
+1. **Removed `permissionDecision: "allow"`** from the JSON output — `updatedInput` still applies the grep filters, but Claude Code's normal permission system now handles approval
+2. **Added `exit ${PIPESTATUS[0]}`** at the end of the filtered command — preserves the test runner's original exit code through the pipe chain
+3. **Changed fallback message** from `"All tests passed (output filtered by vibekit-base plugin)"` to `"(output filtered by vibekit-base plugin)"` — avoids misleading Claude when grep finds no matching lines
+
+All 58 pattern-matching tests continue to pass after the fix.
 
 ## Debug log observations
 

@@ -126,18 +126,17 @@ if ! match_test_runner "$CMD"; then
 fi
 
 # Build filtered command
-# Using a subshell approach to properly handle the pipe chain
 # The filter: 1) captures stderr, 2) excludes timestamps, 3) includes test output, 4) limits lines
+# Uses PIPESTATUS[0] to preserve the test runner's exit code through the pipe chain
 FILTERED_CMD="( ${CMD} ) 2>&1 \
   | grep -vE '^\\[?[0-9]{4}-[0-9]{2}-[0-9]{2}' \
   | grep -vE '^\\[?[0-9]{2}:[0-9]{2}:[0-9]{2}' \
-  | ( grep -E '${GREP_PATTERN}' || echo 'All tests passed (output filtered by vibekit-base plugin)' ) \
-  | head -${MAX_LINES}"
+  | ( grep -E '${GREP_PATTERN}' || echo '(output filtered by vibekit-base plugin)' ) \
+  | head -${MAX_LINES}; exit \${PIPESTATUS[0]}"
 
 jq -n --arg cmd "$FILTERED_CMD" '{
     hookSpecificOutput: {
         hookEventName: "PreToolUse",
-        permissionDecision: "allow",
         updatedInput: {command: $cmd}
     }
 }'

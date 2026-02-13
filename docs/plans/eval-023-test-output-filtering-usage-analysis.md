@@ -13,7 +13,7 @@ Analysis of actual usage data from `~/.claude/debug/` sessions revealed opportun
 1. ✅ **Pattern matching relaxed** - now matches `npm test -- <args>`, compound commands
 2. ✅ **Application log filtering added** - timestamps and console.log output now excluded
 3. ✅ **Redirection cleaned up** - removed redundant subshell wrapper
-4. ✅ **Analysis script created** - `scripts/analyze-test-filter-savings.sh` for ongoing metrics
+4. ✅ **Analysis script created** - `scripts/analyze-test-filter.sh` for ongoing metrics
 
 **Measured token savings** (from actual usage):
 - **~9,200 tokens per test run** (92% reduction)
@@ -21,7 +21,7 @@ Analysis of actual usage data from `~/.claude/debug/` sessions revealed opportun
 
 ## Methodology
 
-Analysis performed via `scripts/analyze-test-filter-savings.sh` across 2,432+ debug session files.
+Analysis performed via `scripts/analyze-test-filter.sh` across 2,432+ debug session files.
 
 ## Token Savings - Actual Measurements
 
@@ -75,11 +75,11 @@ fi
 - `plugins/base/docs/test-output-filtering.md` - User-facing documentation (updated)
 - `plugins/base/hooks/hooks.json` - Hook registration
 - `plugins/base/hooks/scripts/filter-test-output.sh` - Implementation (updated)
-- `scripts/analyze-test-filter-savings.sh` - Analysis utility (new)
+- `scripts/analyze-test-filter.sh` - Analysis utility (new)
 
 ## Open Questions
 
-1. ✅ Should metrics be tracked? **Yes** - via `analyze-test-filter-savings.sh` script
+1. ✅ Should metrics be tracked? **Yes** - via `scripts/analyze-test-filter.sh`
 2. ⏸️ Should smart context retention be implemented? **Pending** - requires more complex hook logic
 3. ⏸️ Should we add per-project configuration files? **Not yet prioritized**
 

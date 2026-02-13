@@ -4,7 +4,7 @@ set -euo pipefail
 # Tests for match_test_runner() pattern matching in filter-test-output.sh
 #
 # Usage:
-#   ./plugins/base/hooks/scripts/test-filter-patterns.sh
+#   ./plugins/base/scripts/test-filter-patterns.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PASS=0

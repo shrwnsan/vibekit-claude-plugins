@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/shrwnsan/vibekit-claude-plugins/main/plugins/ping/config-schema.json",
+
+  "_comment": "Ping Plugin Configuration Example",
+  "_usage": "Copy this file to ~/.claude/ping-config.json and customize as needed",
+
+  "enabled": true,
+  "_enabled_note": "Set to false to disable all ping sounds",
+
+  "soundsDir": "~/custom-sounds",
+  "_soundsDir_note": "Directory containing your sound files. Supports ~/ prefix for home directory paths. Remove this field to use built-in sounds.",
+
+  "sounds": {
+    "_sounds_note": "Optional: override specific sound filenames. Leave empty to disable individual sounds.",
+    "sessionStart": "PeonReady1.wav",
+    "userPrompt": "PeonYes4.wav",
+    "notification": "PeonWhat3.wav",
+    "stop": "PeonBuildingComplete1.wav"
+  }
+}

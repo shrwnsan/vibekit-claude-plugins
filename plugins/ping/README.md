@@ -6,7 +6,6 @@ Sound notifications and alerts for Claude Code tasks.
 
 Ping provides audio feedback for key Claude Code events through hook-based sound notifications. Get notified when tasks complete, when Claude needs your input, or when sessions start/end.
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## Features
 
@@ -15,182 +14,58 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 - **Notification** - Sound for general notifications
 - **Stop** - Sound when a session completes
 
-## Installation
+## Quick Start / Installation
 
-The Ping plugin is part of the VibeKit marketplace. Install via:
+The Ping plugin is part of the VibeKit marketplace.
 
-```bash
-claude plugin install https://github.com/shrwnsan/vibekit-claude-plugins
-```
-
-### Quick Start with Warcraft Sounds
-
-After installation, copy the included Warcraft sounds to the plugin's cache directory:
+1. Install via:
 
 ```bash
-# Find your installed ping version (e.g., 1.2.0)
-PING_VERSION=$(ls ~/.claude/plugins/cache/vibekit/ping/ | tail -1)
+claude plugin marketplace add shrwnsan/vibekit-claude-plugins
 
-# Copy sounds to cache
-cp ~/.claude/plugins/cache/vibekit/ping/$PING_VERSION/sounds/Peon*.wav \
-   ~/.claude/plugins/cache/vibekit/ping/$PING_VERSION/sounds/
+claude plugin install ping@vibekit
 ```
 
-Then add to your `~/.claude/settings.json`:
+2. Restart Claude Code
+
+3. Sounds will play on session events
+
+That's it! The plugin uses built-in OS sounds by default.
+
+## Configuration (Recommended)
+
+Create a configuration file at `~/.claude/ping-config.json`:
 
 ```json
 {
-  "env": {
-    "PING_ENABLED": "true",
-    "PING_SOUND_SESSION_START": "PeonReady1.wav",
-    "PING_SOUND_USER_PROMPT": "PeonYes4.wav",
-    "PING_SOUND_NOTIFICATION": "PeonWhat3.wav",
-    "PING_SOUND_STOP": "PeonBuildingComplete1.wav"
+  "$schema": "https://raw.githubusercontent.com/shrwnsan/vibekit-claude-plugins/main/plugins/ping/config-schema.json",
+  "soundsDir": "~/custom-sounds",
+  "sounds": {
+    "sessionStart": "PeonReady1.wav",
+    "userPrompt": "PeonYes3.wav",
+    "notification": "PeonWhat3.wav",
+    "stop": "PeonBuildingComplete1.wav"
   }
 }
 ```
 
-Restart Claude Code and the sounds will play on session events.
+This approach:
+- Helps custom sound directory (soundsDir) work with hook events (unlike `PING_SOUNDS_DIR` environment variable)
+- Survives plugin updates without reconfiguration
+- Supports IDE autocomplete via [JSON Schema](config-schema.json)
 
-## Configuration
+See [ping-config.json.example](ping-config.json.example) for a full template with all options.
 
-Override individual sounds with environment variables in `~/.claude/settings.json` (relative paths are resolved against the plugin's `sounds/` directory, or use absolute paths):
+## Custom Sounds
 
-```json
-{
-  "env": {
-    "PING_ENABLED": "true",
-    "PING_SOUND_SESSION_START": "PeonReady1.wav",
-    "PING_SOUND_USER_PROMPT": "PeonYes4.wav",
-    "PING_SOUND_NOTIFICATION": "PeonWhat3.wav",
-    "PING_SOUND_STOP": "PeonBuildingComplete1.wav"
-  }
-}
-```
-
-To disable a specific event, set it to an empty string:
-
-```json
-{
-  "env": {
-    "PING_SOUND_USER_PROMPT": ""
-  }
-}
-```
-
-**Available settings:**
-- `PING_ENABLED` - Enable/disable all sounds (default: `true`)
-- `PING_SOUNDS_DIR` - Override default sound directory
-- `PING_SOUND_SESSION_START` - Sound for session start event (set to `""` to disable)
-- `PING_SOUND_USER_PROMPT` - Sound when Claude needs your input (set to `""` to disable)
-- `PING_SOUND_NOTIFICATION` - Sound for general notifications (set to `""` to disable)
-- `PING_SOUND_STOP` - Sound when session completes (set to `""` to disable)
-
-**Note:** `${CLAUDE_PLUGIN_ROOT}` resolves to the plugin's cache directory (e.g., `~/.claude/plugins/cache/vibekit/ping/1.2.0/`) when hooks execute. Custom sound files should be placed in the installed plugin's `sounds/` directory within that cache path. The cache persists across Claude Code restarts and is not automatically cleared.
-
-### Managing Plugin Updates
-
-When you update the Ping plugin to a new version:
-
-- **Old version is preserved** - Previous cache directories (e.g., `1.2.0/`) remain when a new version (`1.2.1/`) is installed
-- **Custom sounds stay in old version** - Your custom sound files remain in their original version directories
-- **No automatic migration** - You'll need to manually copy sounds to the new version directory
-
-**Recommended**: Set `PING_SOUNDS_DIR` to a stable path outside the cache directory to avoid version-specific updates:
-
-```json
-{
-  "env": {
-    "PING_SOUNDS_DIR": "~/custom-sounds"
-  }
-}
-```
-
-Then place your custom sounds using default filenames in that directory:
-- `~/custom-sounds/session-start.wav`
-- `~/custom-sounds/user-prompt.wav`
-- `~/custom-sounds/notification.wav`
-- `~/custom-sounds/stop.wav`
-
-This way your sounds work across plugin updates without needing to reconfigure.
-
-**Important**: Environment variables from `settings.json` are not passed to hook commands. Setting `PING_SOUNDS_DIR` in `settings.json` has no effect on hook execution—use individual `PING_SOUND_*` variables or copy files directly to cache instead.
-
-**Alternative approaches for custom sounds:**
-
-**Option 1**: Set individual `PING_SOUND_*` variables to keep your custom filenames:
-
-```json
-{
-  "env": {
-    "PING_SOUND_SESSION_START": "PeonReady1.wav",
-    "PING_SOUND_USER_PROMPT": "PeonYes4.wav",
-    "PING_SOUND_NOTIFICATION": "PeonWhat3.wav",
-    "PING_SOUND_STOP": "PeonBuildingComplete1.wav"
-  }
-}
-```
-
-Place your files anywhere (e.g., `~/custom-sounds/`) and reference them directly—no need to rename to default filenames.
-
-**Option 2**: Copy sounds directly to the plugin's cache directory:
-
-```bash
-# Find your installed ping version (e.g., 1.2.0)
-PING_VERSION=$(ls ~/.claude/plugins/cache/vibekit/ping/ | tail -1)
-
-# Copy sounds to cache
-cp ~/custom-sounds/*.wav ~/.claude/plugins/cache/vibekit/ping/$PING_VERSION/sounds/
-```
-
-Then use default filenames (`session-start.wav`, `user-prompt.wav`, etc.) which the plugin expects.
-
-**Alternative**: Keep your custom filenames by setting individual sound variables:
-
-```json
-{
-  "env": {
-    "PING_SOUND_SESSION_START": "PeonReady1.wav",
-    "PING_SOUND_USER_PROMPT": "PeonYes4.wav",
-    "PING_SOUND_NOTIFICATION": "PeonWhat3.wav",
-    "PING_SOUND_STOP": "PeonBuildingComplete1.wav"
-  }
-}
-```
-
-Place your files anywhere (e.g., `~/custom-sounds/`) and reference them directly—no need to rename to default filenames.
-
-To clean up old plugin versions and free disk space:
-
-```bash
-# List all versions
-ls ~/.claude/plugins/cache/vibekit/ping/
-
-# Remove old versions (optional)
-trash ~/.claude/plugins/cache/vibekit/ping/1.2.0
-```
-
-### Custom Sounds
-
-Place custom sound files in the plugin's installed `sounds/` directory:
-
-```bash
-# Example: Copy sounds to the cache directory after installation
-cp my-sound.wav ~/.claude/plugins/cache/vibekit/ping/1.2.0/sounds/session-start.wav
-```
-
-Or use environment variables to reference any sound files by absolute path.
-
-**Default sound filenames** (used if no environment variables are set):
-
-Place custom sound files in `sounds/`:
+**Default sound filenames** (used if no config or environment variables are set):
 
 - `session-start.wav` - Session start notification
 - `user-prompt.wav` - User prompt notification
 - `notification.wav` - General notification
 - `stop.wav` - Session complete notification
 
-Supported formats: `.wav`, `.aiff` (AIFF/AIFC on macOS and Linux), `.mp3` and `.m4a` (macOS only with afplay)
+**Supported formats:** `.wav`, `.aiff` (AIFF/AIFC on macOS and Linux), `.mp3` and `.m4a` (macOS only with afplay)
 
 ### Using Game Sounds
 
@@ -205,13 +80,19 @@ Follow Delba's tip and use nostalgic game sounds! Here are some popular sources:
 - [MyInstants: SpongeBob sounds](https://www.myinstants.com/en/search/?name=spongebob)
 - [MyInstants: Star Wars sounds](https://www.myinstants.com/en/search/?name=star+wars)
 
-Place downloaded sounds in your `sounds/` directory and reference them in your `settings.json` (see Configuration above).
-
 ## Platform Support
 
 - **macOS**: Uses `afplay` command
 - **Linux**: Uses `paplay` (PulseAudio) or `aplay` (ALSA)
 - **Windows**: Uses PowerShell `Media.SoundPlayer`
+
+## 📈 Recent Updates
+
+- **v1.3.0**: Added config file support (`~/.claude/ping-config.json`) that works with hook events, with JSON schema for IDE autocomplete
+- **v1.2.0**: Added relative sound filenames, per-event disable, and `${CLAUDE_PLUGIN_ROOT}` variable; migrated to `settings.json` configuration
+- **v1.0.0**: Initial release with sound notifications for session events
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## License
 

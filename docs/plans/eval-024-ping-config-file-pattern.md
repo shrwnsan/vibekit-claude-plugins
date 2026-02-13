@@ -223,7 +223,11 @@ The implementation will maintain full backward compatibility:
 
 1. ~~**JSON parsing in bash**~~ — **Resolved**: Use `python3` for JSON parsing. It is universally available on macOS and Linux, handles all edge cases, and requires no additional dependency. See implementation section for rationale.
 
-2. **YAML support** — Should we support `ping.yaml` like `claude-statusline` does?
+2. **YAML support** — **Resolved**: JSON-only initially. YAML parsing would require `python3 -c 'import yaml'` which depends on PyYAML (not in stdlib). JSON-only keeps things simple.
+
+3. **Per-sound overrides in config** — **Resolved**: Yes, config file supports same granular overrides as env vars. Makes it a complete replacement.
+
+4. **Config file naming** — **Resolved**: Using `ping-config.json` (more discoverable, not hidden). Aligns with user expectations.
    - **Recommendation**: JSON-only initially. YAML parsing would require `python3 -c 'import yaml'` which depends on PyYAML (not in stdlib). JSON-only keeps things simple.
 
 3. **Per-sound overrides in config** — Should the config file support the same granular overrides as env vars?

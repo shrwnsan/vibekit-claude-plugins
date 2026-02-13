@@ -113,23 +113,25 @@ Sound notifications and alerts for Claude Code tasks. Get audio feedback when ta
 - 🔔 **Notifications**: General notification sounds
 - 🎮 **Custom Sounds**: Use nostalgic game sounds or custom audio files
 - 🖥️ **Cross-Platform**: Support for macOS, Linux, and Windows
+- ⚙️ **Config File**: JSON configuration with IDE autocomplete support
 
 **Platform Support:**
 - **macOS**: Uses `afplay` command
 - **Linux**: Uses `paplay` (PulseAudio) or `aplay` (ALSA)
 - **Windows**: Uses PowerShell `Media.SoundPlayer`
 
-**Example Usage:**
-```bash
-# Enable sounds
-export PING_ENABLED=true
-
-# Override default sound directory
-export PING_SOUNDS_DIR=/path/to/your/sounds
-
-# Override specific sounds
-export PING_SOUND_SESSION_START=/path/to/start.wav
-export PING_SOUND_USER_PROMPT=/path/to/prompt.wav
+**Configuration:**
+```json
+// ~/.claude/ping-config.json
+{
+  "soundsDir": "~/custom-sounds",
+  "sounds": {
+    "sessionStart": "PeonReady1.wav",
+    "userPrompt": "PeonYes3.wav",
+    "notification": "PeonWhat3.wav",
+    "stop": "PeonBuildingComplete1.wav"
+  }
+}
 ```
 
 [→ Detailed Documentation](plugins/ping/README.md)

@@ -1,4 +1,6 @@
 ---
+deprecated: true
+deprecation_notice: "Use the meta-search skill instead. Commands and skills are unified per Claude Code docs."
 description: Enhanced web search with comprehensive error handling for 403, 422, 429, and ECONNREFUSED errors
 usage: /search-plus <query|url>
 parameters:

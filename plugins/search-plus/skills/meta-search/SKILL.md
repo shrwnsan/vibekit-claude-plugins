@@ -1,12 +1,12 @@
 ---
-name: meta-searching
-description: Extracts web content and performs reliable searches when standard tools fail due to access restrictions, rate limiting, or validation errors. Use when encountering 403/429/422 errors, blocked documentation sites, or silent search failures. **Direct tool execution often fails for these scenarios - search-plus agent delegation provides the most reliable results.**
+name: meta-search
+description: Extracts web content and performs reliable searches when standard tools fail due to access restrictions, rate limiting, or validation errors. Use when encountering 403/429/422 errors, blocked documentation sites, or silent search failures. Self-contained instruction-driven skill — works independently or via search-plus agent.
 allowed-tools:
   - web_search
   - web_fetch
 ---
 
-# Meta Searching
+# Meta Search
 
 Advanced federated web search that overcomes access restrictions, rate limiting, and validation errors by intelligently combining multiple search services.
 

@@ -1,0 +1,59 @@
+name: Sync Skills to Agents Hub
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/*/skills/**'
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vibekit
+        uses: actions/checkout@v4
+
+      - name: Sync skills to shrwnsan/agents
+        env:
+          AGENTS_PAT: ${{ secrets.AGENTS_HUB_PAT }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$AGENTS_PAT" ]; then
+            echo "::error::AGENTS_HUB_PAT secret is not configured"
+            exit 1
+          fi
+
+          # Clone agents hub (shallow)
+          git clone --depth 1 \
+            "https://x-access-token:${AGENTS_PAT}@github.com/shrwnsan/agents.git" \
+            /tmp/agents
+
+          # Find and sync each skill directory
+          find plugins -path "*/skills/*/SKILL.md" | while read -r skill_file; do
+            skill_dir=$(dirname "$skill_file")
+            skill_name=$(basename "$skill_dir")
+
+            echo "Syncing: $skill_name"
+            rm -rf "/tmp/agents/skills/$skill_name"
+            cp -r "$skill_dir" "/tmp/agents/skills/$skill_name"
+          done
+
+          # Commit and push if anything changed
+          cd /tmp/agents
+          git add -A
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "sync: update skills from vibekit-claude-plugins
+
+            Source: https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}"
+            git push
+            echo "Pushed skill changes to agents hub"
+          else
+            echo "No changes to sync"
+          fi
+
+          rm -rf /tmp/agents

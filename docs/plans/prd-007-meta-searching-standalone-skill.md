@@ -1,285 +1,253 @@
-# PRD: Extract Meta-Searching into a Standalone Portable Skill
+# PRD: Extract Meta-Search into a Standalone Portable Skill
 
 ## Overview
 
-Extract the `meta-search` skill from the `search-plus` plugin into a self-contained, portable skill that bundles its own runtime (scripts, hooks, manifest). When installed alongside `search-plus`, both should compose cleanly without duplication or conflict. When installed alone, `meta-search` should provide full error-recovery functionality independently.
+Extract the `meta-search` skill from the `search-plus` plugin into a self-contained, portable skill. When installed alongside `search-plus`, both should compose cleanly without duplication or conflict. When installed alone, `meta-search` should provide full error-recovery functionality independently.
 
 ## Goals
 
 - Make `meta-search` fully portable — installable and functional without the `search-plus` plugin.
-- Bundle the minimum runtime (scripts, hooks) directly inside the skill directory so it carries its own implementation.
+- Keep the skill self-contained within the search-plus plugin directory.
 - Maintain full compatibility when both `meta-search` and `search-plus` are installed together.
-- Preserve the existing agent (`search-plus`) and command (`/search-plus`) behavior unchanged.
+- Deprecate the `/search-plus` command in favor of skill-based invocation per [Claude Code skills docs](https://code.claude.com/docs/en/skills).
 
 ## Non-Goals
 
-- Replacing or refactoring the `search-plus` plugin's own hook infrastructure.
-- Adding new search providers or error-handling capabilities.
-- Changing the `search-plus` agent's `skills: meta-search` reference.
-- Building a shared library between plugins (keep it simple — duplicate if needed).
+- Creating a separate plugin for meta-search (it stays inside `plugins/search-plus/skills/`).
+- Building a shared library between plugins.
+- Refactoring the existing `search-plus` agent or adding new search providers.
 
 ## Problem Statement
 
-The `meta-search` skill lives at `plugins/search-plus/skills/meta-search/SKILL.md` and depends entirely on the parent plugin's infrastructure:
+The `meta-search` skill lives at `plugins/search-plus/skills/meta-searching/SKILL.md` with several issues:
 
-1. **Hooks** (`hooks/hooks.json`) — The `PostToolUse` hook intercepts `WebSearch|WebFetch` calls and runs `handle-web-search.mjs`.
-2. **Scripts** (`scripts/*.mjs`) — ~6,400 lines of Node.js implementing Tavily/Jina extraction, rate-limit handling, error recovery, response transformation, and security sanitization.
-3. **Environment variables** — `SEARCH_PLUS_TAVILY_API_KEY`, `SEARCH_PLUS_JINAAI_API_KEY`, etc.
-4. **Plugin manifest** — Only the `search-plus` plugin is registered; `meta-search` has no independent identity.
-
-Without the parent plugin, the skill is just instructional text — Claude gets told to "use Tavily Extract API with Jina.ai fallback" but has no mechanism to execute it.
+1. **Naming**: Skill directory is `meta-searching` but referenced as `meta-search` — inconsistent.
+2. **Dependency illusion**: ARCHITECTURE.md documents a hook-driven script runtime, but the scripts have no CLI entry point and are never executed (see Discovery below).
+3. **Command redundancy**: `commands/search-plus.md` is a thin wrapper that delegates to the agent — commands and skills are now unified per Claude Code.
+4. **Portable claim**: SKILL.md disclaims that "search-plus agent delegation provides the most reliable results" — contradicting portability.
 
 ## Key Outcomes and Success Metrics
 
-- **Portability**: Installing `meta-search` without `search-plus` provides full error-recovery functionality (403/429/422/ECONNREFUSED).
-- **Composition**: Installing both plugins produces no hook conflicts, no duplicate processing, and no regressions.
-- **Parity**: Error recovery rates remain unchanged (403 ~80%, 429 ~90%, 422 ~100%, connections ~50%).
-- **Independence**: `meta-search` has its own `.claude-plugin/plugin.json` manifest.
+- **Portability**: `meta-search` skill works as self-contained instructions regardless of plugin context.
+- **Composition**: `search-plus` agent loads `meta-search` skill when both are present.
+- **Accuracy**: Documentation reflects actual runtime behavior (instruction-driven, not script-driven).
+- **Deprecation**: `/search-plus` command deprecated; functionality absorbed by skill.
+
+## Discovery: Scripts Are Dead Code (v0.2)
+
+> **Added in v0.2** — Critical finding that reshapes the entire PRD scope.
+
+During implementation analysis, we traced the actual data flow and found:
+
+### What the architecture document claims
+
+ARCHITECTURE.md describes a hook-driven system where `PostToolUse` intercepts `WebSearch|WebFetch`, runs `handle-web-search.mjs`, which orchestrates fallback across Tavily/Jina/cache services via script-to-script imports.
+
+### What actually happens
+
+```
+Hook fires → node handle-web-search.mjs → exits silently (no CLI entry point)
+                                               ↓
+Agent reads SKILL.md → Claude reasons through instructions → uses built-in tools
+                                               ↓
+Error recovery works — but it's Claude's reasoning, not the scripts
+```
+
+**Evidence**:
+- `handle-web-search.mjs` only exports `handleWebSearch()` — no `process.stdin`, `process.argv`, or top-level code
+- None of the 13 scripts in `scripts/` have a CLI entry point
+- The hook command `node handle-web-search.mjs` runs Node, which imports modules, finds nothing to execute, and exits
+- The actual error recovery success rates (403 ~80%, 429 ~90%, 422 ~100%) come from Claude following SKILL.md instructions with its built-in tools
+
+### Impact on this PRD
+
+| Original assumption | Reality |
+|---|---|
+| Bundle 4,399 lines of scripts into the skill | Scripts are dead code — no need to bundle |
+| Create standalone hooks for the skill | Hooks are inert — script has no entry point |
+| Env var fallback chain (META_SEARCH_* → SEARCH_PLUS_*) | Irrelevant if scripts aren't executed |
+| Hook deduplication strategy (Phase 2-3) | No hook execution to deduplicate |
+
+### Options forward
+
+1. **Wire up a CLI entry point** — Add stdin/stdout handling to `handle-web-search.mjs` so the hook actually works. This is a separate effort with its own complexity.
+2. **Remove scripts and hook, keep instruction-only skill** — Slim the skill to `SKILL.md` only. Accept that error recovery is Claude's reasoning, not scripted runtime.
+3. **Hybrid** — Keep scripts as reference material inside the skill (Claude can read them for context), but acknowledge they're documentation, not executable code.
+
+**Recommendation**: Option 2 for this PRD. Option 1 can be a separate effort if hook-driven execution is desired later.
 
 ## User Stories
 
-- As a developer, I want to install just the error-recovery skill without the full search-plus plugin, so I get resilient web research in a lighter package.
-- As a search-plus user, I want both plugins to coexist without conflicts when I have them both installed.
-- As a plugin author, I want to understand how `meta-search` composes with `search-plus` so I can model my own plugins.
+- As a developer, I want the meta-search skill to be self-contained with clear instructions, so Claude can reliably recover from search failures.
+- As a search-plus user, I want the skill and agent to compose cleanly with no redundancy.
+- As a plugin author, I want accurate documentation that reflects how the system actually works.
 
 ## Scope
 
 ### In Scope
 
-- Create a new standalone plugin directory for `meta-search`.
-- Bundle the required scripts into the skill's own directory.
-- Create a standalone hook configuration for the meta-search plugin.
-- Create a standalone plugin manifest.
-- Define composition rules for when both plugins are installed.
-- Documentation and migration guidance.
+- Rename `skills/meta-searching/` → `skills/meta-search/`.
+- Update `SKILL.md` with portable description (remove delegation disclaimer).
+- Update `agents/search-plus.md` skill reference: `meta-searching` → `meta-search`.
+- Deprecate `commands/search-plus.md`.
+- Update `hooks/hooks.json` to reflect actual behavior.
+- Correct ARCHITECTURE.md to match reality.
+- Update env var references in any remaining active scripts.
 
 ### Out of Scope
 
-- Refactoring scripts into a shared `lib/` package between plugins.
-- Modifying the existing `search-plus` agent or command.
-- Adding new functionality beyond what `meta-search` already provides.
-
-## Analysis: Script Dependency Graph
-
-The meta-search skill's actual runtime depends on these scripts (via the `handle-web-search.mjs` entry point):
-
-```
-handle-web-search.mjs (575 lines) — entry point
-├── content-extractor.mjs (1,705 lines) — Tavily/Jina/cache services
-├── handle-search-error.mjs (886 lines) — error routing and recovery
-│   ├── content-extractor.mjs (shared)
-│   └── handle-rate-limit.mjs (116 lines) — retry/backoff logic
-├── github-service.mjs (380 lines) — GitHub CLI integration
-├── response-transformer.mjs (321 lines) — normalize to standard format
-│   └── search-response.mjs (326 lines) — shared response types
-└── security-utils.mjs (93 lines) — HTML/URL sanitization
-
-Total runtime: ~4,402 lines (6 core files)
-```
-
-Scripts **not needed** by meta-search:
-- `architecture-improvements.mjs` (371 lines) — monitoring/telemetry
-- `production-improvements.mjs` (541 lines) — streaming/persistence
-- `missing-features.mjs` (473 lines) — planned features, not active
-- `optimized-transforms.mjs` (209 lines) — unused optimizations
-- `response-validator.mjs` (387 lines) — validation utilities not in critical path
+- Creating a separate plugin for meta-search.
+- Adding CLI entry points to scripts (separate effort).
+- Refactoring scripts into a shared library.
+- Modifying the search-plus agent's operating procedure.
 
 ## Proposed Structure
 
-### Standalone Meta-Searching Plugin
-
 ```
-plugins/meta-search/
+plugins/search-plus/
 ├── .claude-plugin/
-│   └── plugin.json                    # Standalone manifest
+│   └── plugin.json
+├── agents/
+│   └── search-plus.md              # skills: meta-search
+├── commands/
+│   └── search-plus.md              # DEPRECATED — to be removed
+├── docs/
+│   ├── ARCHITECTURE.md             # TODO: correct to reflect actual runtime
+│   └── ...
 ├── hooks/
-│   └── hooks.json                     # PostToolUse hook for WebSearch|WebFetch
-├── scripts/
-│   ├── handle-web-search.mjs          # Entry point (copied from search-plus)
-│   ├── content-extractor.mjs          # Tavily/Jina/cache extraction
-│   ├── handle-search-error.mjs        # Error routing
-│   ├── handle-rate-limit.mjs          # Retry/backoff
-│   ├── github-service.mjs             # GitHub CLI (optional)
-│   ├── response-transformer.mjs       # Response normalization
-│   ├── search-response.mjs            # Shared response types
-│   └── security-utils.mjs             # Sanitization
+│   └── hooks.json                  # TODO: reassess (currently inert)
+├── scripts/                        # TODO: reassess (currently dead code)
+│   └── ...
 ├── skills/
-│   └── meta-search/
-│       └── SKILL.md                   # Updated skill definition
+│   └── meta-search/                # Self-contained skill
+│       └── SKILL.md                # Core value — instruction-driven
+├── CHANGELOG.md
 └── README.md
 ```
 
-### Composition with search-plus
-
-When both plugins are installed:
+### Composition with search-plus agent
 
 | Concern | Behavior |
 |---------|----------|
-| **Hooks** | Both register `PostToolUse` on `WebSearch\|WebFetch`. Claude Code runs hooks per-plugin. The hook in each plugin points to its own `handle-web-search.mjs`. |
-| **Scripts** | Each plugin has its own copy under its own directory. No shared state. |
-| **Environment vars** | Both read the same `SEARCH_PLUS_*` / `TAVILY_*` / `JINAAI_*` env vars. No conflict. |
-| **Agent** | `search-plus` agent still references `skills: meta-search`. When meta-search is a separate plugin, the skill is resolved by name across all installed plugins. |
-| **Command** | `/search-plus` remains in the `search-plus` plugin, unaffected. |
-| **Duplication** | If both hooks fire on the same `WebSearch` call, both would attempt recovery. **This needs a deduplication strategy** (see risks). |
+| **Skill resolution** | Agent references `skills: meta-search`. Claude resolves by name within the plugin. |
+| **Hooks** | `PostToolUse` on `WebSearch\|WebFetch` fires but script exits silently. No functional impact. |
+| **Environment vars** | `SEARCH_PLUS_*` / `TAVILY_*` — read by scripts if they were ever wired up. Currently unused. |
+| **Command** | `/search-plus` deprecated. Skill invocation replaces it. |
 
 ## Functional Requirements
 
-### 1. Standalone Plugin Manifest
+### 1. Skill Rename
 
-```json
-{
-  "name": "meta-search",
-  "description": "Portable error-recovery skill for web search and content extraction. Handles 403/429/422/ECONNREFUSED with multi-service fallback (Tavily, Jina.ai, cache services). Works standalone or alongside search-plus.",
-  "version": "1.0.0",
-  "author": {
-    "name": "shrwnsan"
-  }
-}
-```
-
-### 2. Hook Configuration
-
-The standalone plugin's `hooks/hooks.json` mirrors the search-plus hook but points to its own scripts:
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "WebSearch|WebFetch",
-        "hooks": [{
-          "type": "command",
-          "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/handle-web-search.mjs",
-          "timeout": 30
-        }]
-      }
-    ]
-  }
-}
-```
-
-### 3. Script Bundling
-
-Copy the 7 core scripts (see dependency graph above) into `plugins/meta-search/scripts/`. Update internal import paths to use relative `./` references (they already do — no changes needed).
-
-The only change: update `handle-web-search.mjs` line 9 to namespace env vars for meta-search:
-
-```js
-// Current (search-plus namespaced):
-const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
-
-// Updated (meta-search reads its own vars first, falls back to search-plus vars):
-const TAVILY_API_KEY = process.env.META_SEARCH_TAVILY_API_KEY
-  || process.env.SEARCH_PLUS_TAVILY_API_KEY
-  || process.env.TAVILY_API_KEY
-  || null;
-```
-
-### 4. Skill Definition Update
-
-Update `SKILL.md` to remove the disclaimer about requiring search-plus delegation. The skill should describe itself as fully self-contained:
+Rename `skills/meta-searching/` → `skills/meta-search/`. Update SKILL.md frontmatter:
 
 ```yaml
 ---
 name: meta-search
-description: Extracts web content and performs reliable searches when standard tools fail due to access restrictions, rate limiting, or validation errors. Use when encountering 403/429/422 errors, blocked documentation sites, or silent search failures. Fully portable — works standalone or alongside search-plus.
+description: Extracts web content and performs reliable searches when standard tools fail due to access restrictions, rate limiting, or validation errors. Self-contained instruction-driven skill — works independently or via search-plus agent.
 allowed-tools:
   - web_search
   - web_fetch
 ---
 ```
 
-### 5. Composition: Hook Deduplication
+### 2. Agent Reference Update
 
-**Problem**: When both plugins are installed, both `PostToolUse` hooks fire on `WebSearch|WebFetch`, causing duplicate recovery attempts.
+`agents/search-plus.md` line 5: `skills: meta-searching` → `skills: meta-search`.
 
-**Options**:
+### 3. Command Deprecation
 
-| Option | Approach | Pros | Cons |
-|--------|----------|------|------|
-| A. Guard file | Each hook writes a `.meta-search.lock` to `/tmp`; second hook checks and skips if lock exists | Simple, no cross-plugin coordination needed | Stale locks, race conditions |
-| B. Env var flag | search-plus hook checks `META_SEARCH_DELEGATED=1`; if set, skips its own recovery | Clean, no filesystem state | Requires modifying search-plus plugin |
-| C. Remove from search-plus | Remove the PostToolUse hook from search-plus entirely; let meta-search own it | No duplication possible | Breaking change for search-plus-only users |
-| **D. Default-off in search-plus** | search-plus hook checks if meta-search plugin is installed; if so, defers | No duplication, no breaking change | Requires discovery mechanism between plugins |
+Deprecate `commands/search-plus.md`. Per [Claude Code docs](https://code.claude.com/docs/en/skills):
 
-**Recommendation**: **Option C** (remove hook from search-plus) as a phased approach:
-- Phase 1: Both plugins ship with hooks. Document that running both causes double-processing (acceptable short-term).
-- Phase 2: Add a `META_SEARCH_DELEGATED` guard to search-plus's hook. Meta-searching sets this env var in its hook output. search-plus checks it and skips.
-- Phase 3 (future): When meta-search is stable, remove the hook from search-plus and make meta-search a peer dependency.
+> Custom commands have been merged into skills. A file at `.claude/commands/deploy.md` and a skill at `.claude/skills/deploy/SKILL.md` both create `/deploy` and work the same way.
 
-### 6. Agent and Command Impact
+The `/search-plus` slash command is replaced by skill-based invocation. The command file should be marked deprecated and removed in a future version.
 
-| Component | Impact | Details |
-|-----------|--------|---------|
-| `search-plus` agent | **None** | Agent references `skills: meta-search` by name. Claude resolves skill names across all installed plugins. |
-| `/search-plus` command | **None** | Command delegates to the `search-plus` agent. The agent loads the meta-search skill from whichever plugin provides it. |
-| `meta-search` skill | **Enhanced** | Now has its own runtime. Works whether called via search-plus agent or invoked directly by Claude. |
+### 4. SKILL.md Content
 
-The agent and command require **zero changes**. The skill resolution layer handles cross-plugin skill lookup.
+The skill should describe itself as fully self-contained. Remove any disclaimer about requiring search-plus delegation. Include clear instructions for error recovery scenarios that Claude can reason through.
+
+### 5. Documentation Corrections
+
+- **ARCHITECTURE.md**: Update to reflect instruction-driven architecture, not script-driven. Mark hook/mermaid flows as aspirational or remove them.
+- **CONFIGURATION.md**: Update env var docs if scripts remain for reference.
 
 ## Non-Functional Requirements
 
-- **Performance**: Script execution should be identical — same files, same logic, same env vars.
-- **Security**: No new attack surface. Same sanitization (`security-utils.mjs`) applies.
-- **Size**: ~4,400 lines of scripts duplicated. Acceptable for portability; avoids shared-library complexity.
-- **Maintenance**: Bug fixes to core scripts must be applied to both plugins. Document this in CONTRIBUTING.
+- **Performance**: No change — skill is instruction text, no runtime overhead.
+- **Security**: No change — no new attack surface.
+- **Size**: Net reduction — remove dead scripts if Option 2 chosen.
+- **Maintenance**: Simpler — fewer files to maintain.
 
 ## Acceptance Criteria
 
-- [ ] **AC1**: Installing `meta-search` without `search-plus` provides working error recovery (403/429/422/ECONNREFUSED) via its own hooks and scripts.
-- [ ] **AC2**: Installing both plugins produces no errors or conflicts during initialization.
-- [ ] **AC3**: `search-plus` agent still loads `meta-search` skill when both are installed.
-- [ ] **AC4**: `/search-plus` command behavior is unchanged.
-- [ ] **AC5**: Error recovery rates match current baselines (403 ~80%, 429 ~90%, 422 ~100%).
-- [ ] **AC6**: Hook deduplication strategy is implemented (at minimum Phase 1 documented, Phase 2 guard added).
-- [ ] **AC7**: Environment variables are read with proper fallback chain (meta-search → search-plus → generic).
-- [ ] **AC8**: README and CHANGELOG updated for both plugins.
+- [ ] **AC1**: `meta-search` skill renamed from `meta-searching`, SKILL.md updated with portable description.
+- [ ] **AC2**: `search-plus` agent references `skills: meta-search`.
+- [ ] **AC3**: `commands/search-plus.md` deprecated.
+- [ ] **AC4**: ARCHITECTURE.md corrected to reflect actual runtime (instruction-driven).
+- [ ] **AC5**: Hook behavior documented accurately (inert — no CLI entry point in scripts).
+- [ ] **AC6**: README and CHANGELOG updated.
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| **Script duplication drift** — fixes applied to one plugin but not the other | Medium | Add a `scripts/sync-check.mjs` that compares script hashes between plugins; run in CI |
-| **Double hook execution** — both plugins process the same WebSearch failure | Medium | Phase 2 guard via env var; Phase 3 remove hook from search-plus |
-| **Plugin load order** — which hook runs first is undefined | Low | Guard mechanism is order-independent |
-| **User confusion** — two plugins that seem to do similar things | Low | Clear README differentiation: search-plus = full search experience; meta-search = error recovery only |
+| **Breaking `/search-plus` for existing users** | Medium | Deprecate first, remove in future version. Skill invocation provides same functionality. |
+| **ARCHITECTURE.md corrections may confuse contributors** | Low | Add clear v0.2 changelog noting what changed and why. |
+| **Scripts removal may break unknown consumers** | Low | Audit for any references before removing. Keep in git history. |
 
 ## Open Questions
 
-- Should meta-search version its scripts independently, or track search-plus version parity?
-- Is there a Claude Code plugin API for detecting whether another plugin is installed (to implement Option D)?
-- Should we consider a `depends` or `recommends` field in `plugin.json` for optional peer dependencies?
+- Should we keep `scripts/` as reference material for Claude to read, or remove entirely?
+- Should the hook be removed or left as-is (inert but harmless)?
+- Should we pursue Option 1 (wire up CLI entry point) as a follow-up effort?
 
 ## Implementation Phases
 
-### Phase 1: Scaffold and Bundle (1-2 days)
-- Create `plugins/meta-search/` directory structure.
-- Copy 7 core scripts from `search-plus/scripts/`.
-- Create standalone `plugin.json` and `hooks/hooks.json`.
-- Update `SKILL.md` with portable description.
-- Update env var fallback chain in `handle-web-search.mjs`.
+### Phase 1: Rename and Update (current)
+- Rename `skills/meta-searching/` → `skills/meta-search/`.
+- Update SKILL.md with portable description.
+- Update agent skill reference.
+- Deprecate command.
 
-### Phase 2: Composition Guard (1 day)
-- Add `META_SEARCH_DELEGATED` guard to search-plus's `handle-web-search.mjs`.
-- Meta-searching's hook sets the flag after processing.
-- search-plus's hook checks the flag and skips if already handled.
+### Phase 2: Documentation Cleanup
+- Correct ARCHITECTURE.md.
+- Update CONFIGURATION.md and README.md.
+- Add CHANGELOG entry.
 
-### Phase 3: Validation (1-2 days)
-- Test meta-search standalone (no search-plus installed).
-- Test both plugins installed together.
-- Verify agent skill resolution works across plugins.
-- Verify `/search-plus` command is unaffected.
-- Run error recovery test suite against standalone meta-search.
-
-### Phase 4: Documentation and Release (1 day)
-- README for meta-search plugin.
-- Update search-plus README to note meta-search as an optional companion.
-- CHANGELOG entries for both plugins.
-- Migration guide for existing users.
+### Phase 3: Script Assessment (deferred)
+- Decide: remove scripts, keep as reference, or wire up CLI entry point.
+- Clean up or update hooks accordingly.
 
 ---
 
-**Status**: DRAFT
+## Changelog
+
+### v0.2 (2026-04-05)
+
+Critical scope revision based on data flow analysis.
+
+**Findings**:
+- Scripts (`handle-web-search.mjs` + 7 dependencies, ~4,399 lines) have no CLI entry point — they export functions but never read stdin/argv. The hook fires `node handle-web-search.mjs` which exits silently.
+- Actual error recovery works through Claude reading SKILL.md instructions and reasoning with built-in tools, not through scripted runtime.
+- ARCHITECTURE.md documents an aspirational system that doesn't match reality.
+- Commands are merged into skills per Claude Code docs — `commands/search-plus.md` is redundant.
+
+**Changes**:
+- Removed scope for separate plugin — skill stays inside `plugins/search-plus/`.
+- Removed script bundling, hook deduplication, env var fallback chain (scripts aren't executed).
+- Added Discovery section documenting dead code finding.
+- Added command deprecation requirement.
+- Restructured phases to reflect actual work needed.
+- Updated proposed structure and acceptance criteria.
+
+### v0.1 (2026-04-02)
+
+Initial draft. Assumed scripts were active runtime with hook-driven execution. Proposed separate plugin with bundled scripts and hook deduplication strategy.
+
+---
+
+**Status**: DRAFT (v0.2)
 **Created**: 2026-04-02
+**Last Updated**: 2026-04-05
 **Issue Type**: Architecture and Portability
 **Impact**: Enables standalone distribution of meta-search error recovery

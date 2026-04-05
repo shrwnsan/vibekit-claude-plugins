@@ -1,5 +1,7 @@
 # PRD: Extract Meta-Search into a Standalone Portable Skill
 
+<!-- Version: 0.3.0 | Status: DRAFT | Updated: 2026-04-05 -->
+
 ## Overview
 
 Extract the `meta-search` skill from the `search-plus` plugin into a self-contained, portable skill. When installed alongside `search-plus`, both should compose cleanly without duplication or conflict. When installed alone, `meta-search` should provide full error-recovery functionality independently.
@@ -63,7 +65,7 @@ Error recovery works — but it's Claude's reasoning, not the scripts
 
 | Original assumption | Reality |
 |---|---|
-| Bundle 4,399 lines of scripts into the skill | Scripts are dead code — no need to bundle |
+| Bundle scripts into the skill | Scripts are dead code (~6,383 lines across 13 files) — no need to bundle |
 | Create standalone hooks for the skill | Hooks are inert — script has no entry point |
 | Env var fallback chain (META_SEARCH_* → SEARCH_PLUS_*) | Irrelevant if scripts aren't executed |
 | Hook deduplication strategy (Phase 2-3) | No hook execution to deduplicate |
@@ -192,7 +194,7 @@ The skill should describe itself as fully self-contained. Remove any disclaimer 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
 | **Breaking `/search-plus` for existing users** | Medium | Deprecate first, remove in future version. Skill invocation provides same functionality. |
-| **ARCHITECTURE.md corrections may confuse contributors** | Low | Add clear v0.2 changelog noting what changed and why. |
+| **ARCHITECTURE.md corrections may confuse contributors** | Low | Add clear v0.3 changelog noting what changed and why. |
 | **Scripts removal may break unknown consumers** | Low | Audit for any references before removing. Keep in git history. |
 
 ## Open Questions
@@ -222,12 +224,29 @@ The skill should describe itself as fully self-contained. Remove any disclaimer 
 
 ## Changelog
 
-### v0.2 (2026-04-05)
+### v0.3.0 (2026-04-05)
+
+Review pass — factual corrections and versioning formalization.
+
+**Corrections**:
+- Fixed dead code line count: ~4,399 → ~6,383 lines across 13 scripts (verified via `wc -l`).
+- Removed inaccurate "7 dependencies" claim for `handle-web-search.mjs` — it has 5 direct imports (`content-extractor`, `handle-search-error`, `github-service`, `response-transformer`, `security-utils`).
+- ARCHITECTURE.md line 358 still references version `2.9.0` in plugin manifest example; actual plugin.json is at `2.10.1`.
+- ARCHITECTURE.md documents hook execution flow (lines 350-376) as if scripts run — confirms discovery from v0.2.
+
+**Structural**:
+- Added semver-style version header (`<!-- Version: X.Y.Z -->`) to document frontmatter for tracking.
+- Formalized changelog with semver (v0.1 → v0.1.0, v0.2 → v0.2.0, v0.3.0).
+- Updated risk mitigation references from v0.2 to v0.3.
+
+**No scope changes** — v0.2 analysis remains accurate; this version corrects data points only.
+
+### v0.2.0 (2026-04-05)
 
 Critical scope revision based on data flow analysis.
 
 **Findings**:
-- Scripts (`handle-web-search.mjs` + 7 dependencies, ~4,399 lines) have no CLI entry point — they export functions but never read stdin/argv. The hook fires `node handle-web-search.mjs` which exits silently.
+- Scripts (`handle-web-search.mjs` + dependencies, ~6,383 lines across 13 files) have no CLI entry point — they export functions but never read stdin/argv. The hook fires `node handle-web-search.mjs` which exits silently.
 - Actual error recovery works through Claude reading SKILL.md instructions and reasoning with built-in tools, not through scripted runtime.
 - ARCHITECTURE.md documents an aspirational system that doesn't match reality.
 - Commands are merged into skills per Claude Code docs — `commands/search-plus.md` is redundant.
@@ -240,13 +259,13 @@ Critical scope revision based on data flow analysis.
 - Restructured phases to reflect actual work needed.
 - Updated proposed structure and acceptance criteria.
 
-### v0.1 (2026-04-02)
+### v0.1.0 (2026-04-02)
 
 Initial draft. Assumed scripts were active runtime with hook-driven execution. Proposed separate plugin with bundled scripts and hook deduplication strategy.
 
 ---
 
-**Status**: DRAFT (v0.2)
+**Status**: DRAFT (v0.3.0)
 **Created**: 2026-04-02
 **Last Updated**: 2026-04-05
 **Issue Type**: Architecture and Portability

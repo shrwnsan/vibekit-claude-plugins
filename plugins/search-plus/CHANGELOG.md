@@ -5,6 +5,20 @@ All notable changes to the Search Plus Claude Code plugin will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.0] - 2026-04-06
+
+### Changed 🔄
+- **Skill Rename**: `meta-searching` → `meta-search` for naming consistency
+- **SKILL.md**: Updated description to reflect instruction-driven architecture (removed "search-plus agent delegation" disclaimer)
+- **Agent Reference**: `search-plus` agent now references `skills: meta-search`
+
+### Removed 🗑️
+- **`/search-plus` command**: Removed `commands/` directory. Commands and skills are unified per Claude Code docs — use the `meta-search` skill directly instead.
+
+### Migration Notes
+- If you used `/search-plus <query>`, the same functionality is available via the `meta-search` skill (auto-invoked by Claude on search failures) or the `search-plus` agent.
+- No changes to environment variables, hooks, or scripts.
+
 ## [2.9.0] - 2025-12-28
 
 ### Added ✨

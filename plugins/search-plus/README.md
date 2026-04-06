@@ -11,11 +11,11 @@
 /plugin marketplace add shrwnsan/vibekit-claude-plugins
 /plugin install search-plus@vibekit
 
-# 2. Test it works
-/search-plus "Claude Code plugin documentation"
+# 2. Test it works — just ask Claude to research something
+"Research Claude Code plugin documentation"
 
 # 3. Extract from blocked URLs
-/search-plus "https://docs.anthropic.com/en/docs/claude-code/plugins"
+"Extract content from https://docs.anthropic.com/en/docs/claude-code/plugins"
 ```
 
 ## Why You Need This
@@ -33,17 +33,12 @@
 ### 🔍 Enhanced Web Search
 Searches the web when Claude Code's built-in search fails:
 
-```bash
-/search-plus "latest React best practices 2025"
-```
+> "Research latest React best practices 2025"
 
 ### 📄 URL Content Extraction
 Extracts content from blocked or problematic URLs:
 
-```bash
-/search-plus "https://github.com/facebook/react/blob/main/README.md"
-/search-plus "https://docs.python.org/3/library/asyncio.html"
-```
+> "Extract content from https://github.com/facebook/react/blob/main/README.md"
 
 ### ⚡ Intelligent Fallback
 Automatically tries multiple services until one works:
@@ -120,43 +115,37 @@ See [docs/CONFIGURATION.md#github-cli-integration](docs/CONFIGURATION.md#github-
 ## Usage Examples
 
 ### Basic Web Search
-```bash
+```
 # When Claude's search fails
-/search-plus "Python async await best practices"
-/search-plus "React hooks documentation"
+"Research Python async await best practices"
+"Find React hooks documentation"
 ```
 
 ### URL Content Extraction
-```bash
+```
 # Extract from documentation sites
-/search-plus "https://nextjs.org/docs/api-reference/create-next-app"
+"Extract content from https://nextjs.org/docs/api-reference/create-next-app"
 
 # Handle blocked or problematic URLs
-/search-plus "https://reddit.com/r/programming/comments/example"
+"Get the content from https://reddit.com/r/programming/comments/example"
 ```
 
 ### Complex Research
-```bash
+```
 # Multi-topic research
-/search-plus "microservices vs monolith pros cons 2025"
+"Research microservices vs monolith pros cons 2025"
 
 # Site-specific searches
-/search-plus "site:github.com awesome list machine learning"
+"Search site:github.com awesome list machine learning"
 ```
 
-## Three Ways to Use Search Plus
+## Two Ways to Use Search Plus
 
 ### 1. Automatic (Skill)
-Claude automatically uses Search Plus when it detects you need web research. Just say:
+Claude automatically uses Search Plus when it detects you need web research or encounters search errors. Just ask:
 > "Research the latest Claude Code plugin architecture"
 
-### 2. Direct Command (Manual)
-Execute searches yourself:
-```bash
-/search-plus "your search query or URL"
-```
-
-### 3. Agent Mode (Advanced)
+### 2. Agent Mode (Advanced)
 For complex multi-step research:
 > "Use the search-plus agent to investigate this topic"
 

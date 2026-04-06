@@ -28,8 +28,9 @@ Successful content extraction
 |-----------|------|------|
 | **meta-search skill** | `skills/meta-search/SKILL.md` | Error recovery instructions — the core value of the plugin |
 | **search-plus agent** | `agents/search-plus.md` | Structured operating procedure for complex research |
-| **hooks** | `hooks/hooks.json` | `PostToolUse` on `WebSearch\|WebFetch` — currently inert (see appendix) |
-| **scripts** | `scripts/*.mjs` | ~6,383 lines — currently not executed (see appendix) |
+| **hooks** | `hooks/hooks.json` | `PostToolUse` on `WebSearch\|WebFetch` — automated error recovery |
+| **hook entry** | `scripts/hook-entry.mjs` | CLI entry point — reads stdin, detects errors, runs recovery |
+| **scripts** | `scripts/*.mjs` | Tavily/Jina integration, error handling, response transformation |
 
 ### Core Design Principles
 
@@ -159,24 +160,22 @@ Key variables:
 
 ---
 
-## Appendix: Scripts Status
+## Hook Runtime
 
-> **As of v2.11.0, the scripts in `scripts/` are not executed at runtime.**
+The plugin registers a `PostToolUse` hook on `WebSearch|WebFetch` events. The hook runs `scripts/hook-entry.mjs`, a CLI entry point that:
 
-### What exists
+1. Reads the PostToolUse JSON from stdin (`tool_name`, `tool_input`, `tool_response`)
+2. Detects recoverable errors in the tool response (403, 429, 422, 451, ECONNREFUSED, empty results)
+3. If an error is detected, delegates to `handleWebSearch()` for recovery via Tavily/Jina/free services
+4. Outputs `additionalContext` JSON to stdout so Claude receives the recovered content
 
-The `scripts/` directory contains ~6,383 lines across 13 `.mjs` files implementing Tavily/Jina integration, error handling, response transformation, and security utilities. A `PostToolUse` hook in `hooks/hooks.json` fires `node handle-web-search.mjs` on `WebSearch|WebFetch` events.
+If no error is detected or recovery fails, the hook exits silently (exit 0) and does not interfere.
 
-### Why they don't run
+### Two-tier architecture
 
-`handle-web-search.mjs` only exports an async function `handleWebSearch()` — it has no top-level code, no `process.stdin` reader, no `process.argv` parser. When the hook fires `node handle-web-search.mjs`, Node imports the modules, finds nothing to execute, and exits silently.
+| Tier | Component | How it works |
+|------|-----------|--------------|
+| **Instruction-driven** | `meta-search` skill (SKILL.md) | Claude reads recovery strategies and reasons through them using built-in tools. Works standalone. |
+| **Hook-driven** | `hook-entry.mjs` → `handleWebSearch()` | Automated recovery that intercepts errors and injects recovered content. Requires the plugin. |
 
-### What actually provides error recovery
-
-The `meta-search` skill (`SKILL.md`) provides Claude with instructions for error recovery. Claude reasons through these instructions and executes recovery strategies using its built-in `web_search` and `web_fetch` tools. The success rates documented above come from this instruction-driven approach.
-
-### Future options
-
-1. **Wire up CLI entry points** — Add stdin/stdout handling so the hook actually processes results. This would make the scripts functional but is a separate effort.
-2. **Remove scripts** — Accept instruction-driven architecture as the design. Remove dead code.
-3. **Keep as reference** — Scripts serve as documentation of intended service integration patterns.
+When both are active, the hook provides automated recovery while the skill provides Claude with strategies for cases the hook doesn't cover.

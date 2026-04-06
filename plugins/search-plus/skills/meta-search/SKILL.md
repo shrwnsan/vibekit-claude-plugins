@@ -8,65 +8,65 @@ allowed-tools:
 
 # Meta Search
 
-Advanced federated web search that overcomes access restrictions, rate limiting, and validation errors by intelligently combining multiple search services.
+Instruction-driven error recovery for web search and content extraction. When standard tools fail, this skill guides you through recovery strategies using your built-in `web_search` and `web_fetch` tools.
+
+> When the search-plus plugin is installed, a PostToolUse hook provides automated recovery before these instructions are needed. This skill covers cases the hook doesn't catch and works standalone without the plugin.
 
 ## When to Use
 
 **Use this skill when you encounter:**
 - 403 Forbidden errors from documentation sites or APIs
-- 429 Rate Limited responses during research or documentation analysis
-- 422 validation errors from web services
-- Silent failures where standard search returns empty results or times out
-- Need to extract specific content from blocked URLs or paywalled sites
+- 429 Rate Limited responses during research
+- 422 validation errors or "Did 0 searches..." responses
+- Silent failures where search returns empty results or times out
+- Need to extract content from blocked URLs
 
-**This skill provides specialized error handling and multi-service extraction when standard tools fail.**
+## Error Recovery Strategies
 
-## Capabilities
+### 403 Forbidden
+1. Retry with `web_fetch` using the URL directly — different tool may bypass the block
+2. Search for the page title or key terms instead of fetching the URL
+3. Try cache/archive URLs: `web_fetch` with `https://webcache.googleusercontent.com/search?q=cache:<URL>` or `https://web.archive.org/web/2/<URL>`
+4. Search for alternative sources covering the same content
 
-### Multi-Service Intelligence
-- **Federated Search**: Combines Tavily Extract API with Jina.ai fallback for 100% reliability
-- **Smart Service Selection**: Automatically chooses optimal service based on content type and domain characteristics
-- **Zero Single Point of Failure**: Multiple service providers guarantee reliable results
+### 429 Rate Limited
+1. Wait briefly, then retry the same request
+2. Simplify the query — shorter queries are less likely to trigger limits
+3. Switch approach: if searching, try fetching a known URL; if fetching, try searching for the content
+4. Try alternative phrasing to avoid hitting the same rate-limited endpoint
 
-### Error Resolution
-- **403 Forbidden**: Resolves access restrictions using alternative extraction methods
-- **429 Rate Limited**: Handles rate limiting with intelligent retry strategies
-- **422 Validation**: Fixes schema validation issues through request adaptation
-- **Timeout Prevention**: Eliminates "Did 0 searches..." responses and empty results
+### 422 Validation / "Did 0 searches..."
+1. Remove special characters, quotes, and complex syntax from the query
+2. Shorten the query to essential keywords only
+3. Split compound queries into separate simpler searches
+4. Remove `site:` operators or other search modifiers
 
-### Content Access
-- **Direct URL Extraction**: Extracts content from blocked documentation sites, articles, and repositories
-- **Format Preservation**: Maintains document structure, code formatting, and markdown
-- **Intelligent Fallback**: Switches between services when primary approaches fail
+### 451 SecurityCompromise
+1. Search with domain exclusion: `"<query> -site:<blocked-domain>"`
+2. Search for alternative sources: `"<query>" alternative OR mirror`
+3. Try both approaches — one often succeeds when the other fails
 
-## Examples
+### ECONNREFUSED / Timeout
+1. Retry after a brief pause
+2. Try `web_fetch` with a different URL for the same content
+3. Search for cached or mirrored versions
 
-### Documentation Research
-```
-"Extract content from the Claude Code documentation at https://docs.anthropic.com/en/docs/claude-code"
-"Research web scraping best practices from documentation that blocks access"
-"Analyze this GitHub repository's README: https://github.com/example/repo"
-```
+### Empty Results
+1. Broaden the query — remove restrictive terms
+2. Try different phrasing or synonyms
+3. Search for the topic generally, then fetch specific URLs from results
 
-### Error Recovery Scenarios
-```
-"This website is blocking access with 403 errors, extract the content"
-"Search failed with rate limiting, retry with enhanced error handling"
-"Getting 422 validation errors, resolve and extract the information"
-"Standard search returned no results, try enhanced extraction methods"
-```
+## Recovery Approach
 
-### Content Extraction
-```
-"Extract and summarize the technical article at this URL"
-"Get information from documentation sites that typically block access"
-"Research current information that standard tools cannot reach"
-```
+When encountering an error:
+1. **Identify the error type** from the response
+2. **Apply the matching strategy** above, starting from step 1
+3. **Stop on first success** — don't retry unnecessarily
+4. **Report partial results** if full recovery fails, with what you found and what remains inaccessible
 
 ## Limitations
 
-- Requires internet connectivity and API configuration
-- Slower than basic search due to comprehensive error handling (2-3x longer)
-- Some paywalled content may remain inaccessible
 - Cannot bypass CAPTCHA or advanced bot protection
-- May not work with sites requiring JavaScript execution
+- Some paywalled content remains inaccessible regardless of strategy
+- Cache/archive services may have stale content
+- Recovery adds latency (2-3x longer than a direct successful request)

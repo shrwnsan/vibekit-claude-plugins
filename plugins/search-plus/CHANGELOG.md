@@ -12,12 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SKILL.md**: Updated description to reflect instruction-driven architecture (removed "search-plus agent delegation" disclaimer)
 - **Agent Reference**: `search-plus` agent now references `skills: meta-search`
 
+### Added ✨
+- **`hook-entry.mjs`**: CLI entry point for PostToolUse hook — reads stdin JSON, detects search/fetch errors (403/429/422/451/ECONNREFUSED/empty), runs recovery via `handleWebSearch()`, outputs `additionalContext` for Claude. Previously the hook fired `node handle-web-search.mjs` which exited silently (no CLI entry point).
+
 ### Removed 🗑️
 - **`/search-plus` command**: Removed `commands/` directory. Commands and skills are unified per Claude Code docs — use the `meta-search` skill directly instead.
 
 ### Migration Notes
 - If you used `/search-plus <query>`, the same functionality is available via the `meta-search` skill (auto-invoked by Claude on search failures) or the `search-plus` agent.
-- No changes to environment variables, hooks, or scripts.
+- The PostToolUse hook now actually executes error recovery automatically — no configuration needed.
 
 ## [2.9.0] - 2025-12-28
 

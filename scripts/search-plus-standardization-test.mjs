@@ -9,14 +9,14 @@ import {
   hasTransformer,
   batchTransform,
   createErrorResponse
-} from '../plugins/search-plus/scripts/response-transformer.mjs';
+} from '../plugins/search-plus/skills/meta-search/scripts/response-transformer.mjs';
 
 import {
   validateResponse,
   validateBatch,
   analyzePerformance,
   createValidationReport
-} from '../plugins/search-plus/scripts/response-validator.mjs';
+} from '../plugins/search-plus/skills/meta-search/scripts/response-validator.mjs';
 
 import {
   createStandardResponse,
@@ -24,13 +24,13 @@ import {
   calculateRelevanceScore,
   calculateBatchRelevanceScores,
   normalizeDate
-} from '../plugins/search-plus/scripts/search-response.mjs';
+} from '../plugins/search-plus/skills/meta-search/scripts/search-response.mjs';
 
 import {
   decodeHTMLEntities,
   sanitizeHTMLContent,
   validateAndSanitizeURL
-} from '../plugins/search-plus/scripts/security-utils.mjs';
+} from '../plugins/search-plus/skills/meta-search/scripts/security-utils.mjs';
 
 /**
  * Test runner utility

@@ -634,7 +634,7 @@ async function testPluginSearch(query) {
 
   try {
     // Import and test actual plugin hook functions
-    const hooksDir = join(__dirname, '..', 'plugins', 'search-plus', 'hooks');
+    const hooksDir = join(__dirname, '..', 'plugins', 'search-plus', 'skills', 'meta-search', 'scripts');
     const { handleWebSearch } = await import(join(hooksDir, 'handle-web-search.mjs'));
 
     log(`🔧 Testing Plugin Search: "${query}"`);
@@ -729,7 +729,7 @@ async function testPluginExtraction(url) {
 
   try {
     // Import and test actual plugin hook functions
-    const hooksDir = join(__dirname, '..', 'plugins', 'search-plus', 'hooks');
+    const hooksDir = join(__dirname, '..', 'plugins', 'search-plus', 'skills', 'meta-search', 'scripts');
     const { extractContent } = await import(join(hooksDir, 'content-extractor.mjs'));
 
     log(`🔧 Testing Plugin Extraction: "${url}"`);

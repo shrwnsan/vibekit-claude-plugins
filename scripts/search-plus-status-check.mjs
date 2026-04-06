@@ -27,7 +27,7 @@ function checkPluginFiles() {
   return {
     localExists: existsSync(localPluginDir),
     hasManifest: existsSync(join(localPluginDir, '.claude-plugin', 'plugin.json')),
-    hasSkill: existsSync(join(localPluginDir, 'skills', 'search-plus', 'SKILL.md')),
+    hasSkill: existsSync(join(localPluginDir, 'skills', 'meta-search', 'SKILL.md')),
     hasHooks: existsSync(join(localPluginDir, 'hooks'))
   };
 }

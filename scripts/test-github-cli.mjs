@@ -144,7 +144,7 @@ async function testGitHubUrl(scenario) {
   
   try {
     // Import the GitHub service
-    const { gitHubService } = await import('../plugins/search-plus/scripts/github-service.mjs');
+    const { gitHubService } = await import('../plugins/search-plus/skills/meta-search/scripts/github-service.mjs');
 
     // Check if it's a Gist URL first
     const isGist = await gitHubService.isGistUrl(scenario.url);

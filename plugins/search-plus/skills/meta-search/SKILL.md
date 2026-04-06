@@ -10,7 +10,7 @@ allowed-tools:
 
 Instruction-driven error recovery for web search and content extraction. When standard tools fail, this skill guides you through recovery strategies using your built-in `web_search` and `web_fetch` tools.
 
-> When the search-plus plugin is installed, a PostToolUse hook provides automated recovery before these instructions are needed. This skill covers cases the hook doesn't catch and works standalone without the plugin.
+> When the search-plus plugin is installed, a PostToolUse hook runs `scripts/hook-entry.mjs` for automated recovery before these instructions are needed. This skill covers cases the hook doesn't catch and works standalone without the plugin.
 
 ## When to Use
 

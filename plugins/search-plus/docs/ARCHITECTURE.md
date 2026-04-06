@@ -29,8 +29,8 @@ Successful content extraction
 | **meta-search skill** | `skills/meta-search/SKILL.md` | Error recovery instructions — the core value of the plugin |
 | **search-plus agent** | `agents/search-plus.md` | Structured operating procedure for complex research |
 | **hooks** | `hooks/hooks.json` | `PostToolUse` on `WebSearch\|WebFetch` — automated error recovery |
-| **hook entry** | `scripts/hook-entry.mjs` | CLI entry point — reads stdin, detects errors, runs recovery |
-| **scripts** | `scripts/*.mjs` | Tavily/Jina integration, error handling, response transformation |
+| **hook entry** | `skills/meta-search/scripts/hook-entry.mjs` | CLI entry point — reads stdin, detects errors, runs recovery |
+| **scripts** | `skills/meta-search/scripts/*.mjs` | Tavily/Jina integration, error handling, response transformation |
 
 ### Core Design Principles
 
@@ -162,7 +162,7 @@ Key variables:
 
 ## Hook Runtime
 
-The plugin registers a `PostToolUse` hook on `WebSearch|WebFetch` events. The hook runs `scripts/hook-entry.mjs`, a CLI entry point that:
+The plugin registers a `PostToolUse` hook on `WebSearch|WebFetch` events. The hook runs `skills/meta-search/scripts/hook-entry.mjs`, a CLI entry point that:
 
 1. Reads the PostToolUse JSON from stdin (`tool_name`, `tool_input`, `tool_response`)
 2. Detects recoverable errors in the tool response (403, 429, 422, 451, ECONNREFUSED, empty results)

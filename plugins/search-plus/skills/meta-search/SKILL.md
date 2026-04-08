@@ -16,7 +16,7 @@ Recover web content when standard tools fail. Orchestrates multi-service extract
 ### Step 1: Run the recovery script
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/scripts/search.mjs" <query-or-url>
+node "${CLAUDE_SKILL_DIR}/scripts/search.mjs" <query-or-url> 2>/dev/null
 ```
 
 The script tries Tavily API → Jina.ai → free services (SearXNG, DuckDuckGo, Startpage) with automatic error handling, retries, and service rotation. Output is the recovered content.

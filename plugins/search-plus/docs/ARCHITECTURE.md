@@ -2,67 +2,37 @@
 
 Technical implementation details of the Search Plus plugin's architecture and error handling strategies.
 
-> **Updated 2026-04-06** — Corrected to reflect actual runtime behavior. Previous versions documented an aspirational hook-driven script runtime that was never wired up. See [Appendix: Scripts Status](#appendix-scripts-status) for details.
+> **Updated 2026-04-06** — Three-tier architecture with working hook and script orchestration. Previous versions documented aspirational flows that were never wired up.
 
 ## System Overview
 
-Search Plus achieves reliable web search and content extraction through **instruction-driven architecture**: the `meta-search` skill (`SKILL.md`) provides Claude with error recovery strategies that it reasons through using its built-in `web_search` and `web_fetch` tools. The `search-plus` agent provides a structured operating procedure for complex multi-step research.
-
-### How It Actually Works
-
-```
-User query or URL
-       ↓
-Claude encounters search/fetch error (403, 429, 422, etc.)
-       ↓
-Claude loads meta-search skill (SKILL.md instructions)
-       ↓
-Claude reasons through recovery strategies using built-in tools
-       ↓
-Successful content extraction
-```
+Search Plus achieves reliable web search and content extraction through a **three-tier architecture**: an automated PostToolUse hook, a skill that orchestrates bundled Tavily/Jina scripts, and manual fallback strategies using built-in tools. The `search-plus` agent provides a structured operating procedure for complex multi-step research.
 
 ### Core Components
 
 | Component | Path | Role |
 |-----------|------|------|
-| **meta-search skill** | `skills/meta-search/SKILL.md` | Error recovery instructions — the core value of the plugin |
+| **meta-search skill** | `skills/meta-search/SKILL.md` | Orchestrates recovery — runs scripts, then manual fallback |
+| **search CLI** | `skills/meta-search/scripts/search.mjs` | CLI wrapper for skill invocation (query/URL as args) |
+| **hook entry** | `skills/meta-search/scripts/hook-entry.mjs` | CLI entry point for PostToolUse — reads stdin, detects errors |
 | **search-plus agent** | `agents/search-plus.md` | Structured operating procedure for complex research |
 | **hooks** | `hooks/hooks.json` | `PostToolUse` on `WebSearch\|WebFetch` — automated error recovery |
-| **hook entry** | `skills/meta-search/scripts/hook-entry.mjs` | CLI entry point — reads stdin, detects errors, runs recovery |
 | **scripts** | `skills/meta-search/scripts/*.mjs` | Tavily/Jina integration, error handling, response transformation |
 
-### Core Design Principles
-
-1. **Instruction-Driven Recovery**: Claude reads SKILL.md and reasons through error recovery using built-in tools
-2. **Smart Fallback Strategy**: Skill instructs Claude to try multiple services in priority order
-3. **Comprehensive Error Handling**: Covers 403, 429, 422, 451, ECONNREFUSED, and silent failures
-4. **Agent Composition**: The `search-plus` agent loads the `meta-search` skill for its error handling
-
-## Instruction-Driven Architecture
-
-### Error Recovery Flow
-
-When Claude encounters a search or fetch error, the `meta-search` skill provides instructions for recovery:
+### Three-Tier Error Recovery
 
 ```mermaid
 flowchart TD
-    A[Claude uses web_search or web_fetch] --> B{Error?}
+    A[Claude uses web_search or web_fetch] --> B{Error in response?}
     B -->|No| C[Return results]
-    B -->|Yes| D[Load meta-search skill]
-    D --> E{Error type?}
-    E -->|403 Forbidden| F[Try alternative extraction methods]
-    E -->|429 Rate Limited| G[Backoff + retry with different service]
-    E -->|422 Validation| H[Reformulate query, simplify params]
-    E -->|451 Security| I[Domain exclusion + alt sources]
-    E -->|ECONNREFUSED| J[Alternative endpoints + timeout]
-    E -->|Empty results| K[Try enhanced extraction]
-    F --> L[Return recovered content]
-    G --> L
-    H --> L
-    I --> L
-    J --> L
-    K --> L
+    B -->|Yes| D["Tier 1: PostToolUse hook fires<br/>hook-entry.mjs"]
+    D --> E{Hook recovers?}
+    E -->|Yes| F["additionalContext injected<br/>Claude receives recovered content"]
+    E -->|No| G["Tier 2: Skill loaded<br/>SKILL.md → search.mjs"]
+    G --> H{Script recovers?}
+    H -->|Yes| I[Return script output]
+    H -->|No| J["Tier 3: Manual strategies<br/>cache URLs, query reformulation"]
+    J --> K[Return best available result]
 ```
 
 ### Agent Operating Procedure
@@ -171,11 +141,14 @@ The plugin registers a `PostToolUse` hook on `WebSearch|WebFetch` events. The ho
 
 If no error is detected or recovery fails, the hook exits silently (exit 0) and does not interfere.
 
-### Two-tier architecture
+### Three-tier architecture
 
-| Tier | Component | How it works |
-|------|-----------|--------------|
-| **Instruction-driven** | `meta-search` skill (SKILL.md) | Claude reads recovery strategies and reasons through them using built-in tools. Works standalone. |
-| **Hook-driven** | `hook-entry.mjs` → `handleWebSearch()` | Automated recovery that intercepts errors and injects recovered content. Requires the plugin. |
+| Tier | Trigger | Component | How it works |
+|------|---------|-----------|--------------|
+| **1. Hook** | Automatic on `PostToolUse` error | `hook-entry.mjs` → `handleWebSearch()` | Automated recovery — intercepts errors, injects `additionalContext`. Silent on success. |
+| **2. Skill** | Claude auto-loads or user invokes `/search-plus:meta-search` | `SKILL.md` → `search.mjs` | Runs `node ${CLAUDE_SKILL_DIR}/scripts/search.mjs <query>`. Same Tavily/Jina pipeline as hook. |
+| **3. Manual** | Skill Step 2 fallback | Built-in `web_search`/`web_fetch` | Cache URLs, query reformulation, domain exclusion — strategies Claude executes with its own tools. |
 
-When both are active, the hook provides automated recovery while the skill provides Claude with strategies for cases the hook doesn't cover.
+All three tiers use the same underlying scripts. The hook and skill both call `handleWebSearch()` — the difference is the trigger (automatic vs explicit) and the interface (stdin JSON vs CLI args).
+
+**Known limitation**: The hook only covers `PostToolUse` (successful tool call with error in response). Tool-level exceptions (`PostToolUseFailure`) are not intercepted — the skill's manual strategies cover those cases.

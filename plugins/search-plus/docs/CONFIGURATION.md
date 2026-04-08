@@ -253,7 +253,8 @@ echo $SEARCH_PLUS_JINA_API_KEY
 
 # Test with explicit export
 export SEARCH_PLUS_TAVILY_API_KEY=your_key_here
-/search-plus "test query"
+# Then ask Claude to search, or invoke the skill directly:
+# /search-plus:meta-search "test query"
 ```
 
 **Problem**: Invalid API key format
@@ -274,8 +275,8 @@ export SEARCH_PLUS_TAVILY_API_KEY=your_key_here
 curl -I https://api.tavily.com
 curl -I https://r.jina.ai
 
-# Check if Claude Code can access external services
-/search-plus "network connectivity test"
+# Then ask Claude to search, or invoke the skill directly:
+# /search-plus:meta-search "network connectivity test"
 ```
 
 **Problem**: Corporate firewall blocking services

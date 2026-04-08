@@ -1,0 +1,67 @@
+---
+name: meta-search
+description: Recovers web content when searches fail with 403, 429, 422 errors, blocked sites, or empty results. Runs bundled Tavily/Jina extraction scripts, then falls back to manual strategies.
+allowed-tools:
+  - Bash(node *)
+  - web_search
+  - web_fetch
+---
+
+# Meta Search
+
+Recover web content when standard tools fail. Orchestrates multi-service extraction via bundled scripts (Tavily, Jina.ai, free services), with manual fallback strategies.
+
+## Recovery workflow
+
+### Step 1: Run the recovery script
+
+```bash
+node "${CLAUDE_SKILL_DIR}/scripts/search.mjs" <query-or-url> 2>/dev/null
+```
+
+The script tries Tavily API → Jina.ai → free services (SearXNG, DuckDuckGo, Startpage) with automatic error handling, retries, and service rotation. Output is the recovered content.
+
+If the script succeeds, use the output directly. If it fails (no API keys, network issues, or all services down), proceed to Step 2.
+
+### Step 2: Manual recovery with built-in tools
+
+Apply the strategy matching the error type:
+
+**403 Forbidden**
+1. Retry with `web_fetch` using the URL directly
+2. Search for the page title or key terms instead
+3. Try cache URLs: `https://webcache.googleusercontent.com/search?q=cache:<URL>` or `https://web.archive.org/web/2/<URL>`
+
+**429 Rate Limited**
+1. Wait briefly, then retry
+2. Simplify the query to essential keywords
+3. Switch approach: if searching, try fetching a known URL instead
+
+**422 Validation / "Did 0 searches..."**
+1. Remove special characters and quotes from the query
+2. Shorten to essential keywords only
+3. Split compound queries into separate searches
+
+**451 SecurityCompromise**
+1. Search with domain exclusion: `"<query> -site:<blocked-domain>"`
+2. Search for alternatives: `"<query>" alternative OR mirror`
+
+**ECONNREFUSED / Timeout**
+1. Retry after a brief pause
+2. Try `web_fetch` with a different URL for the same content
+
+**Empty Results**
+1. Broaden the query — remove restrictive terms
+2. Try different phrasing or synonyms
+
+### Step 3: Report results
+
+- On success: return the recovered content
+- On partial success: return what was found, note what remains inaccessible
+- On failure: report which strategies were tried and why they failed
+
+## Limitations
+
+- Cannot bypass CAPTCHA or advanced bot protection
+- Some paywalled content remains inaccessible
+- Cache/archive services may have stale content

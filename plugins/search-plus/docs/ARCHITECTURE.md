@@ -1,405 +1,156 @@
 # Search Plus Architecture
 
-Technical implementation details of the Search Plus plugin's multi-service fallback architecture and error handling strategies.
+Technical implementation details of the Search Plus plugin's architecture and error handling strategies.
+
+> **Updated 2026-04-06** — Three-tier architecture with working hook and script orchestration. Previous versions documented aspirational flows that were never wired up.
 
 ## System Overview
 
-Search Plus implements a hybrid multi-service architecture that combines multiple web search and content extraction services to achieve maximum reliability and performance.
+Search Plus achieves reliable web search and content extraction through a **three-tier architecture**: an automated PostToolUse hook, a skill that orchestrates bundled Tavily/Jina scripts, and manual fallback strategies using built-in tools. The `search-plus` agent provides a structured operating procedure for complex multi-step research.
 
-### Core Design Principles
+### Core Components
 
-1. **Intelligent Service Selection**: Choose optimal service based on content type and domain characteristics
-2. **Smart Fallback System**: Only trigger fallback when primary service fails or returns empty content
-3. **Comprehensive Error Handling**: Handle all common Claude Code search failure scenarios
-4. **Performance Optimization**: Minimize response times while maximizing success rates
+| Component | Path | Role |
+|-----------|------|------|
+| **meta-search skill** | `skills/meta-search/SKILL.md` | Orchestrates recovery — runs scripts, then manual fallback |
+| **search CLI** | `skills/meta-search/scripts/search.mjs` | CLI wrapper for skill invocation (query/URL as args) |
+| **hook entry** | `skills/meta-search/scripts/hook-entry.mjs` | CLI entry point for PostToolUse — reads stdin, detects errors |
+| **search-plus agent** | `agents/search-plus.md` | Structured operating procedure for complex research |
+| **hooks** | `hooks/hooks.json` | `PostToolUse` on `WebSearch\|WebFetch` — automated error recovery |
+| **scripts** | `skills/meta-search/scripts/*.mjs` | Tavily/Jina integration, error handling, response transformation |
 
-## Hook System Architecture
-
-### URL Extraction Hook Flow
-
-```mermaid
-flowchart TD
-    A[URL Input] --> B[Detect URL type<br/>handle-web-search.mjs]
-    B --> C[Try Tavily Extract<br/>content-extractor.mjs]
-    C --> D{Success?}
-    D -->|Yes| E[Return content]
-    D -->|No/Empty| F[Classify error<br/>handle-search-error.mjs]
-    F --> G{Error type?}
-    G -->|403/429| H[Backoff + retry<br/>handle-rate-limit.mjs]
-    G -->|Other| I[Run fallback services]
-    H --> J[Retry content-extractor.mjs]
-    J --> K{Retry success?}
-    K -->|Yes| E
-    K -->|No| I
-    I --> L[Return fallback result]
-```
-
-### Web Search Hook Flow
+### Three-Tier Error Recovery
 
 ```mermaid
 flowchart TD
-    A[Search Query] --> B[Select service strategy<br/>handle-web-search.mjs]
-    B --> C{API keys configured?}
-    C -->|Yes| D[Try Tavily Search<br/>content-extractor.mjs]
-    C -->|No| E[Run free services in parallel]
-    D --> F{Success?}
-    F -->|Yes| G[Return results]
-    F -->|No/Timeout| E
-    E --> H[Promise.any of free services]
-    H --> I{Any service successful?}
-    I -->|Yes| G
-    I -->|No| J[Handle all failures<br/>handle-search-error.mjs]
-    J --> K{Error classification}
-    K -->|403/429| L[Service rotation<br/>handle-rate-limit.mjs]
-    K -->|422/451| M[Specialized error strategies]
-    L --> N[Return error response]
-    M --> N
+    A[Claude uses web_search or web_fetch] --> B{Error in response?}
+    B -->|No| C[Return results]
+    B -->|Yes| D["Tier 1: PostToolUse hook fires<br/>hook-entry.mjs"]
+    D --> E{Hook recovers?}
+    E -->|Yes| F["additionalContext injected<br/>Claude receives recovered content"]
+    E -->|No| G["Tier 2: Skill loaded<br/>SKILL.md → search.mjs"]
+    G --> H{Script recovers?}
+    H -->|Yes| I[Return script output]
+    H -->|No| J["Tier 3: Manual strategies<br/>cache URLs, query reformulation"]
+    J --> K[Return best available result]
 ```
 
-### Hook File Responsibilities
+> **Known limitation**: The PostToolUse hook only intercepts successful tool calls whose response contains an error (403, 429, etc.). Tool-level exceptions (`PostToolUseFailure`) — such as network timeouts before the tool returns — are not intercepted by the hook. The skill's manual strategies (Tier 3) cover those cases.
 
-**`handle-web-search.mjs`**: Main orchestrator
-- Input validation and request type detection
-- URL vs search query routing
-- Service selection and coordination
-- Response formatting and return
+### Agent Operating Procedure
 
-**`handle-search-error.mjs`**: Central error handler
-- Error classification and routing
-- Specialized error strategy coordination
-- Final fallback management
-- Error response formatting
+The `search-plus` agent follows a structured runbook:
 
-**`handle-rate-limit.mjs`**: Rate limiting specialist
-- 403/429 error handling
-- Exponential backoff implementation
-- Circuit breaker pattern
-- Header rotation strategies
+1. **Interpret intent** — detect URL extraction vs open-ended research
+2. **Choose path** — URL → extraction mode; no URL → research mode
+3. **Primary attempt** — search/fetch using default tools
+4. **Fallback gating** — trigger on HTTP ≥400, empty content, paywall/captcha
+5. **Fallback sequence** — retry with backoff, switch service/provider
+6. **Validate and dedupe** — require non-empty content, rank by relevance
+7. **Summarize and cite** — produce concise answer with inline citations
 
-**`content-extractor.mjs`**: Primary service client
-- Enhanced Tavily API integration
-- Jina.ai service integration
-- Free services coordination
-- Request optimization and caching
+## Service Strategy
 
-## Service Architecture
-
-### Web Search Flow
-
-```mermaid
-flowchart TD
-    A[User search query] --> B{Tavily API key available?}
-    B -->|Yes| C[Try Tavily API first]
-    B -->|No| D[Skip to free services]
-    C --> E{Tavily successful?}
-    E -->|Yes| F[Return search results]
-    E -->|No/Timeout| D
-    D --> G[Parallel free services<br/>Promise.any]
-    G --> H[SearXNG]
-    G --> I[DuckDuckGo HTML]
-    G --> J[Startpage HTML]
-    H --> K{Any service successful?}
-    I --> K
-    J --> K
-    K -->|Yes| F
-    K -->|No| L[Error handler]
-```
-
-### URL Extraction Flow
-
-```mermaid
-flowchart TD
-    A[User URL input] --> B[Start with Tavily Extract API]
-    B --> C{Tavily successful?}
-    C -->|Yes| D[Return content]
-    C -->|No/Empty| E{Smart fallback selection}
-    E -->|Enhanced metadata + API key| F[Jina API]
-    E -->|Documentation site| G[Jina Public]
-    E -->|Default| G
-    F --> H{Jina API successful?}
-    G --> I{Jina Public successful?}
-    H -->|Yes| D
-    H -->|No| I
-    I -->|Yes| D
-    I -->|No| J[Try remaining Jina service]
-    J --> K{Final fallback successful?}
-    K -->|Yes| D
-    K -->|No| L[Cache service fallbacks]
-    L --> M[Priority: Google → Archive API → Archive Direct → Bing → Yandex]
-    M --> D
-```
-
-### GitHub CLI Integration
-
-Search Plus includes optional GitHub CLI integration for reliable repository content access:
-
-```mermaid
-flowchart TD
-    A[GitHub URL Detected] --> B{GitHub CLI Enabled?}
-    B -->|Yes| C[Try GitHub CLI Extraction<br/>github-service.mjs]
-    B -->|No| F[Web Scraping Fallback]
-    C --> D{Success?}
-    D -->|Yes| E[Return Content]
-    D -->|No/Not Installed| F
-    F --> G[Standard URL Extraction Flow]
-```
-
-**GitHub Service Components**:
-- **GitHubService**: Main service class for CLI integration
-- **GitHubRateLimiter**: API rate limit tracking and management
-- **Cache Layer**: Configurable response caching (default: 5 minutes)
-- **Error Normalization**: Standardized error handling for GitHub-specific failures
-
-**Activation Flow**:
-1. URL detection identifies GitHub repository patterns
-2. Check if `SEARCH_PLUS_GITHUB_ENABLED=true`
-3. Verify `gh` CLI is installed and authenticated
-4. Extract content using `gh repo view` or `gh api`
-5. Cache response with configurable TTL
-6. Fallback to standard web scraping on failure
-
-## Service Selection Logic
+The skill instructs Claude to use these services in priority order:
 
 ### Web Search Services
 
-**Primary Service: Tavily API**
-- Trigger condition: API key configured
-- Success rate: 95-98%
-- Response time: ~863ms
-- Use case: All search queries when available
-
-**Free Services (Parallel Execution)**
-- SearXNG: Metasearch aggregating 70+ search engines
-- DuckDuckGo HTML: Direct web scraping with HTML parsing
-- Startpage HTML: Google results with privacy focus
-- Execution strategy: `Promise.any()` for fastest response
+| Priority | Service | Notes |
+|----------|---------|-------|
+| 1 | Tavily API | Requires `SEARCH_PLUS_TAVILY_API_KEY` |
+| 2 | SearXNG | Free, metasearch aggregator |
+| 3 | DuckDuckGo | Free, HTML parsing |
+| 4 | Startpage | Free, Google results with privacy |
 
 ### URL Extraction Services
 
-**Primary Service: Tavily Extract API**
-- Success rate: 95-98%
-- Response time: ~863ms
-- Best for: All content types
+| Priority | Service | Notes |
+|----------|---------|-------|
+| 1 | Tavily Extract API | Requires API key |
+| 2 | Jina.ai API | Requires `SEARCH_PLUS_JINA_API_KEY` |
+| 3 | Jina.ai Public Reader | Free |
+| 4 | Cache services | Google Cache → Archive.org → Bing Cache → Yandex Turbo |
 
-**Smart Fallback Selection**:
-- **Enhanced metadata requested + API key**: Jina.ai API (2,331ms)
-- **Documentation sites**: Jina.ai Public Reader (1,066ms)
-- **Default**: Jina.ai Public Reader
+### GitHub Integration
 
-**Final Fallback**: Archive services (Google Cache, Internet Archive)
-
-*Cache Service Priority*:
-1. **Google Web Cache** (priority 1): `webcache.googleusercontent.com` - fastest but sometimes blocked
-2. **Internet Archive JSON API** (priority 2): `archive.org/wayback/available` - official API, most reliable
-3. **Internet Archive Direct** (priority 3): `web.archive.org/web/2/` - direct archive access
-4. **Bing Cache** (priority 4): `cc.bingj.com/cache.aspx` - Microsoft alternative to Google
-5. **Yandex Turbo** (priority 5): `yandex.com/turbo` - optimized for news/blog content
-
-*Activation Triggers*:
-- Primary extraction services return empty or failed results
-- 404 errors on URL extraction
-- 403, 429, 422 errors during content extraction
-- Connection timeouts or refused connections
+When `SEARCH_PLUS_GITHUB_ENABLED=true` and `gh` CLI is installed, GitHub URLs are handled via native CLI access before falling back to web scraping.
 
 ## Error Handling Strategies
 
 ### Error Classification and Recovery
 
-| Error Type | Detection Method | Recovery Strategy | Success Rate |
-|------------|------------------|------------------|--------------|
-| **403 Forbidden** | HTTP 403 response | Header rotation, User-Agent variation | 80% |
-| **422 Schema Validation** | "Did 0 searches..." | Query reformulation, schema repair | 100% |
-| **429 Rate Limiting** | HTTP 429 response | Exponential backoff, retry logic | 90% |
-| **451 SecurityCompromise** | HTTP 451 response | Parallel recovery strategies | 100% |
-| **ECONNREFUSED** | Connection refused | Alternative endpoints, timeout management | 50% |
-| **Silent Failures** | Empty results detection | Comprehensive error detection | 100% |
+| Error Type | Detection | Recovery Strategy | Success Rate |
+|------------|-----------|-------------------|--------------|
+| **403 Forbidden** | HTTP 403 | Alternative extraction, header variation | ~80% |
+| **422 Validation** | "Did 0 searches..." | Query reformulation, param simplification | ~100% |
+| **429 Rate Limiting** | HTTP 429 | Exponential backoff, service rotation | ~90% |
+| **451 Security** | HTTP 451 | Domain exclusion + alternative sources (parallel) | ~100% |
+| **ECONNREFUSED** | Connection refused | Alternative endpoints, timeout adjustment | ~50% |
+| **Silent Failures** | Empty results | Enhanced extraction, service switching | ~100% |
 
-### 403/429 Rate Limiting Handling
+*Success rates measured in controlled testing. Real-world rates may vary.*
 
-**Handler**: `handle-rate-limit.mjs`
+### 403/429 Recovery
 
-**Strategy Flow**:
-1. **Error Detection**: Identify 403/429 responses
-2. **Header Rotation**: Randomize User-Agent and request headers
-3. **Exponential Backoff**: 1s, 2s, 4s, 8s with jitter
-4. **Circuit Breaker**: Temporarily skip failing services
-5. **Service Rotation**: Try alternative services
-
-**Backoff Calculation**:
-```javascript
-const calculateBackoff = (attemptCount, retryAfter) => {
-  if (retryAfter) return retryAfter * 1000;
-  return Math.min(1000 * Math.pow(2, attemptCount), 30000);
-};
-```
+1. Identify blocked domain/service
+2. Retry with alternative extraction method
+3. Apply exponential backoff (1s, 2s, 4s, 8s) with jitter
+4. Rotate to different service provider
+5. Try cache/archive services as last resort
 
 ### 422 Schema Validation Recovery
 
-**Handler**: `handle-search-error.mjs`
+1. Detect "Did 0 searches..." response pattern
+2. Remove special characters from query
+3. Simplify request parameters
+4. Try alternative API endpoint
+5. Reattempt with reformulated query
 
-**Detection Pattern**: "Did 0 searches..." responses
+### 451 SecurityCompromise Recovery
 
-**Recovery Strategies**:
-1. **Query Reformulation**: Remove special characters, simplify syntax
-2. **Parameter Adjustment**: Modify search parameters for API compatibility
-3. **Alternative Endpoints**: Use different API endpoints for the same service
-4. **Schema Repair**: Automatic detection and correction of API schema issues
-
-### 451 SecurityCompromiseError Recovery
-
-**Handler**: `handle-search-error.mjs` with parallel execution
-
-**Parallel Recovery Approach**:
-- Execute both strategies simultaneously using `Promise.any()`
-- Strategy 1: Domain exclusion (1.5s timeout)
-- Strategy 2: Alternative sources (1.5s timeout)
-- 89% faster than sequential execution (~870ms vs ~8000ms)
-
-**Strategy 1: Domain Exclusion**
-- Search while excluding the blocked domain from results
-- Query modification: `"original query -site:blocked.com"`
-- Uses same search services but filters out blocked results
-
-**Strategy 2: Alternative Sources**
-- Search for substitute content and alternatives
-- Query modification: `"original query" alternative OR substitute OR replacement"`
-- Finds mirrored content, discussions, and alternative sources
-
-
-## Performance Optimizations
-
-### Parallel Execution Patterns
-
-**Free Services Strategy**:
-```javascript
-// Parallel execution with Promise.any() for fastest response
-const freeServices = [
-  searchSearXNG(query),
-  searchDuckDuckGo(query),
-  searchStartpage(query)
-];
-
-const result = await Promise.any(freeServices);
-```
-
-**451 Recovery Strategy**:
-```javascript
-// Parallel recovery execution (89% faster than sequential)
-const recoveryStrategies = [
-  alternativeSourcesSearch(query),
-  archiveFallbackSearch(query)
-];
-
-const recoveryResult = await Promise.any(recoveryStrategies);
-```
-
-### Timeout Management
-
-**Adaptive Timeouts**:
-- Default timeout: 5 seconds per strategy
-- Parallel optimization: 1-1.5 seconds total
-- Configurable via `SEARCH_PLUS_RECOVERY_TIMEOUT_MS`
-
-**Timeout Hierarchy**:
-- Tavily: 5000ms (Primary service)
-- Jina API: 5000ms (Enhanced fallback)
-- Jina Public: 3000ms (Quick fallback)
-- Archive Fallback: 2000ms (Final attempt)
-- Free Services: 1500ms (Parallel execution)
-
-### Caching and Memoization
-
-**Response Caching**:
-- Cache successful responses for 5 minutes
-- Use query hash as cache key
-- Respect cache-control headers from services
-
-**Error Pattern Learning**:
-- Track domain-specific failure patterns
-- Prefer services that work for specific domains
-- Adapt service selection based on historical success
+1. Exclude blocked domain from search: `"query -site:blocked.com"`
+2. Search for alternative sources: `"query" alternative OR substitute`
+3. Execute both strategies in parallel for speed
 
 ## Security Design
 
-### Request Anonymization
+- **No query storage** beyond request processing
+- **No tracking or analytics** integration
+- **HTML sanitization** via `security-utils.mjs` (reference implementation in scripts)
+- **URL validation** against SSRF patterns
+- **Respects** robots.txt and website terms of service
 
-**Header Randomization**:
-- Rotate User-Agent strings across requests
-- Vary Accept headers and other request metadata
-- Respect robots.txt and website terms of service
+## Configuration
 
-**Rate Limiting**:
-- Respect service rate limits automatically
-- Implement client-side throttling
-- Use exponential backoff for failed requests
+See [CONFIGURATION.md](CONFIGURATION.md) for environment variables and setup.
 
-### Privacy Considerations
+Key variables:
+- `SEARCH_PLUS_TAVILY_API_KEY` — Tavily API key (optional, enables primary service)
+- `SEARCH_PLUS_JINA_API_KEY` — Jina.ai API key (optional, enables enhanced fallback)
+- `SEARCH_PLUS_GITHUB_ENABLED` — Enable GitHub CLI integration (default: false)
+- `SEARCH_PLUS_RECOVERY_TIMEOUT_MS` — Recovery timeout (default: 5000ms)
 
-**Data Handling**:
-- No query storage beyond request processing
-- No long-term retention of search results
-- Minimal logging for debugging purposes
+---
 
-**Request Privacy**:
-- Randomized request headers to avoid fingerprinting
-- Respect robots.txt and website terms of service
-- No tracking or analytics integration
+## Hook Runtime
 
-## Integration Points
+The plugin registers a `PostToolUse` hook on `WebSearch|WebFetch` events. The hook runs `skills/meta-search/scripts/hook-entry.mjs`, a CLI entry point that:
 
-### Claude Code Plugin System
+1. Reads the PostToolUse JSON from stdin (`tool_name`, `tool_input`, `tool_response`)
+2. Detects recoverable errors in the tool response (403, 429, 422, 451, ECONNREFUSED, empty results)
+3. If an error is detected, delegates to `handleWebSearch()` for recovery via Tavily/Jina/free services
+4. Outputs `additionalContext` JSON to stdout so Claude receives the recovered content
 
-**Plugin Manifest Configuration**:
-```json
-{
-  "name": "search-plus",
-  "description": "Enhanced web search with multi-service fallback architecture",
-  "version": "2.9.0",
-  "skills": ["search-plus"],
-  "commands": ["search-plus"],
-  "agents": ["search-plus"],
-  "hooks": ["handle-web-search", "handle-search-error"]
-}
-```
+If no error is detected or recovery fails, the hook exits silently (exit 0) and does not interfere.
 
-**Hook Registration**:
-The plugin registers hooks that intercept Claude Code's search operations and provide enhanced functionality while maintaining compatibility with existing workflows.
+### Three-tier architecture
 
-### Hook Execution Flow
+| Tier | Trigger | Component | How it works |
+|------|---------|-----------|--------------|
+| **1. Hook** | Automatic on `PostToolUse` error | `hook-entry.mjs` → `handleWebSearch()` | Automated recovery — intercepts errors, injects `additionalContext`. Silent on success. |
+| **2. Skill** | Claude auto-loads or user invokes `/search-plus:meta-search` | `SKILL.md` → `search.mjs` | Runs `node ${CLAUDE_SKILL_DIR}/scripts/search.mjs <query>`. Same Tavily/Jina pipeline as hook. |
+| **3. Manual** | Skill Step 2 fallback | Built-in `web_search`/`web_fetch` | Cache URLs, query reformulation, domain exclusion — strategies Claude executes with its own tools. |
 
-1. **Request Interception**: `handle-web-search.mjs` receives the search request
-2. **Type Detection**: Analyzes input to determine URL vs search query
-3. **Service Selection**: Chooses optimal service based on configuration and content type
-4. **Execution**: Attempts primary service, with fallback strategies ready
-5. **Error Handling**: Routes any errors to `handle-search-error.mjs`
-6. **Rate Limiting**: Delegates 403/429 errors to `handle-rate-limit.mjs`
-7. **Response Processing**: Formats and returns successful results
+All three tiers use the same underlying scripts. The hook and skill both call `handleWebSearch()` — the difference is the trigger (automatic vs explicit) and the interface (stdin JSON vs CLI args).
 
-## Monitoring and Observability
-
-### Performance Metrics
-
-**Key Indicators**:
-- Service-specific success rates
-- Response time percentiles (p50, p95, p99)
-- Error type distribution
-- Fallback strategy effectiveness
-
-**Logging Strategy**:
-- Structured JSON logging for analysis
-- Correlation IDs for request tracing
-- Performance metrics aggregation
-
-### Error Tracking
-
-**Error Classification**:
-- Automatic categorization of failure types
-- Success rate tracking by service and domain
-- Pattern detection for systemic issues
-
-**Recovery Effectiveness**:
-- Track which strategies succeed for which errors
-- Optimize strategy selection based on historical data
-- Adaptive timeout adjustment based on network conditions
-
-This architecture provides a robust, extensible foundation for reliable web search that can evolve with changing service landscapes and user requirements.
+**Known limitation**: The hook only covers `PostToolUse` (successful tool call with error in response). Tool-level exceptions (`PostToolUseFailure`) are not intercepted — the skill's manual strategies cover those cases.

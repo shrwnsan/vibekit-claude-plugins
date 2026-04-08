@@ -15,7 +15,7 @@ Based on comprehensive testing and real-world usage:
 | **Silent Failures** | 100% occurrence | **0%** | Eliminated |
 | **Average Response Time** | Failed/retries | **2.3 seconds** | Faster than retries |
 
-> **Note**: Performance metrics based on v2.7.0+ testing with hybrid web search architecture and comprehensive error handling improvements.
+> **Note**: Performance metrics based on v2.7.0+ testing. As of v2.11.0, error recovery is handled by a three-tier architecture (automated hook → skill scripts → manual fallback). See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Recent Performance Improvements
 

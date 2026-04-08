@@ -18,20 +18,26 @@ jobs:
 
       - name: Sync skills to shrwnsan/agents
         env:
-          AGENTS_PAT: ${{ secrets.AGENTS_HUB_PAT }}
+          GH_TOKEN: ${{ secrets.AGENTS_HUB_PAT }}
           SOURCE_SHA: ${{ github.sha }}
         run: |
-          if [ -z "$AGENTS_PAT" ]; then
+          if [ -z "$GH_TOKEN" ]; then
             echo "::error::AGENTS_HUB_PAT secret is not configured"
             exit 1
           fi
 
+          BRANCH="sync/vibekit-skills-${SOURCE_SHA:0:7}"
+
           # Clone agents hub (shallow)
           git clone --depth 1 \
-            "https://x-access-token:${AGENTS_PAT}@github.com/shrwnsan/agents.git" \
+            "https://x-access-token:${GH_TOKEN}@github.com/shrwnsan/agents.git" \
             /tmp/agents
 
+          cd /tmp/agents
+          git checkout -b "$BRANCH"
+
           # Find and sync each skill directory
+          cd "$GITHUB_WORKSPACE"
           find plugins -path "*/skills/*/SKILL.md" | while read -r skill_file; do
             skill_dir=$(dirname "$skill_file")
             skill_name=$(basename "$skill_dir")
@@ -41,7 +47,7 @@ jobs:
             cp -r "$skill_dir" "/tmp/agents/skills/$skill_name"
           done
 
-          # Commit and push if anything changed
+          # Create PR if anything changed
           cd /tmp/agents
           git add -A
           if ! git diff --cached --quiet; then
@@ -49,9 +55,25 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git commit -m "sync: update skills from vibekit-claude-plugins
 
-            Source: https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}"
-            git push
-            echo "Pushed skill changes to agents hub"
+          Source: https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}"
+            git push origin "$BRANCH"
+
+            gh pr create \
+              --repo shrwnsan/agents \
+              --base main \
+              --head "$BRANCH" \
+              --title "sync: update skills from vibekit-claude-plugins" \
+              --body "Automated sync of skill files from [vibekit-claude-plugins](https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}).
+
+          This PR was created by the \`sync-skills\` workflow. If checks pass, it will auto-merge."
+
+            gh pr merge "$BRANCH" \
+              --repo shrwnsan/agents \
+              --squash \
+              --auto \
+              --delete-branch
+
+            echo "Created PR and enabled auto-merge on agents hub"
           else
             echo "No changes to sync"
           fi

@@ -188,24 +188,24 @@ relevance_score = base_score +
 
 ### Basic Transformation
 ```javascript
-import { transformToStandard } from './utils/response-transformer.mjs';
+import { transformToStandard } from './skills/meta-search/scripts/response-transformer.mjs';
 
 const standardResponse = transformToStandard('tavily', rawResponse, query, responseTime);
 ```
 
 ### Validation
 ```javascript
-import { validateResponse } from './utils/response-validator.mjs';
+import { validateStandardResponse } from './skills/meta-search/scripts/search-response.mjs';
 
-const validation = validateResponse(response, { strict: true });
-if (!validation.isValid) {
-  console.error('Validation errors:', validation.errors);
+const validation = validateStandardResponse(response);
+if (!validation) {
+  console.error('Response does not match standard schema');
 }
 ```
 
 ### Batch Processing
 ```javascript
-import { batchTransform } from './utils/response-transformer.mjs';
+import { batchTransform } from './skills/meta-search/scripts/response-transformer.mjs';
 
 const responses = [
   { serviceName: 'tavily', response: tavilyData, query, responseTime },
@@ -256,8 +256,7 @@ const standardResponses = batchTransform(responses);
 
 ### Run Tests
 ```bash
-cd plugins/search-plus
-node tests/test-standardization.mjs
+node scripts/test-search-plus.mjs
 ```
 
 ### Test Coverage
@@ -295,10 +294,10 @@ node tests/test-standardization.mjs
 4. Update error handling
 
 ### For Service Developers
-1. Create transformer in `utils/response-transformer.mjs`
+1. Create transformer in `skills/meta-search/scripts/response-transformer.mjs`
 2. Register transformer using `registerServiceTransformer()`
 3. Implement validation function
-4. Add tests in `tests/test-standardization.mjs`
+4. Add tests in `scripts/test-search-plus.mjs`
 
 ## Future Enhancements
 

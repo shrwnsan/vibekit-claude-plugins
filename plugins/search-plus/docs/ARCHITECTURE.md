@@ -35,6 +35,8 @@ flowchart TD
     J --> K[Return best available result]
 ```
 
+> **Known limitation**: The PostToolUse hook only intercepts successful tool calls whose response contains an error (403, 429, etc.). Tool-level exceptions (`PostToolUseFailure`) — such as network timeouts before the tool returns — are not intercepted by the hook. The skill's manual strategies (Tier 3) cover those cases.
+
 ### Agent Operating Procedure
 
 The `search-plus` agent follows a structured runbook:

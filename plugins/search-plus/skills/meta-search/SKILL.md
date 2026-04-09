@@ -65,3 +65,4 @@ Apply the strategy matching the error type:
 - Cannot bypass CAPTCHA or advanced bot protection
 - Some paywalled content remains inaccessible
 - Cache/archive services may have stale content
+- PostToolUse hook does not intercept tool-level exceptions (PostToolUseFailure)

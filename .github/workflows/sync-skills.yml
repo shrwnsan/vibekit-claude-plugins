@@ -56,24 +56,30 @@ jobs:
             git commit -m "sync: update skills from vibekit-claude-plugins
 
           Source: https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}"
-            git push origin "$BRANCH"
+            git push --force-with-lease origin "$BRANCH"
 
-            gh pr create \
-              --repo shrwnsan/agents \
-              --base main \
-              --head "$BRANCH" \
-              --title "sync: update skills from vibekit-claude-plugins" \
-              --body "Automated sync of skill files from [vibekit-claude-plugins](https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}).
+            # Create PR if one doesn't already exist for this branch
+            EXISTING_PR=$(gh pr list --repo shrwnsan/agents --head "$BRANCH" --json number --jq '.[0].number // empty')
+            if [ -n "$EXISTING_PR" ]; then
+              echo "PR #${EXISTING_PR} already exists for ${BRANCH}, skipping creation"
+            else
+              gh pr create \
+                --repo shrwnsan/agents \
+                --base main \
+                --head "$BRANCH" \
+                --title "sync: update skills from vibekit-claude-plugins" \
+                --body "Automated sync of skill files from [vibekit-claude-plugins](https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}).
 
-          This PR was created by the \`sync-skills\` workflow. If checks pass, it will auto-merge."
+          This PR was created by the \`sync-skills\` workflow."
+            fi
 
-            gh pr merge "$BRANCH" \
+            PR_NUM=$(gh pr list --repo shrwnsan/agents --head "$BRANCH" --json number --jq '.[0].number')
+            gh pr merge "$PR_NUM" \
               --repo shrwnsan/agents \
               --squash \
-              --auto \
               --delete-branch
 
-            echo "Created PR and enabled auto-merge on agents hub"
+            echo "Created and merged PR #${PR_NUM} on agents hub"
           else
             echo "No changes to sync"
           fi

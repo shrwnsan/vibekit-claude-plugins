@@ -60,9 +60,33 @@ Apply the strategy matching the error type:
 - On partial success: return what was found, note what remains inaccessible
 - On failure: report which strategies were tried and why they failed
 
+## Sandbox compatibility
+
+The extraction script makes outbound requests to external services. If Claude Code's sandbox is enabled, these domains must be in the `allowedDomains` list:
+
+```jsonc
+// ~/.claude/settings.json
+{
+  "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "api.tavily.com",
+        "r.jina.ai",
+        "api.jina.ai"
+      ]
+    }
+  }
+}
+```
+
+Without these, all extraction services will fail with `fetch failed` and the script will fall through to Step 2 (manual recovery).
+
+Free fallback services (SearXNG, DuckDuckGo, Startpage) use varying domains that cannot be fully allowlisted. For reliable extraction with sandbox enabled, configure API keys for Tavily and/or Jina.ai and add their domains above.
+
 ## Limitations
 
 - Cannot bypass CAPTCHA or advanced bot protection
 - Some paywalled content remains inaccessible
 - Cache/archive services may have stale content
 - PostToolUse hook does not intercept tool-level exceptions (PostToolUseFailure)
+- Free fallback services may not work with sandbox enabled (dynamic domains)

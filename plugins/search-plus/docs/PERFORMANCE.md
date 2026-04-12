@@ -22,14 +22,13 @@ Based on comprehensive testing and real-world usage:
 ### v2.7.0+ Architecture Enhancements (November 2025)
 
 **Hybrid Web Search Implementation**:
-- **Zero API Key Dependency**: Plugin functional out-of-the-box with free services
-- **Parallel Free Services**: SearXNG, DuckDuckGo, Startpage executed simultaneously
+- **Zero API Key Dependency**: Plugin functional out-of-the-box with Jina.ai Public Reader
+- **Smart Fallback**: Tavily (with key) → Jina.ai API (with key) → Jina.ai Public Reader (free)
 - **Improved Response Times**: ~89% faster 451 error recovery
-- **Enhanced Success Rates**: 70-80% success without API keys, 95%+ with keys
+- **Enhanced Success Rates**: 85% success without API keys, 95%+ with keys
 
 **Key Improvements from Latest Updates**:
-- **Multi-service architecture**: Sequential paid → Parallel free services
-- **Promise.any() execution**: Fastest service wins, eliminating sequential delays
+- **Multi-service architecture**: Sequential paid → free Jina.ai Public Reader
 - **Smart fallback logic**: Only triggers when primary service fails
 - **Environment variable namespacing**: Backward compatibility with deprecation warnings
 
@@ -67,13 +66,13 @@ Comprehensive error validation using reliable HTTP testing infrastructure:
 
 **With API Keys** (Optimal Performance):
 - Primary: Tavily API (95-98% success, ~863ms)
-- Fallback: Jina.ai services (87-92% success, ~1-2.3s)
+- Fallback: Jina.ai API (87-92% success, ~1-2.3s)
 - Overall: 95%+ success rate, ~2.3s average response
 
 **Without API Keys** (Free Tier):
-- Parallel execution: SearXNG, DuckDuckGo, Startpage
-- Success rate: 70-80%
-- Response time: ~1.5-2.1s (parallel execution)
+- Jina.ai Public Reader only (no configuration required)
+- Success rate: 85%
+- Response time: ~1.5-2.1s
 - Zero configuration required
 
 ## Success Rate Analysis
@@ -104,7 +103,7 @@ Success Rate Improvement: +400-500% vs baseline
 |---------------|--------------|---------------|----------------|
 | **Both API Keys** | 95-98% | ~2.3s | Environment setup |
 | **Tavily Only** | 90-95% | ~2.1s | API key setup |
-| **Free Services Only** | 70-80% | ~1.8s | None (immediate) |
+| **Jina.ai Public Only** | 85% | ~1.8s | None (immediate) |
 | **Native Claude** | 0-20% | Variable/retries | N/A |
 
 ## Response Time Analysis
@@ -124,11 +123,8 @@ Success Rate Improvement: +400-500% vs baseline
 | Service | Success Rate | Average Response Time | Best Use Case |
 |---------|--------------|----------------------|---------------|
 | **Tavily API** | 95-98% | 0.86 seconds | All content types (with key) |
-| **Jina.ai Public** | 85-90% | 1.07 seconds | Documentation sites |
-| **Jina.ai API** | 87-92% | 2.33 seconds | Enhanced metadata |
-| **SearXNG** | ~75% | ~1.5 seconds | Web search (free) |
-| **DuckDuckGo HTML** | ~70% | ~1.2 seconds | Web search (free) |
-| **Startpage HTML** | ~65% | ~1.8 seconds | Web search (free) |
+| **Jina.ai Public Reader** | 85% | 1.07 seconds | Documentation sites, general content |
+| **Jina.ai API** | 87-92% | 2.33 seconds | Enhanced metadata (with key) |
 
 ### Hybrid Architecture Performance
 
@@ -138,9 +134,8 @@ Success Rate Improvement: +400-500% vs baseline
 3. Overall: ~2.3s with 95%+ success
 
 **Without API Keys** (Free Path):
-1. Skip directly to parallel free services
-2. Promise.any() selects fastest response
-3. Overall: ~1.8s with 70-80% success
+1. Skip directly to Jina.ai Public Reader
+2. Overall: ~1.8s with 85% success
 
 ## Real-World Validation
 
@@ -258,7 +253,7 @@ Success Rate Improvement: +400-500% vs baseline
 
 | Target | Current Status | Status |
 |--------|----------------|--------|
-| Overall success rate >90% | 95%+ (with keys), 70-80% (free) | ✅ Achieved |
+| Overall success rate >90% | 95%+ (with keys), 85% (free) | ✅ Achieved |
 | Average response time <3s | ~2.3s (with keys), ~1.8s (free) | ✅ Achieved |
 | Error recovery rate >80% | 87% average | ✅ Achieved |
 | Zero silent failures | 0% occurrence | ✅ Achieved |

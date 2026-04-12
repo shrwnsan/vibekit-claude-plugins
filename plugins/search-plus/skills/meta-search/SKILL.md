@@ -19,7 +19,7 @@ Recover web content when standard tools fail. Orchestrates multi-service extract
 node "${CLAUDE_SKILL_DIR}/scripts/search.mjs" <query-or-url> 2>/dev/null
 ```
 
-The script tries Tavily API → Jina.ai → free services (SearXNG, DuckDuckGo, Startpage) with automatic error handling, retries, and service rotation. Output is the recovered content.
+The script tries Tavily API → Jina.ai API → Jina.ai Public Reader with automatic error handling, retries, and service rotation. Output is the recovered content.
 
 If the script succeeds, use the output directly. If it fails (no API keys, network issues, or all services down), proceed to Step 2.
 
@@ -81,7 +81,7 @@ The extraction script makes outbound requests to external services. If Claude Co
 
 Without these, all extraction services will fail with `fetch failed` and the script will fall through to Step 2 (manual recovery).
 
-Free fallback services (SearXNG, DuckDuckGo, Startpage) use varying domains that cannot be fully allowlisted. For reliable extraction with sandbox enabled, configure API keys for Tavily and/or Jina.ai and add their domains above.
+Free fallback services (Jina.ai Public Reader) use `r.jina.ai` which is already in the allowedDomains list above.
 
 ## Limitations
 

@@ -9,7 +9,7 @@ Recovers web content when Claude Code's built-in search fails. Part of the [sear
 | `SEARCH_PLUS_TAVILY_API_KEY` | No | Tavily extraction API | 1,000 searches/month |
 | `SEARCH_PLUS_JINA_API_KEY` | No | Jina.ai reader API | 20-500 req/min |
 
-Without API keys, the script falls back to free services (SearXNG, DuckDuckGo, Startpage) which have varying reliability.
+Without API keys, the script falls back to Jina.ai Public Reader (20 RPM, no key required).
 
 ## Sandbox configuration
 
@@ -30,7 +30,7 @@ When Claude Code's sandbox is enabled, add the extraction service domains to `al
 }
 ```
 
-Free fallback services use dynamic domains that cannot be fully allowlisted. For best results with sandbox enabled, configure API keys for Tavily and/or Jina.ai.
+For best results with sandbox enabled, configure API keys for Tavily and/or Jina.ai.
 
 ## Files
 

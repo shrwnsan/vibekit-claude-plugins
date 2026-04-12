@@ -58,9 +58,7 @@ The skill instructs Claude to use these services in priority order:
 | Priority | Service | Notes |
 |----------|---------|-------|
 | 1 | Tavily API | Requires `SEARCH_PLUS_TAVILY_API_KEY` |
-| 2 | SearXNG | Free, metasearch aggregator |
-| 3 | DuckDuckGo | Free, HTML parsing |
-| 4 | Startpage | Free, Google results with privacy |
+| 2 | Jina.ai Public Reader | Free, 20 RPM, no API key |
 
 ### URL Extraction Services
 
@@ -68,7 +66,7 @@ The skill instructs Claude to use these services in priority order:
 |----------|---------|-------|
 | 1 | Tavily Extract API | Requires API key |
 | 2 | Jina.ai API | Requires `SEARCH_PLUS_JINA_API_KEY` |
-| 3 | Jina.ai Public Reader | Free |
+| 3 | Jina.ai Public Reader | Free, 20 RPM |
 | 4 | Cache services | Google Cache → Archive.org → Bing Cache → Yandex Turbo |
 
 ### GitHub Integration

@@ -130,6 +130,8 @@ relevance_score = base_score +
 
 ## Service Transformations
 
+> **Note**: SearXNG, DuckDuckGo HTML, and Startpage HTML transformers are still implemented in code but are effectively non-functional as of April 2026 — these services block programmatic access via CAPTCHA, 403, or have shut down entirely. The Tavily and Jina.ai services are the only reliably working ones.
+
 ### Tavily API
 ```javascript
 // Input

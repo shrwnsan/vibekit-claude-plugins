@@ -7,14 +7,14 @@ import { sanitizeHTMLContent, validateAndSanitizeURL } from './security-utils.mj
 
 // Configuration for environment variable namespacing
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
-const JINAAI_API_KEY = process.env.SEARCH_PLUS_JINAAI_API_KEY || process.env.JINAAI_API_KEY || null;
+const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.SEARCH_PLUS_JINAAI_API_KEY || process.env.JINA_API_KEY || process.env.JINAAI_API_KEY || null;
 
 // Show deprecation warnings for old variable names
 if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
   console.warn('⚠️  TAVILY_API_KEY is deprecated. Please update to SEARCH_PLUS_TAVILY_API_KEY');
 }
-if (!process.env.SEARCH_PLUS_JINAAI_API_KEY && process.env.JINAAI_API_KEY) {
-  console.warn('⚠️  JINAAI_API_KEY is deprecated. Please update to SEARCH_PLUS_JINAAI_API_KEY');
+if (!process.env.SEARCH_PLUS_JINA_API_KEY && (process.env.JINA_API_KEY || process.env.JINAAI_API_KEY || process.env.SEARCH_PLUS_JINAAI_API_KEY)) {
+  console.warn('⚠️  JINA/JINAAI API key variable names are deprecated. Please update to SEARCH_PLUS_JINA_API_KEY');
 }
 
 /**
@@ -124,8 +124,7 @@ export async function handleWebSearch(params) {
 
 /**
  * Hybrid web search with intelligent service selection
- * Sequential: Tavily → Parallel free services
- * Note: Jina API is only used for URL extraction, not web search
+ * Sequential: Tavily (with key) → Jina Search (with key)
  */
 async function performHybridSearch(params, timeoutMs = 10000) {
   // Phase 1: Try Tavily API (premium service)
@@ -141,25 +140,28 @@ async function performHybridSearch(params, timeoutMs = 10000) {
 
       return { data: standardizedResult, service: 'tavily' };
     } catch (error) {
-      console.log('🔄 Tavily failed, trying free services...');
+      console.log('🔄 Tavily failed, trying Jina Search...');
     }
   }
 
-  // Phase 2: Parallel execution for free services
-  console.log('🌐 Trying all free search engines in parallel...');
-  const freeStrategies = [
-    trySearXNGSearch(params, timeoutMs),
-    tryDuckDuckGoHTML(params, timeoutMs),
-    tryStartpageHTML(params, timeoutMs)
-  ];
-
-  try {
-    const result = await Promise.any(freeStrategies);
-    console.log(`✅ Success with free service: ${result.service}`);
-    return result;
-  } catch (aggregateError) {
-    throw new Error('All search services failed. Try again or configure Tavily API key for enhanced reliability.');
+  // Phase 2: Try Jina Search API (requires API key)
+  if (JINA_API_KEY) {
+    try {
+      console.log('🔍 Trying Jina Search (s.jina.ai)...');
+      const result = await tryJinaSearch(params, timeoutMs);
+      console.log('✅ Success with Jina Search');
+      return result;
+    } catch (error) {
+      console.log(`❌ Jina Search failed: ${error.message}`);
+    }
   }
+
+  throw new Error(
+    'All search services failed. Configure at least one API key:\n' +
+    '  • SEARCH_PLUS_TAVILY_API_KEY (recommended, 1000 free searches/month at tavily.com)\n' +
+    '  • SEARCH_PLUS_JINA_API_KEY (10M free tokens at jina.ai)\n' +
+    'See: https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus#setup-options'
+  );
 }
 
 
@@ -412,6 +414,56 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
   const standardizedResult = transformToStandard('startpage-html', standardResponse, params.query, responseTime);
 
   return { data: standardizedResult, service: 'startpage-html' };
+}
+
+/**
+ * Attempts web search using Jina.ai Search API (s.jina.ai)
+ * Requires SEARCH_PLUS_JINA_API_KEY
+ */
+async function tryJinaSearch(params, timeoutMs = 10000) {
+  if (!JINA_API_KEY) {
+    throw new Error('Jina API key not configured');
+  }
+
+  const query = encodeURIComponent(params.query);
+  const maxResults = params.maxResults || 5;
+
+  const startTime = Date.now();
+  const searchUrl = `https://s.jina.ai/${query}`;
+
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${JINA_API_KEY}`,
+      'X-Retain-Images': 'none',
+    },
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Jina Search error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Jina returns { data: [{ title, url, content, description }] }
+  const results = (data.data || []).slice(0, maxResults).map(item => ({
+    title: item.title || '',
+    url: item.url || '',
+    content: item.content || item.description || '',
+    score: 1.0
+  }));
+
+  if (results.length === 0) {
+    throw new Error('No results found from Jina Search');
+  }
+
+  const responseTime = Date.now() - startTime;
+  const standardResponse = { results, answer: null };
+  const standardizedResult = transformToStandard('jina-search', standardResponse, params.query, responseTime);
+
+  return { data: standardizedResult, service: 'jina-search' };
 }
 
 /**

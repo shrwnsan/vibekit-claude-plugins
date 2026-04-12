@@ -43,7 +43,7 @@ Extracts content from blocked or problematic URLs:
 ### ⚡ Intelligent Fallback
 Automatically tries multiple services until one works:
 - **Primary**: Tavily API (if configured)
-- **Fallback**: Jina.ai Reader (public or API key)
+- **Fallback**: Jina.ai Search API (with API key)
 - **GitHub Integration**: Native GitHub CLI access for repository content (when enabled)
 - **Result**: You get answers instead of errors
 
@@ -79,8 +79,12 @@ Based on 35 comprehensive test scenarios:
 
 ## Setup Options
 
-### Option 1: Free Usage (Recommended for Start)
-Works immediately without any configuration using Jina.ai Public Reader (20 RPM, no API key required).
+### Option 1: Quick Start (Free API Keys)
+Web search requires at least one API key. Both services offer generous free tiers:
+- **Tavily**: Sign up at [tavily.com](https://tavily.com) → 1,000 free searches/month (recurring)
+- **Jina.ai**: Sign up at [jina.ai](https://jina.ai) → 10M free tokens (~1,000 searches)
+
+URL extraction works without any API key via Jina.ai Public Reader (20 RPM).
 
 ### Option 2: Enhanced Performance (Optional)
 Add API keys for maximum reliability and speed:
@@ -93,8 +97,8 @@ export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 
 **Free tiers available**:
 - Tavily: 1,000 searches/month free
-- Jina.ai Public Reader: 20 requests/minute free (no key)
-- Jina.ai API: up to 500 requests/minute free (with key)
+- Jina.ai Public Reader: 20 RPM URL extraction only (no key)
+- Jina.ai Search: up to 100 RPM web search (with free API key)
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete setup details.
 

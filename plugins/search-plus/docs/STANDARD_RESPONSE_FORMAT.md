@@ -124,9 +124,10 @@ relevance_score = base_score +
 
 #### Service Reliability Bonuses
 - Tavily: +0.10
-- SearXNG: +0.05
-- DuckDuckGo: +0.03
-- Startpage: +0.03
+- Jina Search: +0.08
+- SearXNG: +0.05 (historical, non-functional)
+- DuckDuckGo: +0.03 (historical, non-functional)
+- Startpage: +0.03 (historical, non-functional)
 
 ## Service Transformations
 

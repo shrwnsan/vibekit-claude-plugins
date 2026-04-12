@@ -89,4 +89,4 @@ Free fallback services (Jina.ai Public Reader) use `r.jina.ai` which is already 
 - Some paywalled content remains inaccessible
 - Cache/archive services may have stale content
 - PostToolUse hook does not intercept tool-level exceptions (PostToolUseFailure)
-- Free fallback services may not work with sandbox enabled (dynamic domains)
+- Web search requires at least one API key (SEARCH_PLUS_TAVILY_API_KEY or SEARCH_PLUS_JINA_API_KEY)

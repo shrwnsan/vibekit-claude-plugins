@@ -9,7 +9,7 @@ Recovers web content when Claude Code's built-in search fails. Part of the [sear
 | `SEARCH_PLUS_TAVILY_API_KEY` | No | Tavily extraction API | 1,000 searches/month |
 | `SEARCH_PLUS_JINA_API_KEY` | No | Jina.ai reader API | 20-500 req/min |
 
-Without API keys, the script falls back to Jina.ai Public Reader (20 RPM, no key required).
+Without API keys, web search will fail. URL extraction still works via Jina.ai Public Reader (20 RPM, no key). Sign up for free API keys at tavily.com (1,000/month) or jina.ai (10M tokens).
 
 ## Sandbox configuration
 

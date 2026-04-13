@@ -91,7 +91,7 @@ Claude Code uses macOS `sandbox-exec` (Seatbelt framework) to sandbox Bash tool 
 
 ### Why Node.js Doesn't
 
-- **`node fetch()`** (undici): Does NOT use `HTTP_PROXY`/`HTTPS_PROXY` by default in Node.js. Proxy support requires `--experimental-global-agent` flag, `global-agent` package, or undici proxy dispatcher configuration.
+- **`node fetch()`** (undici): Does NOT use `HTTP_PROXY`/`HTTPS_PROXY` by default in Node.js 18–23. Node 24+ supports `NODE_USE_ENV_PROXY=1` (merged nodejs/node#57165, Jun 2025). On older versions, proxy support requires `undici` installed as a dependency with `setGlobalDispatcher(new EnvHttpProxyAgent())`, or a `global-agent` package. The `--experimental-global-agent` flag does not exist.
 - **`node dns.resolve()`**: Uses raw DNS (UDP port 53), which is blocked at the Seatbelt level. Cannot route through HTTP proxy.
 - **`nslookup`/`dig`**: Same as above -- raw DNS blocked by Seatbelt.
 
@@ -190,14 +190,23 @@ catch (aggregateError) {
 - `node` scripts run without any filesystem or network restrictions
 - Does not fix the underlying architectural issue for other Node.js-based tools
 
-### Alternative: Rewrite Scripts to Use `curl`
+### Alternative A: Use `undici` EnvHttpProxyAgent
+
+Add `undici` as a dependency and call `setGlobalDispatcher(new EnvHttpProxyAgent())` at script startup. This makes `fetch()` respect the sandbox proxy env vars.
+
+**Pros:** Stays sandboxed, respects `allowedDomains`, proper security model, minimal code change (add ~3 lines at top of entry points).
+**Cons:** Adds a dependency (`undici`), requires Node.js to have a compatible undici version (6.x+ for `EnvHttpProxyAgent`).
+
+**Verdict:** Best option if sandbox security is required. Works on Node 22+ with `undici` installed.
+
+### Alternative B: Rewrite Scripts to Use `curl`
 
 Replace all `fetch()` calls in `content-extractor.mjs` and `handle-web-search.mjs` with `child_process` calls to `curl`.
 
 **Pros:** Stays sandboxed, respects `allowedDomains`, proper security model.
 **Cons:** Major rewrite of 1600+ line file, complex abort/timeout logic, JSON parsing from shell output, fragile error handling.
 
-**Verdict:** Not recommended. The effort-to-benefit ratio is poor given Option A exists.
+**Verdict:** Not recommended. The effort-to-benefit ratio is poor given better options exist.
 
 ### Future: Replace Dead SearXNG Instances
 

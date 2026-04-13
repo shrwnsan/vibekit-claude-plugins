@@ -22,6 +22,7 @@ When Claude Code's sandbox is enabled, add the extraction service domains to `al
     "network": {
       "allowedDomains": [
         "api.tavily.com",
+        "s.jina.ai",
         "r.jina.ai",
         "api.jina.ai"
       ]

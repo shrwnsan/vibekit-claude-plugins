@@ -102,7 +102,7 @@ export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete setup details.
 
-> **Sandbox users**: If Claude Code's sandbox is enabled, add `api.tavily.com`, `r.jina.ai`, and `api.jina.ai` to the `allowedDomains` list in your settings. Without these, the extraction script cannot reach external services. See [skills/meta-search/README.md](skills/meta-search/README.md) for details.
+> **Sandbox users**: If Claude Code's sandbox is enabled, add `api.tavily.com`, `s.jina.ai`, `r.jina.ai`, and `api.jina.ai` to the `allowedDomains` list in your settings. Without these, the search and extraction scripts cannot reach external services. See [skills/meta-search/README.md](skills/meta-search/README.md) for details.
 
 ### Option 3: GitHub CLI Integration (Advanced)
 

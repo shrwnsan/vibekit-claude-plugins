@@ -71,6 +71,7 @@ The extraction script makes outbound requests to external services. If Claude Co
     "network": {
       "allowedDomains": [
         "api.tavily.com",
+        "s.jina.ai",
         "r.jina.ai",
         "api.jina.ai"
       ]

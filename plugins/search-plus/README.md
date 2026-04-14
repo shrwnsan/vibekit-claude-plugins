@@ -43,7 +43,9 @@ Extracts content from blocked or problematic URLs:
 ### ⚡ Intelligent Fallback
 Automatically tries multiple services until one works:
 - **Primary**: Tavily API (if configured)
-- **Fallback**: Jina.ai, SearXNG, DuckDuckGo, Startpage
+- **Fallback 1**: Brave Search API (if configured)
+- **Fallback 2**: Exa AI Search (if configured)
+- **Fallback 3**: Jina.ai Search API (if configured)
 - **GitHub Integration**: Native GitHub CLI access for repository content (when enabled)
 - **Result**: You get answers instead of errors
 
@@ -79,8 +81,12 @@ Based on 35 comprehensive test scenarios:
 
 ## Setup Options
 
-### Option 1: Free Usage (Recommended for Start)
-Works immediately without any configuration using free services.
+### Option 1: Quick Start (Free API Keys)
+Web search requires at least one API key. Both services offer generous free tiers:
+- **Tavily**: Sign up at [tavily.com](https://tavily.com) → 1,000 free searches/month (recurring)
+- **Jina.ai**: Sign up at [jina.ai](https://jina.ai) → 10M free tokens (~1,000 searches)
+
+URL extraction works without any API key via Jina.ai Public Reader (20 RPM).
 
 ### Option 2: Enhanced Performance (Optional)
 Add API keys for maximum reliability and speed:
@@ -88,16 +94,21 @@ Add API keys for maximum reliability and speed:
 ```bash
 # Add these to your environment (optional)
 export SEARCH_PLUS_TAVILY_API_KEY=your_tavily_key_here
+export SEARCH_PLUS_BRAVE_API_KEY=your_brave_key_here
+export SEARCH_PLUS_EXA_API_KEY=your_exa_key_here
 export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 ```
 
 **Free tiers available**:
-- Tavily: 1,000 searches/month free
-- Jina.ai: 20-500 requests/minute free
+- Tavily: 1,000 searches/month free (recurring)
+- Brave Search: $5 free credits/month (~1,000 queries, recurring)
+- Exa AI: 1,000 searches/month free (recurring)
+- Jina.ai Search: 10M free tokens (~1,000 searches, one-time)
+- Jina.ai Public Reader: 20 RPM URL extraction only (no key)
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete setup details.
 
-> **Sandbox users**: If Claude Code's sandbox is enabled, add `api.tavily.com`, `r.jina.ai`, and `api.jina.ai` to the `allowedDomains` list in your settings. Without these, the extraction script cannot reach external services. See [skills/meta-search/README.md](skills/meta-search/README.md) for details.
+> **Sandbox users**: If Claude Code's sandbox is enabled, add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, and `api.jina.ai` to the `allowedDomains` list in your settings. Without these, the search and extraction scripts cannot reach external services. See [skills/meta-search/README.md](skills/meta-search/README.md) for details.
 
 ### Option 3: GitHub CLI Integration (Advanced)
 

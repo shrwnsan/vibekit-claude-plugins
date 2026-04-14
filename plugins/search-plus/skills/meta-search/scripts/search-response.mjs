@@ -225,6 +225,9 @@ export function calculateRelevanceScore({
   // Service reliability bonus
   const serviceBonus = {
     'tavily': 0.1,
+    'brave': 0.09,
+    'exa': 0.08,
+    'jina-search': 0.07,
     'searxng': 0.05,
     'duckduckgo-html': 0.03,
     'startpage-html': 0.03
@@ -246,6 +249,9 @@ export function calculateBatchRelevanceScores(results, query, service) {
   const queryTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 2);
   const serviceBonus = {
     'tavily': 0.1,
+    'brave': 0.09,
+    'exa': 0.08,
+    'jina-search': 0.07,
     'searxng': 0.05,
     'duckduckgo-html': 0.03,
     'startpage-html': 0.03

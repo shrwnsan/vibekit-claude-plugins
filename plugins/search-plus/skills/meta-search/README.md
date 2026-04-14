@@ -7,9 +7,11 @@ Recovers web content when Claude Code's built-in search fails. Part of the [sear
 | Variable | Required | Service | Free tier |
 |----------|----------|---------|-----------|
 | `SEARCH_PLUS_TAVILY_API_KEY` | No | Tavily extraction API | 1,000 searches/month |
-| `SEARCH_PLUS_JINA_API_KEY` | No | Jina.ai reader API | 20-500 req/min |
+| `SEARCH_PLUS_BRAVE_API_KEY` | No | Brave Search API | $5 free credits/month |
+| `SEARCH_PLUS_EXA_API_KEY` | No | Exa AI Search | 1,000 searches/month |
+| `SEARCH_PLUS_JINA_API_KEY` | No | Jina.ai reader API | 10M free tokens |
 
-Without API keys, the script falls back to free services (SearXNG, DuckDuckGo, Startpage) which have varying reliability.
+Without API keys, web search will fail. URL extraction still works via Jina.ai Public Reader (20 RPM, no key). Sign up for free API keys at tavily.com (1,000/month) or jina.ai (10M tokens).
 
 ## Sandbox configuration
 
@@ -22,6 +24,9 @@ When Claude Code's sandbox is enabled, add the extraction service domains to `al
     "network": {
       "allowedDomains": [
         "api.tavily.com",
+        "api.search.brave.com",
+        "api.exa.ai",
+        "s.jina.ai",
         "r.jina.ai",
         "api.jina.ai"
       ]
@@ -30,7 +35,7 @@ When Claude Code's sandbox is enabled, add the extraction service domains to `al
 }
 ```
 
-Free fallback services use dynamic domains that cannot be fully allowlisted. For best results with sandbox enabled, configure API keys for Tavily and/or Jina.ai.
+For best results with sandbox enabled, configure API keys for Tavily and/or Jina.ai.
 
 ## Files
 

@@ -124,11 +124,16 @@ relevance_score = base_score +
 
 #### Service Reliability Bonuses
 - Tavily: +0.10
-- SearXNG: +0.05
-- DuckDuckGo: +0.03
-- Startpage: +0.03
+- Brave Search: +0.09
+- Exa: +0.08
+- Jina Search: +0.07
+- SearXNG: +0.05 (historical, non-functional)
+- DuckDuckGo: +0.03 (historical, non-functional)
+- Startpage: +0.03 (historical, non-functional)
 
 ## Service Transformations
+
+> **Note**: SearXNG, DuckDuckGo HTML, and Startpage HTML transformers are still implemented in code but are effectively non-functional as of April 2026 — these services block programmatic access via CAPTCHA, 403, or have shut down entirely. The Tavily and Jina.ai services are the only reliably working ones.
 
 ### Tavily API
 ```javascript

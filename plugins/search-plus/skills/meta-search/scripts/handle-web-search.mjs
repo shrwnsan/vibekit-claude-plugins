@@ -7,14 +7,22 @@ import { sanitizeHTMLContent, validateAndSanitizeURL } from './security-utils.mj
 
 // Configuration for environment variable namespacing
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
-const JINAAI_API_KEY = process.env.SEARCH_PLUS_JINAAI_API_KEY || process.env.JINAAI_API_KEY || null;
+const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.SEARCH_PLUS_JINAAI_API_KEY || process.env.JINA_API_KEY || process.env.JINAAI_API_KEY || null;
+const BRAVE_API_KEY = process.env.SEARCH_PLUS_BRAVE_API_KEY || process.env.BRAVE_API_KEY || null;
+const EXA_API_KEY = process.env.SEARCH_PLUS_EXA_API_KEY || process.env.EXA_API_KEY || null;
 
 // Show deprecation warnings for old variable names
 if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
   console.warn('⚠️  TAVILY_API_KEY is deprecated. Please update to SEARCH_PLUS_TAVILY_API_KEY');
 }
-if (!process.env.SEARCH_PLUS_JINAAI_API_KEY && process.env.JINAAI_API_KEY) {
-  console.warn('⚠️  JINAAI_API_KEY is deprecated. Please update to SEARCH_PLUS_JINAAI_API_KEY');
+if (!process.env.SEARCH_PLUS_JINA_API_KEY && (process.env.JINA_API_KEY || process.env.JINAAI_API_KEY || process.env.SEARCH_PLUS_JINAAI_API_KEY)) {
+  console.warn('⚠️  JINA/JINAAI API key variable names are deprecated. Please update to SEARCH_PLUS_JINA_API_KEY');
+}
+if (!process.env.SEARCH_PLUS_BRAVE_API_KEY && process.env.BRAVE_API_KEY) {
+  console.warn('⚠️  BRAVE_API_KEY is deprecated. Please update to SEARCH_PLUS_BRAVE_API_KEY');
+}
+if (!process.env.SEARCH_PLUS_EXA_API_KEY && process.env.EXA_API_KEY) {
+  console.warn('⚠️  EXA_API_KEY is deprecated. Please update to SEARCH_PLUS_EXA_API_KEY');
 }
 
 /**
@@ -124,11 +132,10 @@ export async function handleWebSearch(params) {
 
 /**
  * Hybrid web search with intelligent service selection
- * Sequential: Tavily → Parallel free services
- * Note: Jina API is only used for URL extraction, not web search
+ * Sequential: Tavily → Brave → Exa → Jina Search
  */
 async function performHybridSearch(params, timeoutMs = 10000) {
-  // Phase 1: Try Tavily API (premium service)
+  // Phase 1: Try Tavily API (premium, best RAG integration)
   if (TAVILY_API_KEY) {
     try {
       console.log('🚀 Trying Tavily API...');
@@ -136,30 +143,57 @@ async function performHybridSearch(params, timeoutMs = 10000) {
       const rawResult = await tavily.search(params, timeoutMs);
       const responseTime = Date.now() - startTime;
 
-      // Transform to standard format
       const standardizedResult = transformToStandard('tavily', rawResult, params.query, responseTime);
-
       return { data: standardizedResult, service: 'tavily' };
     } catch (error) {
-      console.log('🔄 Tavily failed, trying free services...');
+      console.log('🔄 Tavily failed, trying Brave Search...');
     }
   }
 
-  // Phase 2: Parallel execution for free services
-  console.log('🌐 Trying all free search engines in parallel...');
-  const freeStrategies = [
-    trySearXNGSearch(params, timeoutMs),
-    tryDuckDuckGoHTML(params, timeoutMs),
-    tryStartpageHTML(params, timeoutMs)
-  ];
-
-  try {
-    const result = await Promise.any(freeStrategies);
-    console.log(`✅ Success with free service: ${result.service}`);
-    return result;
-  } catch (aggregateError) {
-    throw new Error('All search services failed. Try again or configure Tavily API key for enhanced reliability.');
+  // Phase 2: Try Brave Search API (independent index, fastest)
+  if (BRAVE_API_KEY) {
+    try {
+      console.log('🦁 Trying Brave Search...');
+      const result = await tryBraveSearch(params, timeoutMs);
+      console.log('✅ Success with Brave Search');
+      return result;
+    } catch (error) {
+      console.log(`❌ Brave Search failed: ${error.message}`);
+    }
   }
+
+  // Phase 3: Try Exa AI (semantic/neural search)
+  if (EXA_API_KEY) {
+    try {
+      console.log('🔬 Trying Exa Search...');
+      const result = await tryExaSearch(params, timeoutMs);
+      console.log('✅ Success with Exa Search');
+      return result;
+    } catch (error) {
+      console.log(`❌ Exa Search failed: ${error.message}`);
+    }
+  }
+
+  // Phase 4: Try Jina Search API (last resort)
+  if (JINA_API_KEY) {
+    try {
+      console.log('🔍 Trying Jina Search (s.jina.ai)...');
+      const result = await tryJinaSearch(params, timeoutMs);
+      console.log('✅ Success with Jina Search');
+      return result;
+    } catch (error) {
+      console.log(`❌ Jina Search failed: ${error.message}`);
+    }
+  }
+
+  throw new Error(
+    'All search services failed. Configure at least one API key:\n' +
+    '  • SEARCH_PLUS_TAVILY_API_KEY (recommended, 1000 free searches/month at tavily.com)\n' +
+    '  • SEARCH_PLUS_BRAVE_API_KEY ($5 free credits/month at brave.com/search/api)\n' +
+    '  • SEARCH_PLUS_EXA_API_KEY (1000 free searches/month at exa.ai)\n' +
+    '  • SEARCH_PLUS_JINA_API_KEY (10M free tokens at jina.ai)\n' +
+    'See: https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus#setup-options'
+  );
 }
 
 
@@ -412,6 +446,162 @@ async function tryStartpageHTML(params, timeoutMs = 10000) {
   const standardizedResult = transformToStandard('startpage-html', standardResponse, params.query, responseTime);
 
   return { data: standardizedResult, service: 'startpage-html' };
+}
+
+/**
+ * Attempts web search using Jina.ai Search API (s.jina.ai)
+ * Requires SEARCH_PLUS_JINA_API_KEY
+ */
+async function tryJinaSearch(params, timeoutMs = 10000) {
+  if (!JINA_API_KEY) {
+    throw new Error('Jina API key not configured');
+  }
+
+  const query = encodeURIComponent(params.query);
+  const maxResults = params.maxResults || 5;
+
+  const startTime = Date.now();
+  const searchUrl = `https://s.jina.ai/${query}`;
+
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${JINA_API_KEY}`,
+      'X-Retain-Images': 'none',
+    },
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Jina Search error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Jina returns { data: [{ title, url, content, description }] }
+  const results = (data.data || []).slice(0, maxResults).map(item => ({
+    title: item.title || '',
+    url: item.url || '',
+    content: item.content || item.description || '',
+    score: 1.0
+  }));
+
+  if (results.length === 0) {
+    throw new Error('No results found from Jina Search');
+  }
+
+  const responseTime = Date.now() - startTime;
+  const standardResponse = { results, answer: null };
+  const standardizedResult = transformToStandard('jina-search', standardResponse, params.query, responseTime);
+
+  return { data: standardizedResult, service: 'jina-search' };
+}
+
+/**
+ * Attempts web search using Brave Search API
+ * Requires SEARCH_PLUS_BRAVE_API_KEY
+ */
+async function tryBraveSearch(params, timeoutMs = 10000) {
+  if (!BRAVE_API_KEY) {
+    throw new Error('Brave API key not configured');
+  }
+
+  const query = encodeURIComponent(params.query);
+  const maxResults = Math.min(params.maxResults || 5, 20);
+
+  const startTime = Date.now();
+  const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${query}&count=${maxResults}`;
+
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Accept-Encoding': 'gzip',
+      'X-Subscription-Token': BRAVE_API_KEY,
+    },
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Brave Search error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Brave returns { web: { results: [{ title, url, description, extra_snippets }] } }
+  const webResults = data.web?.results || [];
+  const results = webResults.slice(0, maxResults).map(item => ({
+    title: item.title || '',
+    url: item.url || '',
+    content: item.description || '',
+    score: 1.0
+  }));
+
+  if (results.length === 0) {
+    throw new Error('No results found from Brave Search');
+  }
+
+  const responseTime = Date.now() - startTime;
+  const standardResponse = { results, answer: null };
+  const standardizedResult = transformToStandard('brave', standardResponse, params.query, responseTime);
+
+  return { data: standardizedResult, service: 'brave' };
+}
+
+/**
+ * Attempts web search using Exa AI Search API
+ * Requires SEARCH_PLUS_EXA_API_KEY
+ */
+async function tryExaSearch(params, timeoutMs = 10000) {
+  if (!EXA_API_KEY) {
+    throw new Error('Exa API key not configured');
+  }
+
+  const maxResults = params.maxResults || 5;
+
+  const startTime = Date.now();
+
+  const response = await fetch('https://api.exa.ai/search', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': EXA_API_KEY,
+    },
+    body: JSON.stringify({
+      query: params.query,
+      numResults: maxResults,
+      contents: {
+        text: { maxCharacters: 1000 }
+      }
+    }),
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Exa Search error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Exa returns { results: [{ title, url, text, publishedDate, author }] }
+  const results = (data.results || []).slice(0, maxResults).map(item => ({
+    title: item.title || '',
+    url: item.url || '',
+    content: item.text || item.summary || '',
+    score: 1.0,
+    published_date: item.publishedDate || null
+  }));
+
+  if (results.length === 0) {
+    throw new Error('No results found from Exa Search');
+  }
+
+  const responseTime = Date.now() - startTime;
+  const standardResponse = { results, answer: null };
+  const standardizedResult = transformToStandard('exa', standardResponse, params.query, responseTime);
+
+  return { data: standardizedResult, service: 'exa' };
 }
 
 /**

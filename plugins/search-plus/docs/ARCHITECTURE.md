@@ -58,9 +58,9 @@ The skill instructs Claude to use these services in priority order:
 | Priority | Service | Notes |
 |----------|---------|-------|
 | 1 | Tavily API | Requires `SEARCH_PLUS_TAVILY_API_KEY` |
-| 2 | SearXNG | Free, metasearch aggregator |
-| 3 | DuckDuckGo | Free, HTML parsing |
-| 4 | Startpage | Free, Google results with privacy |
+| 2 | Brave Search API | Requires `SEARCH_PLUS_BRAVE_API_KEY` |
+| 3 | Exa AI Search | Requires `SEARCH_PLUS_EXA_API_KEY` |
+| 4 | Jina.ai Search API | Requires `SEARCH_PLUS_JINA_API_KEY` |
 
 ### URL Extraction Services
 
@@ -68,7 +68,7 @@ The skill instructs Claude to use these services in priority order:
 |----------|---------|-------|
 | 1 | Tavily Extract API | Requires API key |
 | 2 | Jina.ai API | Requires `SEARCH_PLUS_JINA_API_KEY` |
-| 3 | Jina.ai Public Reader | Free |
+| 3 | Jina.ai Public Reader | Free, 20 RPM |
 | 4 | Cache services | Google Cache → Archive.org → Bing Cache → Yandex Turbo |
 
 ### GitHub Integration
@@ -127,6 +127,8 @@ See [CONFIGURATION.md](CONFIGURATION.md) for environment variables and setup.
 Key variables:
 - `SEARCH_PLUS_TAVILY_API_KEY` — Tavily API key (optional, enables primary service)
 - `SEARCH_PLUS_JINA_API_KEY` — Jina.ai API key (optional, enables enhanced fallback)
+- `SEARCH_PLUS_BRAVE_API_KEY` — Brave Search API key (optional, $5 free credits/month)
+- `SEARCH_PLUS_EXA_API_KEY` — Exa AI API key (optional, 1,000 free searches/month)
 - `SEARCH_PLUS_GITHUB_ENABLED` — Enable GitHub CLI integration (default: false)
 - `SEARCH_PLUS_RECOVERY_TIMEOUT_MS` — Recovery timeout (default: 5000ms)
 
@@ -138,7 +140,7 @@ The plugin registers a `PostToolUse` hook on `WebSearch|WebFetch` events. The ho
 
 1. Reads the PostToolUse JSON from stdin (`tool_name`, `tool_input`, `tool_response`)
 2. Detects recoverable errors in the tool response (403, 429, 422, 451, ECONNREFUSED, empty results)
-3. If an error is detected, delegates to `handleWebSearch()` for recovery via Tavily/Jina/free services
+3. If an error is detected, delegates to `handleWebSearch()` for recovery via Tavily/Jina Search
 4. Outputs `additionalContext` JSON to stdout so Claude receives the recovered content
 
 If no error is detected or recovery fails, the hook exits silently (exit 0) and does not interfere.

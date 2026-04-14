@@ -124,7 +124,9 @@ relevance_score = base_score +
 
 #### Service Reliability Bonuses
 - Tavily: +0.10
-- Jina Search: +0.08
+- Brave Search: +0.09
+- Exa: +0.08
+- Jina Search: +0.07
 - SearXNG: +0.05 (historical, non-functional)
 - DuckDuckGo: +0.03 (historical, non-functional)
 - Startpage: +0.03 (historical, non-functional)

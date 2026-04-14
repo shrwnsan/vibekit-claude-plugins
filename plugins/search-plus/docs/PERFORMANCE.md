@@ -23,12 +23,12 @@ Based on comprehensive testing and real-world usage:
 
 **Hybrid Web Search Implementation**:
 - **Flexible API Key Configuration**: Supports Tavily and/or Jina API keys for web search
-- **Smart Fallback**: Tavily (with key) → Jina Search (with key); URL extraction via r.jina.ai (free, 20 RPM)
+- **Smart Fallback**: Tavily (with key) → Brave Search (with key) → Exa (with key) → Jina Search (with key); URL extraction via r.jina.ai (free, 20 RPM)
 - **Improved Response Times**: ~89% faster 451 error recovery
 - **Enhanced Success Rates**: 95%+ with API keys configured
 
 **Key Improvements from Latest Updates**:
-- **Multi-service architecture**: Sequential Tavily → Jina Search with API keys
+- **Multi-service architecture**: Sequential Tavily → Brave Search → Exa → Jina Search with API keys
 - **Smart fallback logic**: Only triggers when primary service fails
 - **Environment variable namespacing**: Backward compatibility with deprecation warnings
 
@@ -128,9 +128,11 @@ Success Rate Improvement: +400-500% vs baseline
 ### Hybrid Architecture Performance
 
 **With API Keys** (Optimal Path):
-1. Try Tavily first (863ms avg)
-2. Jina Search fallback if Tavily fails (~1.5s)
-3. Overall: ~2.3s with 95%+ success
+1. Try Tavily first (~860ms avg)
+2. Try Brave Search if Tavily fails (~670ms avg)
+3. Try Exa if Brave fails (~1.2s avg)
+4. Try Jina Search as last resort (~1.5s avg)
+5. Overall: 95%+ success with any one key configured
 
 **Without API Keys** (URL Extraction Only):
 1. Web search unavailable; URL extraction via r.jina.ai (free, 20 RPM)
@@ -224,8 +226,8 @@ Success Rate Improvement: +400-500% vs baseline
 4. Enhanced metadata requests use Jina.ai API when key available
 
 **Web Search Strategy** (v2.7.0+):
-1. Tavily if API key configured
-2. Jina Search as fallback (with Jina API key)
+1. Tavily → Brave → Exa → Jina Search (sequential)
+2. Each service tried only if previous fails and API key is configured
 3. Web search requires at least one API key
 
 ## Quality Assurance

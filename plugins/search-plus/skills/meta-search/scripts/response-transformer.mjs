@@ -308,6 +308,98 @@ const jinaSearchTransformer = {
 };
 
 /**
+ * Brave Search Transformer
+ * Transforms Brave Search API responses to standard format
+ */
+const braveTransformer = {
+  validate: (response) => {
+    return response &&
+           typeof response === 'object' &&
+           Array.isArray(response.results);
+  },
+
+  transform: (response, query) => {
+    const results = response.results.map((item, index) => ({
+      title: item.title || '',
+      url: item.url || '',
+      content: item.content || item.description || '',
+      score: normalizeScore(item.score || (1.0 - index * 0.1), index, response.results.length),
+      published_date: normalizeDate(item.published_date),
+      source: 'brave',
+      relevance_score: calculateRelevanceScore({
+        title: item.title,
+        content: item.content || item.description,
+        query,
+        position: index,
+        totalResults: response.results.length,
+        service: 'brave'
+      })
+    }));
+
+    return {
+      results,
+      answer: null,
+      query,
+      success_rate: 1.0,
+      metadata: {
+        total_results: results.length,
+        query_processed_at: new Date().toISOString(),
+        service_info: {
+          endpoint: 'api.search.brave.com',
+          has_results: results.length > 0
+        }
+      }
+    };
+  }
+};
+
+/**
+ * Exa AI Search Transformer
+ * Transforms Exa AI search responses to standard format
+ */
+const exaTransformer = {
+  validate: (response) => {
+    return response &&
+           typeof response === 'object' &&
+           Array.isArray(response.results);
+  },
+
+  transform: (response, query) => {
+    const results = response.results.map((item, index) => ({
+      title: item.title || '',
+      url: item.url || '',
+      content: item.content || item.text || '',
+      score: normalizeScore(item.score || (1.0 - index * 0.1), index, response.results.length),
+      published_date: normalizeDate(item.published_date || item.publishedDate),
+      source: 'exa',
+      relevance_score: calculateRelevanceScore({
+        title: item.title,
+        content: item.content || item.text,
+        query,
+        position: index,
+        totalResults: response.results.length,
+        service: 'exa'
+      })
+    }));
+
+    return {
+      results,
+      answer: null,
+      query,
+      success_rate: 1.0,
+      metadata: {
+        total_results: results.length,
+        query_processed_at: new Date().toISOString(),
+        service_info: {
+          endpoint: 'api.exa.ai',
+          has_results: results.length > 0
+        }
+      }
+    };
+  }
+};
+
+/**
  * Error Response Transformer
  * Creates standardized error responses
  */
@@ -339,6 +431,8 @@ registerServiceTransformer('searxng', searxngTransformer);
 registerServiceTransformer('duckduckgo-html', duckduckgoTransformer);
 registerServiceTransformer('startpage-html', startpageTransformer);
 registerServiceTransformer('jina-search', jinaSearchTransformer);
+registerServiceTransformer('brave', braveTransformer);
+registerServiceTransformer('exa', exaTransformer);
 
 /**
  * Get list of registered services

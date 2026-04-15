@@ -108,7 +108,7 @@ export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete setup details.
 
-> **Sandbox users**: If Claude Code's sandbox is enabled, add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, and `api.jina.ai` to the `allowedDomains` list in your settings. Without these, the search and extraction scripts cannot reach external services. See [skills/meta-search/README.md](skills/meta-search/README.md) for details.
+> **Sandbox users**: Node.js `fetch()` does not use the proxy env vars that Claude Code's sandbox injects, so all search providers fail with DNS errors. **Fix**: add `"node"` to `excludedCommands` in your Claude Code settings (`~/.claude/settings.json`). This lets Node scripts bypass the sandbox network restrictions. On Node 22.22+ or 24+, you can instead set `NODE_USE_ENV_PROXY=1` to route fetch through the proxy without disabling the sandbox. Also add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, and `api.jina.ai` to `allowedDomains`. See [docs/evals/eval-026](../../docs/evals/eval-026-search-plus-sandbox-dns-investigation.md) for the full investigation.
 
 ### Option 3: GitHub CLI Integration (Advanced)
 

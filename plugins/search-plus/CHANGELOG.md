@@ -1,253 +1,48 @@
-# Changelog: Search Plus Plugin
+# Changelog
 
-All notable changes to the Search Plus Claude Code plugin will be documented in this file.
+All notable changes to the search-plus plugin will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.11.0] - 2026-04-06
+## [3.0.0] - 2026-04-14
 
-### Added ✨
-- **Three-tier error recovery architecture**: hook (automatic) → skill (script orchestration) → manual (built-in tools)
-- **`hook-entry.mjs`**: CLI entry point for PostToolUse hook — reads stdin JSON, detects search/fetch errors (403/429/422/451/ECONNREFUSED/empty), runs recovery via `handleWebSearch()`, outputs `additionalContext` for Claude. Previously the hook fired `node handle-web-search.mjs` which exited silently (no CLI entry point).
-- **`search.mjs`**: CLI wrapper for skill invocation — takes query/URL as args, outputs recovered content. Enables SKILL.md to orchestrate the bundled scripts directly.
-
-### Changed 🔄
-- **Skill Rename**: `meta-searching` → `meta-search` for naming consistency
-- **SKILL.md**: Rewritten to orchestrate bundled scripts (Step 1: `search.mjs`, Step 2: manual fallback). Description follows Agent Skills best practices (third-person, 182 chars).
-- **Agent Reference**: `search-plus` agent now references `skills: meta-search`
-- **Scripts relocated**: 9 core scripts moved from `plugins/search-plus/scripts/` into `skills/meta-search/scripts/` per [Agent Skills spec](https://agentskills.io/specification). Skill is now fully self-contained.
-- **ARCHITECTURE.md**: Rewritten to document three-tier architecture with working hook runtime. `PostToolUseFailure` gap documented as known limitation.
-- **README**: Updated to use natural language prompts instead of `/search-plus` command examples.
-
-### Removed 🗑️
-- **`/search-plus` command**: Removed `commands/` directory. Commands and skills are unified per Claude Code docs — use the `meta-search` skill directly instead.
-- **5 dead scripts** (~1,986 lines): `architecture-improvements.mjs`, `missing-features.mjs`, `optimized-transforms.mjs`, `production-improvements.mjs`, `response-validator.mjs` — not in the runtime dependency graph.
-
-### Migration Notes
-- If you used `/search-plus <query>`, the same functionality is available via the `meta-search` skill (auto-invoked by Claude on search failures), `/search-plus:meta-search`, or the `search-plus` agent.
-- The PostToolUse hook now actually executes error recovery automatically — no configuration needed.
-- Environment variables (`SEARCH_PLUS_*`) are unchanged.
-
-## [2.9.0] - 2025-12-28
-
-### Added ✨
-- **GitHub CLI Integration**: Reliable repository content access via `gh` CLI (Issue #25)
-- **GitHubService Class**: First-class GitHub URL extraction with rate limit management
-- **GitHubRateLimiter**: Intelligent API rate limit tracking and management
-- **Native GitHub Access**: Direct repository content fetching without web scraping
-- **Cache Layer**: Configurable caching for GitHub CLI responses
-- **Graceful Fallback**: Automatic fallback to web scraping when `gh` CLI unavailable
-
-### Changed 🔄
-- **GitHub URL Handling**: Prioritizes `gh` CLI extraction over web scraping (when enabled)
-- **URL Extraction Flow**: Enhanced to detect and handle GitHub URLs specially
-- **Error Handling**: Added GitHub-specific error normalization
-
-### Configuration ⚙️
-- **SEARCH_PLUS_GITHUB_ENABLED**: Opt-in feature flag for GitHub CLI integration (default: false)
-- **SEARCH_PLUS_GITHUB_CACHE_TTL**: Cache duration for GitHub CLI responses (default: 300s)
-
-### Performance 📈
-- **GitHub URL Success Rate**: Near 100% for public repositories with `gh` CLI
-- **Reduced Web Scraping**: Native API access reduces reliance on HTML parsing
-- **Rate Limit Awareness**: Proactive rate limit management prevents API throttling
-
-### Testing ✅
-- **Test Infrastructure**: Comprehensive GitHub CLI integration testing (scripts/test-github-cli.mjs)
-- **312 Test Lines**: Complete validation matrix for GitHub service scenarios
-
-## [2.8.0] - 2025-12-12
-
-### Added ✨
-- **Response Format Standardization**: Implemented unified response schema across all search services (Issue #23)
-- **Standard Response Schema**: Consistent data structure with normalized scores and relevance metrics
-- **Advanced Relevance Scoring**: Multi-factor relevance calculation considering title/content matching, position, and service reliability
-- **Unified Transformer Utility**: Centralized transformation system for all search services
-- **Comprehensive Validation**: Response validation with detailed error reporting and performance analysis
-- **Service Transformers**: Individual transformers for Tavily, SearXNG, DuckDuckGo, and Startpage
-- **Score Normalization**: Linear, logarithmic, and exponential normalization strategies
-- **Metadata Enrichment**: Service-specific metadata extraction and standardization
-
-### Changed 🔄
-- **All Search Services**: Updated to return standardized response format
-- **Response Processing**: Unified transformation pipeline replaces service-specific parsing
-- **Error Handling**: Standardized error responses with consistent structure
-- **Performance Tracking**: Accurate response time measurement for all services
-
-### Fixed 🐛
-- **Response Time Calculation**: Fixed performance.now() usage errors in search functions
-- **Inconsistent Data Structures**: Eliminated varying response formats across services
-
-### Performance 📈
-- **Unified Processing**: Reduced complexity with single transformation pipeline
-- **Advanced Scoring**: Improved result relevance with multi-factor scoring algorithm
-- **Validation Efficiency**: Fast validation with early exit for common patterns
-
-### Testing ✅
-- **Comprehensive Test Suite**: 17 test cases covering all transformation scenarios
-- **Service Transformer Tests**: Validation for all service-specific transformations
-- **Score Normalization Tests**: Verification of all scoring strategies
-- **Validation Framework**: Complete response validation testing
-- **Performance Analysis**: Metrics collection and analysis testing
-
-### Documentation 📚
-- **Standard Response Format Guide**: Complete documentation for new response schema
-- **Migration Guide**: Instructions for updating consumers to use standard format
-- **API Reference**: Detailed field descriptions and usage examples
-- **Transformer Documentation**: Service-specific transformation details
-
-## [2.7.0] - 2025-11-19
-
-### Fixed 🐛
-- **Issue #20 Resolution**: Fixed "Tavily API key not configured" error preventing web search fallback system activation
-- **Early Exit Problem**: Removed premature failure condition that bypassed fallback service architecture
-- **Hybrid Search Strategy**: Implemented web search fallback to free services when no API keys configured
-
-### Added ✨
-- **Hybrid Web Search Architecture**: Sequential paid (Tavily) → Parallel free services (SearXNG, DuckDuckGo, Startpage)
-- **Free Service Integration**: Promise.any() for fastest response from multiple free search engines
-- **Environment Variable Validation**: Enhanced API key detection with proper fallback triggering
-- **Issue #20 Test Environment**: Comprehensive Docker container for clean fallback behavior validation
-
-### Changed 🔄
-- **Web Search Flow**: Modified to always attempt fallback services instead of failing early
-- **Error Recovery**: Improved service selection logic for optimal performance across API configurations
-- **Documentation**: Updated service flows and Issue #20 resolution details
-
-### Performance 📈
-- **100% Fallback Success**: Web searches now work without API keys using free services
-- **Zero API Key Dependency**: Plugin functional out-of-the-box for new users
-- **Service Resilience**: Multiple redundant search providers ensure reliability
-
-### Testing ✅
-- **Docker Validation**: Clean environment testing confirms Issue #20 resolution
-- **Free Service Verification**: SearXNG, DuckDuckGo, Startpage integration validated
-- **Backward Compatibility**: Existing API key configurations unchanged and enhanced
-
-## [2.6.0] - 2025-11-16
+### Added
+- **Brave Search API** provider — independent 30B+ page index, fastest latency (~670ms avg), `SEARCH_PLUS_BRAVE_API_KEY`
+- **Exa AI Search** provider — neural/semantic search for technical docs (~1.2s avg), `SEARCH_PLUS_EXA_API_KEY`
+- **Jina Search API** provider (`s.jina.ai`) — replaces dead free services, `SEARCH_PLUS_JINA_API_KEY`
+- 4-service sequential fallback chain: Tavily → Brave → Exa → Jina Search
+- Response transformers for all new providers (brave, exa, jina-search)
+- Service reliability bonuses for relevance scoring: Brave +0.09, Exa +0.08, Jina Search +0.07
+- Environment variable deprecation warnings for old naming conventions
+- Sandbox compatibility documentation
 
 ### Changed
-- **Environment Variable Namespacing**: Implemented namespaced environment variables to prevent conflicts
-  - `TAVILY_API_KEY` → `SEARCH_PLUS_TAVILY_API_KEY` (old variable still supported with deprecation warning)
-  - `JINA_API_KEY` → `SEARCH_PLUS_JINA_API_KEY` (old variable still supported with deprecation warning)
+- `performHybridSearch()` replaced dead `Promise.any([SearXNG, DuckDuckGo, Startpage])` with sequential 4-service chain
+- Env var naming standardized to `SEARCH_PLUS_` prefix (old names still work with deprecation warnings)
+- Jina env var canonical name changed from `SEARCH_PLUS_JINAAI_API_KEY` to `SEARCH_PLUS_JINA_API_KEY`
+- Plugin description updated to reflect multi-service architecture
+
+### Removed
+- **BREAKING**: Free keyless web search path — was dead anyway (100% failure rate since early 2026)
+  - SearXNG public instances: all return 403/429/timeout or are offline
+  - DuckDuckGo HTML: returns CAPTCHA on all requests
+  - Startpage HTML: returns JS-only shell with 0 parseable results
+
+### Not Affected
+- URL extraction via Jina Reader (`r.jina.ai`) — still works without API key at 20 RPM
+- GitHub content extraction via `gh` CLI — unchanged
+
+## [2.11.0] - 2026-04-12
 
 ### Added
-- Backward compatibility with graceful fallback to old environment variables
-- Deprecation warnings when old variables are detected during plugin execution
-- Enhanced documentation with migration guidance and examples
+- Sandbox compatibility notes in SKILL.md
+- PostToolUseFailure limitation documentation
 
-### Deprecated
-- `TAVILY_API_KEY` environment variable (use `SEARCH_PLUS_TAVILY_API_KEY` instead)
-- `JINA_API_KEY` environment variable (use `SEARCH_PLUS_JINA_API_KEY` instead)
+## [2.10.1] - 2026-04-11
 
-### Migration Notes
-- Existing configurations continue to work without interruption
-- Users will see deprecation warnings when using old variable names
-- Migration to new variable names is recommended for future compatibility
+_Previous versions were not tracked in a CHANGELOG._
 
-## [2.5.0] - 2025-11-06
-
-### Added
-- **Parallel 451 Recovery**: Implemented Promise.any() for concurrent strategy execution
-- **Enhanced UX Logging**: Dual-mode operation (enhanced/simple) for 451 error handling
-- **Performance Optimization**: 89% improvement in 451 recovery response times
-- **Configuration Validation**: Comprehensive bounds checking for recovery timeout
-- **AbortController Support**: Proper timeout cleanup to prevent race conditions
-
-### Changed
-- **451 Recovery Architecture**: Refactored duplicate functions into unified implementations
-- **Error Classification**: Enhanced failure type detection with actionable suggestions
-- **Simple Mode**: Added SEARCH_PLUS_451_SIMPLE_MODE for minimal output preference
-
-### Fixed
-- **Critical Undefined Variable**: Fixed classify451Failure function missing options parameter
-- **Race Conditions**: Implemented AbortController for proper timeout cleanup
-- **Configuration Validation**: Added safeguards for invalid timeout values
-- **Export Consistency**: Resolved duplicate export issues
-
-### Performance
-- **89% faster 451 recovery**: From ~8000ms sequential to ~870ms parallel execution
-- **100% test success rate**: All critical fixes validated and verified
-- **Enhanced reliability**: Comprehensive error handling with fallback strategies
-
-## [2.4.1] - 2025-11-04
-
-### Added
-- **CHANGELOG.md**: Comprehensive changelog following Keep a Changelog format
-- **Recovery Timeout Configuration**: `SEARCH_PLUS_RECOVERY_TIMEOUT_MS` environment variable for 451 error handling
-- **SSRF Protection**: Enhanced URL validation security in hooks
-
-### Changed
-- **Success Rate Claims**: Updated with specific metrics (95-98%, 85-90%, 100%, 90%, 80%) and testing context
-- **Documentation Transparency**: Added controlled testing caveats for realistic expectations
-- **Executive Summary**: Enhanced with concrete improvement metrics and baseline comparisons
-- **Error Handling**: Standardized error handling in recovery strategies
-- **API Key Handling**: Standardized to use null fallback pattern
-
-### Fixed
-- **Mermaid Flow Diagram**: Removed extra blank lines for cleaner rendering
-
-## [2.4.0] - 2025-11-03
-
-### Added
-- **451 SecurityCompromiseError Handling**: Multi-strategy recovery for HTTP 451 errors
-  - Alternative search sources with domain exclusion
-  - Query reformulation to avoid blocked domains
-  - Archive/cached content searches
-  - Jina API key bypass for content extraction
-- **Configurable 404 Enhancement**: Environment variable `SEARCH_PLUS_404_MODE`
-
-### Changed
-- **Documentation**: Updated across all files with 451 error handling details
-
-## [2.3.0] - 2025-11-03
-
-### Changed
-- **Version Bump**: Updated to v2.3.0 for marketplace consistency
-
-## [2.2.1] - 2025-11-02
-
-### Fixed
-- **Success Reporting**: Accurate success reporting and URL validation
-- **Plugin Manifest**: Removed invalid 'capabilities' field
-
-## [2.2.0] - 2025-11-01
-
-### Added
-- **Comprehensive Error Handling**: Achieves 97% success rate
-- **Enhanced Agent**: Updated plugin agent with improved capabilities
-- **A/B Testing Framework**: Dynamic baseline detection for automated testing
-
-### Changed
-- **SKILL.md**: Optimized with comprehensive A/B testing validation
-- **Testing Framework**: Improved A/B test framework and plugin configuration
-
-## [2.1.0] - 2025-10-26
-
-### Added
-- **Enhanced Content Extraction**: Tavily + Jina.ai fallback strategy
-- **Self-Referential Testing**: Complete testing and skills optimization
-- **Plugin Testing**: Hybrid feedback and performance validation
-
-## [2.0.0] - 2025-10-24
-
-### Added
-- **Search Plus Skill**: Auto-discovery and three-tier invocation (Skill/Command/Agent)
-- **Comprehensive Documentation**: Complete documentation suite and licensing framework
-- **Enhanced Error Handling**: 422 schema validation support
-
-### Changed
-- **Plugin Architecture**: Complete restructure for marketplace integration
-- **Core Functionality**: Enhanced search-plus plugin capabilities
-
-### Fixed
-- **Plugin Manifest**: Corrected plugin.json structure
-
-## [1.0.0] - 2025-10-24
-
-### Added
-- **Initial Release**: Basic web search enhancement for Claude Code
-- **Plugin Infrastructure**: Core plugin structure with marketplace integration
-- **Comprehensive Testing**: Test suite with marketplace-level infrastructure
-- **Performance Metrics**: Plugin validation docs and performance metrics
+[3.0.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v2.11.0...v3.0.0
+[2.11.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v2.10.1...v2.11.0
+[2.10.1]: https://github.com/shrwnsan/vibekit-claude-plugins/releases/tag/v2.10.1

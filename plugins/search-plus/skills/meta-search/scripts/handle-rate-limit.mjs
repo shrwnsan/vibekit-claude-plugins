@@ -1,5 +1,5 @@
 // scripts/handle-rate-limit.mjs
-import contentExtractor from './content-extractor.mjs';
+import { performHybridSearch } from './handle-web-search.mjs';
 
 /**
  * Handles rate limiting scenarios
@@ -37,10 +37,10 @@ export async function handleRateLimit(error, options) {
       maxResults: Math.max(1, Math.floor((options.maxResults || 5) / 2)) // Reduce number of results
     };
     
-    const results = await contentExtractor.tavily.search(modifiedParams);
+    const searchResult = await performHybridSearch(modifiedParams, modifiedParams.timeout || 10000);
     return {
       success: true,
-      data: results,
+      data: searchResult.data,
       message: 'Successfully retrieved results after handling rate limit'
     };
     
@@ -57,10 +57,10 @@ export async function handleRateLimit(error, options) {
         query: simplifyQuery(options.query)
       };
       
-      const results = await contentExtractor.tavily.search(conservativeParams);
+      const searchResult = await performHybridSearch(conservativeParams, conservativeParams.timeout || 10000);
       return {
         success: true,
-        data: results,
+        data: searchResult.data,
         message: 'Successfully retrieved results with conservative approach after rate limiting'
       };
     } catch (finalError) {

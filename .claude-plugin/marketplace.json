@@ -28,7 +28,7 @@
       "name": "search-plus",
       "source": "./plugins/search-plus",
       "description": "Enhanced web search with multi-service fallback architecture (Tavily, Brave, Exa, Jina) and comprehensive error handling",
-      "version": "3.0.0",
+      "version": "3.0.1",
       "author": {
         "name": "shrwnsan"
       },

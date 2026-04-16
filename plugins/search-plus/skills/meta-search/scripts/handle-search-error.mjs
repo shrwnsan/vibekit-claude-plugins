@@ -1,5 +1,5 @@
 // scripts/handle-search-error.mjs
-import contentExtractor from './content-extractor.mjs';
+import { performHybridSearch } from './handle-web-search.mjs';
 import { handleRateLimit } from './handle-rate-limit.mjs';
 
 // ============================================================================
@@ -146,10 +146,10 @@ async function handle403Error(error, options) {
     // Add a delay before retrying
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const results = await contentExtractor.tavily.search(modifiedParams);
+    const result = await performHybridSearch(modifiedParams, modifiedParams.timeout || 10000);
     return {
       success: true,
-      data: results,
+      data: result.data,
       message: 'Successfully retrieved results after handling 403 error'
     };
     
@@ -159,11 +159,11 @@ async function handle403Error(error, options) {
     // Try with a different search query formulation
     try {
       const reformulatedQuery = reformulateQuery(options.query);
-      const results = await contentExtractor.tavily.search({ ...options, query: reformulatedQuery });
+      const result = await performHybridSearch({ ...options, query: reformulatedQuery }, options.timeout || 10000);
       
       return {
         success: true,
-        data: results,
+        data: result.data,
         message: 'Successfully retrieved results with reformulated query after 403 error'
       };
     } catch (finalError) {
@@ -388,15 +388,12 @@ async function tryAlternativeSearchSources(options, optimized = false) {
       }, timeout);
 
       try {
-        const searchPromise = contentExtractor.tavily.search({
-          ...modifiedParams,
-          signal: abortController.signal
-        });
-        const results = await searchPromise;
+        const searchResult = await performHybridSearch(modifiedParams, timeout);
         clearTimeout(timeoutId);
 
-        return createStandardSuccessResponse(strategyName, results, startTime);
+        return createStandardSuccessResponse(strategyName, searchResult.data, startTime);
       } catch (searchError) {
+        clearTimeout(timeoutId);
         if (searchError.name === 'AbortError') {
           throw new Error('Strategy timeout');
         }
@@ -404,7 +401,7 @@ async function tryAlternativeSearchSources(options, optimized = false) {
       }
     } else {
       // Standard mode with timeout promise
-      const strategyPromise = contentExtractor.tavily.search(modifiedParams);
+      const strategyPromise = performHybridSearch(modifiedParams, timeout).then(r => r.data);
       const timeoutPromise = new Promise((resolve) => {
         setTimeout(() => resolve(createStandardErrorResponse(strategyName, `Strategy timed out after ${timeout}ms`, startTime)), timeout);
       });
@@ -450,15 +447,12 @@ async function searchWithExcludedDomainUnified(options, blockedDomain, optimized
       }, timeout);
 
       try {
-        const searchPromise = contentExtractor.tavily.search({
-          ...modifiedParams,
-          signal: abortController.signal
-        });
-        const results = await searchPromise;
+        const searchResult = await performHybridSearch(modifiedParams, timeout);
         clearTimeout(timeoutId);
 
-        return createStandardSuccessResponse(strategyName, results, startTime);
+        return createStandardSuccessResponse(strategyName, searchResult.data, startTime);
       } catch (searchError) {
+        clearTimeout(timeoutId);
         if (searchError.name === 'AbortError') {
           throw new Error('Strategy timeout');
         }
@@ -468,8 +462,8 @@ async function searchWithExcludedDomainUnified(options, blockedDomain, optimized
       // Standard mode with timeout promise and delay
       const strategyPromise = (async () => {
         await new Promise(resolve => setTimeout(resolve, 3000));
-        const results = await contentExtractor.tavily.search(modifiedParams);
-        return createStandardSuccessResponse(strategyName, results, startTime);
+        const searchResult = await performHybridSearch(modifiedParams, timeout);
+        return createStandardSuccessResponse(strategyName, searchResult.data, startTime);
       })();
 
       const timeoutPromise = new Promise((resolve) => {
@@ -511,9 +505,9 @@ async function reformulateQueryAvoidingBlockedDomain(options, blockedDomain) {
       const modifiedParams = { ...options, query: reformulatedQuery, search_depth: "basic" };
 
       await new Promise(resolve => setTimeout(resolve, 2500));
-      const results = await contentExtractor.tavily.search(modifiedParams);
+      const searchResult = await performHybridSearch(modifiedParams, modifiedParams.timeout || 10000);
 
-      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
+      return { success: true, data: searchResult.data, strategy: strategyName, responseTime: Date.now() - startTime };
     } catch (error) {
       return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
     }
@@ -550,9 +544,9 @@ async function useCachedOrArchiveResults(options, blockedDomain) {
       const modifiedParams = { ...options, query: archiveQuery, max_results: Math.min(options.max_results || 10, 5) };
 
       await new Promise(resolve => setTimeout(resolve, 4000));
-      const results = await contentExtractor.tavily.search(modifiedParams);
+      const searchResult = await performHybridSearch(modifiedParams, modifiedParams.timeout || 10000);
 
-      return { success: true, data: results, strategy: strategyName, responseTime: Date.now() - startTime };
+      return { success: true, data: searchResult.data, strategy: strategyName, responseTime: Date.now() - startTime };
     } catch (error) {
       return { success: false, error: error.message, strategy: strategyName, responseTime: Date.now() - startTime };
     }
@@ -590,10 +584,10 @@ async function handleConnectionRefusedError(error, options) {
       timeout: (options.timeout || 10000) + 5000  // Increase timeout
     };
     
-    const results = await contentExtractor.tavily.search(modifiedParams);
+    const searchResult = await performHybridSearch(modifiedParams, modifiedParams.timeout || 15000);
     return {
       success: true,
-      data: results,
+      data: searchResult.data,
       message: 'Successfully retrieved results after handling connection refused error'
     };
   } catch (retryError) {
@@ -621,10 +615,10 @@ async function handleTimeoutError(error, options) {
       timeout: Math.min((options.timeout || 10000) * 2, 30000)  // Double timeout, max 30s
     };
     
-    const results = await contentExtractor.tavily.search(modifiedParams);
+    const searchResult = await performHybridSearch(modifiedParams, modifiedParams.timeout);
     return {
       success: true,
-      data: results,
+      data: searchResult.data,
       message: 'Successfully retrieved results after handling timeout error'
     };
   } catch (retryError) {
@@ -756,7 +750,7 @@ async function repairSchemaAndRetry(options) {
   // Add delay before retry
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  return await contentExtractor.tavily.search(repairedParams);
+  return (await performHybridSearch(repairedParams, repairedParams.timeout || 10000)).data;
 }
 
 /**
@@ -777,7 +771,7 @@ async function simplifyQueryAndRetry(options) {
 
   await new Promise(resolve => setTimeout(resolve, 1500));
 
-  return await contentExtractor.tavily.search(simplifiedParams);
+  return (await performHybridSearch(simplifiedParams, simplifiedParams.timeout || 10000)).data;
 }
 
 /**
@@ -798,7 +792,7 @@ async function reformulateQueryForSchema(options) {
 
   await new Promise(resolve => setTimeout(resolve, 2000));
 
-  return await contentExtractor.tavily.search(reformulatedParams);
+  return (await performHybridSearch(reformulatedParams, reformulatedParams.timeout || 10000)).data;
 }
 
 /**
@@ -812,13 +806,12 @@ async function tryAlternativeAPIFormat(options) {
   // Try with minimal parameters
   const minimalParams = {
     query: options.query,
-    api_key: options.api_key,
     search_depth: "basic"
   };
 
   await new Promise(resolve => setTimeout(resolve, 3000));
 
-  return await contentExtractor.tavily.search(minimalParams);
+  return (await performHybridSearch(minimalParams, 10000)).data;
 }
 
 /**

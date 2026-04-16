@@ -227,10 +227,7 @@ export function calculateRelevanceScore({
     'tavily': 0.1,
     'brave': 0.09,
     'exa': 0.08,
-    'jina-search': 0.07,
-    'searxng': 0.05,
-    'duckduckgo-html': 0.03,
-    'startpage-html': 0.03
+    'jina-search': 0.07
   };
   relevanceScore += serviceBonus[service] || 0;
 
@@ -251,10 +248,7 @@ export function calculateBatchRelevanceScores(results, query, service) {
     'tavily': 0.1,
     'brave': 0.09,
     'exa': 0.08,
-    'jina-search': 0.07,
-    'searxng': 0.05,
-    'duckduckgo-html': 0.03,
-    'startpage-html': 0.03
+    'jina-search': 0.07
   };
   const bonus = serviceBonus[service] || 0;
   const totalResults = results.length;

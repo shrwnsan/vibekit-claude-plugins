@@ -63,17 +63,10 @@ This document describes the standardized response format implemented across all 
   has_answer: boolean
 }
 
-// SearXNG
+// Brave Search / Exa AI / Jina Search
 {
-  number_of_engines: number,
-  search_time: number,
-  has_answers: boolean
-}
-
-// DuckDuckGo/Startpage (HTML parsing)
-{
-  parsed_html: boolean,
-  extraction_successful: boolean
+  endpoint: string,       // 'api.search.brave.com' | 'api.exa.ai' | 's.jina.ai'
+  has_results: boolean
 }
 ```
 
@@ -127,13 +120,8 @@ relevance_score = base_score +
 - Brave Search: +0.09
 - Exa: +0.08
 - Jina Search: +0.07
-- SearXNG: +0.05 (historical, non-functional)
-- DuckDuckGo: +0.03 (historical, non-functional)
-- Startpage: +0.03 (historical, non-functional)
 
 ## Service Transformations
-
-> **Note**: SearXNG, DuckDuckGo HTML, and Startpage HTML transformers are still implemented in code but are effectively non-functional as of April 2026 — these services block programmatic access via CAPTCHA, 403, or have shut down entirely. The Tavily and Jina.ai services are the only reliably working ones.
 
 ### Tavily API
 ```javascript
@@ -145,48 +133,46 @@ relevance_score = base_score +
 
 // Transformation
 - Preserve original scores
-- Add relevance scoring
+- Add relevance scoring (batch optimized)
 - Extract service metadata
 ```
 
-### SearXNG Metasearch
+### Brave Search API
 ```javascript
 // Input
 {
-  results: [{ title, url, content, publishedDate }],
-  answers: [string],
-  number_of_results: number
-}
-
-// Transformation
-- Convert publishedDate to ISO format
-- Apply logarithmic score normalization
-- Extract first answer if available
-```
-
-### DuckDuckGo HTML
-```javascript
-// Input (Parsed HTML)
-{
   results: [{ title, url, content }]
 }
 
 // Transformation
-- Position-based scoring (1.0 - index * 0.1)
-- No published dates available
-- No instant answers in HTML mode
-```
-
-### Startpage HTML
-```javascript
-// Input (Parsed HTML)
-{
-  results: [{ title, url, content }]
-}
-
-// Transformation
-- Same as DuckDuckGo
 - Position-based scoring
+- Relevance scoring with service bonus
+```
+
+### Exa AI Search
+```javascript
+// Input
+{
+  results: [{ title, url, content, published_date }]
+}
+
+// Transformation
+- Preserve published dates
+- Position-based scoring
+- Relevance scoring with service bonus
+```
+
+### Jina Search API
+```javascript
+// Input
+{
+  results: [{ title, url, content, description }]
+}
+
+// Transformation
+- Content fallback: content || description
+- Position-based scoring
+- Relevance scoring with service bonus
 ```
 
 ## Usage Examples
@@ -214,7 +200,7 @@ import { batchTransform } from './skills/meta-search/scripts/response-transforme
 
 const responses = [
   { serviceName: 'tavily', response: tavilyData, query, responseTime },
-  { serviceName: 'searxng', response: searxngData, query, responseTime }
+  { serviceName: 'brave', response: braveData, query, responseTime }
 ];
 
 const standardResponses = batchTransform(responses);

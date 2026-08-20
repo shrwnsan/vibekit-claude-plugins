@@ -27,25 +27,25 @@ squash_evidence() {  # $1 = ref; prints matching mainline squash commits or empt
     [ -z "$subj" ] && continue
     pr=$(git log "$MAIN" --oneline --grep="$subj" | head -1)
     [ -n "$pr" ] && echo "$pr"
-  done < <(git log "$MAIN..$1" --format='%s' | head -5)
+  done < <(git log "$MAIN..$1" --format='%s' | head -20)
 }
 
-content_landed() {  # $1 = ref; true if branch's key files all exist on mainline
-  local files f
-  files=$(git diff --name-only "$MAIN...$1" | grep -vE '(^docs/|\.md$)' | head -3)
-  [ -z "$files" ] && return 0   # docs-only branch: rely on squash_evidence
-  for f in $files; do
+content_landed() {  # $1 = ref; true if branch's key non-docs files all exist on mainline
+  local f found=0
+  while IFS= read -r f; do
+    found=$((found+1))
     git cat-file -e "refs/heads/$MAIN:$f" 2>/dev/null || return 1
-  done
-  return 0
+  done < <(git diff --name-only "$MAIN...$1" | grep -vE '(^docs/|\.md$)' | head -3)
+  # docs-only (or empty) diff carries no content evidence — caller must pair with squash_evidence
+  [ "$found" -gt 0 ]
 }
 
-mainline_newer() {  # $1 = ref; true if mainline's copy of touched files evolved beyond branch
+mainline_newer() {  # $1 = ref; true if mainline's copy of touched files diverged from branch's
   local f newer=0 same=0
-  for f in $(git diff --name-only "$MAIN...$1" | head -5); do
+  while IFS= read -r f; do
     git cat-file -e "refs/heads/$MAIN:$f" 2>/dev/null || continue
     if git diff --quiet "$1" "$MAIN" -- "$f" 2>/dev/null; then same=$((same+1)); else newer=$((newer+1)); fi
-  done
+  done < <(git diff --name-only "$MAIN...$1" | head -5)
   [ "$newer" -gt 0 ] && [ "$newer" -ge "$same" ]
 }
 
@@ -85,7 +85,7 @@ for b in $(git for-each-ref --format='%(refname:short)' refs/heads/ | grep -vx "
     fi
     continue
   fi
-  if content_landed "$b" && mainline_newer "$b"; then
+  if [ -n "$(squash_evidence "$b")" ] && content_landed "$b" && mainline_newer "$b"; then
     echo -e "stale-base\tbranch\t$b\tfiles exist on $MAIN but diverged; merging may regress"
   else
     echo -e "unmerged\tbranch\t$b\t$(git rev-list --count "$MAIN..$b") unique commits: $(git log "$MAIN..$b" --oneline | head -1)"
@@ -138,10 +138,7 @@ for d in .worktrees .claude/worktrees ../worktrees; do
   for sub in "$d"/*/; do
     [ -d "$sub" ] || continue
     [ -f "$sub/.git" ] || continue
-    case "$(cd "$sub" && pwd -P)" in
-      "$(git worktree list --porcelain | awk '/^worktree /{print substr($0,10)}')") continue ;;
-    esac
-    # not registered under this repo's main worktree path — check full list
+    # registered under this repo? (compare canonical paths)
     if ! git worktree list --porcelain | grep -qF "$(cd "$sub" && pwd -P)"; then
       echo -e "orphan-dir\tworktree\t$sub\tcontains .git file but not registered"
     fi

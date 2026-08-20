@@ -117,6 +117,27 @@ Automatically activates when you want to transition to a new thread and preserve
 
 **Key principle:** Seamless continuation without losing context. Stay in flow while transitioning to a fresh thread.
 
+### Branch & Worktree Hygiene
+
+**Slash command:** `/branch-hygiene`
+
+Classifies every local/remote branch and worktree against the mainline, then cleans up what is resolved. Detects squash-merges that `git branch --merged` cannot see (subject/PR matching, file presence, content diffs) — the only reliable test in squash-merge workflows.
+
+**What it detects:**
+- Branches fully resolved via squash-merge (`merged-content`) or patch-equivalence (`merged-ancestry`)
+- Superseded branches (content landed, mainline evolved past them) and stale-base branches (merging would regress)
+- Remote-gone branches, prunable worktrees, orphaned worktree-looking directories
+- Worktree-attached branches are never auto-delete eligible; dirty/unmerged work is never touched
+
+**Safety model:** the classifier script is strictly read-only. Tiered action policy — auto (local branch delete, `worktree prune`), confirm (worktree remove, remote ref deletion), never (dirty or unmerged).
+
+**Usage examples:**
+- "Clean up my merged branches"
+- "Prune stale worktrees"
+- "Which branches are safe to delete?"
+
+**Key principle:** Every deletion is backed by a verified verdict, never an ancestry guess.
+
 ### Test Output Filtering
 
 **Automatic activation** - No command needed, filters test output by default to reduce token costs.
@@ -194,7 +215,8 @@ plugins/base/
 ├── skills/
 │   ├── crafting-commits/           # Professional commit crafting
 │   ├── systematic-debugging/       # Systematic debugging approach
-│   └── handoff-context/            # Natural language handoff detection
+│   ├── handoff-context/            # Natural language handoff detection
+│   └── branch-hygiene/             # Squash-merge-aware branch/worktree cleanup
 ├── agents/
 │   └── workflow-orchestrator.md    # Workflow coordination (beta)
 ├── hooks/
@@ -225,4 +247,4 @@ export VIBEKIT_BASE_QA_SCOPE=standard        # Quality assurance level: standard
 
 ---
 
-License: Apache 2.0 | Plugin Version: 1.10.0
+License: Apache 2.0 | Plugin Version: 1.12.0

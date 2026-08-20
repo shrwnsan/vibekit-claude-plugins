@@ -28,6 +28,7 @@ squash_evidence() {  # $1 = ref; prints matching mainline squash commits or empt
     pr=$(git log "$MAIN" --oneline --grep="$subj" | head -1)
     [ -n "$pr" ] && echo "$pr"
   done < <(git log "$MAIN..$1" --format='%s' | head -20)
+  return 0   # never propagate the last test's status — callers cache us in bare assignments under set -e
 }
 
 content_landed() {  # $1 = ref; true if branch's key non-docs files all exist on mainline
@@ -77,23 +78,21 @@ for b in $(git for-each-ref --format='%(refname:short)' refs/heads/ | grep -vx "
     echo -e "merged-ancestry\tbranch\t$b\tall patches present on $MAIN (cherry)"
     continue
   fi
-  if [ -n "$(squash_evidence "$b")" ] && content_landed "$b"; then
+  ev=$(squash_evidence "$b")
+  if [ -n "$ev" ] && content_landed "$b"; then
     if mainline_newer "$b"; then
-      echo -e "superseded\tbranch\t$b\tcontent landed ($(squash_evidence "$b" | head -1)) and $MAIN evolved past it"
+      echo -e "superseded\tbranch\t$b\tcontent landed ($(echo "$ev" | head -1)) and $MAIN evolved past it"
     else
-      echo -e "merged-content\tbranch\t$b\t$(squash_evidence "$b" | head -1)"
+      echo -e "merged-content\tbranch\t$b\t$(echo "$ev" | head -1)"
     fi
     continue
   fi
-  if [ -n "$(squash_evidence "$b")" ] && content_landed "$b" && mainline_newer "$b"; then
-    echo -e "stale-base\tbranch\t$b\tfiles exist on $MAIN but diverged; merging may regress"
-  else
-    echo -e "unmerged\tbranch\t$b\t$(git rev-list --count "$MAIN..$b") unique commits: $(git log "$MAIN..$b" --oneline | head -1)"
-  fi
+  echo -e "unmerged\tbranch\t$b\t$(git rev-list --count "$MAIN..$b") unique commits: $(git log "$MAIN..$b" --oneline | head -1)"
 done
 
-# --- remote branches without locals -----------------------------------------
+# --- remote branches without locals (origin only — known limitation) --------
 
+if git remote get-url origin >/dev/null 2>&1; then
 for rb in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/ | grep -vxE 'origin|origin/HEAD'); do
   short="${rb#origin/}"
   git show-ref --verify --quiet "refs/heads/$short" && continue
@@ -105,6 +104,7 @@ for rb in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/ | 
     echo -e "unmerged\tremote\t$rb\t$(git rev-list --count "$MAIN..$rb" | awk '{print $1}') unique commits (no local copy)"
   fi
 done
+fi
 
 # --- worktrees ---------------------------------------------------------------
 

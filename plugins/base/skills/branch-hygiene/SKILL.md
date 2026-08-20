@@ -43,6 +43,7 @@ file presence, and feature greps.
    | `merged-ancestry` / `merged-content` (branch) | `git branch -D` | none (reflog recovers) |
    | `remote-gone` (local branch, upstream deleted) | `git branch -D` + remove any worktree | none |
    | `stale-base` (branch predates mainline; merging would regress) | surface to user | user decides |
+   > `stale-base` is currently emitted by review judgment, not the classifier — treat divergence without squash evidence as `unmerged` and assess manually.
    | `superseded` (content landed, mainline evolved past it) | surface to user | user decides |
    | `unmerged` (genuinely unique commits) | surface to user, never delete | user decides |
    | `worktree-prunable` (directory gone, registry entry remains) | `git worktree prune` | none (metadata only) |
@@ -72,6 +73,15 @@ larger/newer → `superseded`. Diff would *remove* lines mainline has → `stale
   if contained in mainline and tree is clean.
 - Tool-created worktrees (e.g. `.claude/worktrees/`) are included; their
   auto-cleanup is best-effort, this is the backstop.
+
+## Known limitations
+
+- **Origin only**: the remote scan covers `origin/*` exclusively. Repos with
+  additional remotes (`upstream/`, `fork/`) only get their origin refs
+  classified — run with awareness, or extend the remote loop.
+- **Squash-merge detection is heuristic**: subject matching can false-positive
+  on generic subjects ("fix bugs"); the verify step exists for exactly this
+  reason. Never trust a verdict without checking its evidence.
 
 ## Hard rules
 

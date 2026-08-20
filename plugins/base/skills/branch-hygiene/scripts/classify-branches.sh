@@ -7,6 +7,8 @@
 #           worktree-dirty orphan-dir
 set -euo pipefail
 
+cd "$(git rev-parse --show-toplevel)"   # anchor relative orphan-dir scan to repo root
+
 MAIN="${1:-}"
 [ -z "$MAIN" ] && { git show-ref --verify --quiet refs/heads/main && MAIN=main || MAIN=master; }
 git show-ref --verify --quiet "refs/heads/$MAIN" || { echo "error: mainline '$MAIN' not found" >&2; exit 2; }

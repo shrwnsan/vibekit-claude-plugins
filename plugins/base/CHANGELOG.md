@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- branch-hygiene skill: squash-merge-aware branch and worktree cleanup classifier
+  - Detects content-level merges that `git branch --merged` cannot see (subject/PR matching, file presence, feature diffs)
+  - Verdicts: merged-ancestry, merged-content, remote-gone, stale-base, superseded, unmerged, active, worktree-prunable/clean-merged/dirty, orphan-dir
+  - Classifier script is strictly read-only; tiered action policy (auto local delete / confirm worktree+remote removal / never touch dirty or unmerged)
+
 ## [1.11.0] - 2026-02-11
 
 ### Added

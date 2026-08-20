@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "name": "base",
       "source": "./plugins/base",
       "description": "Essential Claude Code workflow and context engineering tools for productive development",
-      "version": "1.11.1",
+      "version": "1.12.0",
       "author": {
         "name": "shrwnsan"
       },
@@ -22,7 +22,7 @@
       "license": "Apache-2.0",
       "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation", "debugging"],
       "category": "productivity",
-      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging"]
+      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging", "branch-cleanup", "git-worktrees"]
     },
     {
       "name": "search-plus",

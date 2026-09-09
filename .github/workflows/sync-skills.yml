@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'plugins/*/skills/**'
+      - '!plugins/haku/**'
 
 permissions:
   contents: read
@@ -36,9 +37,12 @@ jobs:
           cd /tmp/agents
           git checkout -b "$BRANCH"
 
-          # Find and sync each skill directory
+          # Find and sync each skill directory.
+          # haku stays out of the hub: CC BY-SA-4.0 upstream (see plugins/haku/README.md),
+          # while the hub is Apache-2.0 — copying its 52 skills here would mix licenses
+          # and strip the required attribution. Revisit only with a licensing decision.
           cd "$GITHUB_WORKSPACE"
-          find plugins -path "*/skills/*/SKILL.md" | while read -r skill_file; do
+          find plugins -path "*/skills/*/SKILL.md" ! -path "plugins/haku/*" | while read -r skill_file; do
             skill_dir=$(dirname "$skill_file")
             skill_name=$(basename "$skill_dir")
 

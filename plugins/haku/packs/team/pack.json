@@ -1,0 +1,16 @@
+{
+  "name": "team",
+  "description": "Team health diagnostics, charters, check-ins, and workload equity for teams of 3-15.",
+  "skills": [
+    "psychological-safety",
+    "team-charter",
+    "team-check-in",
+    "team-close-gap",
+    "team-diagnosis",
+    "team-lifecycle",
+    "team-style-inventory",
+    "team-workspace",
+    "workload-equity"
+  ],
+  "agents": []
+}

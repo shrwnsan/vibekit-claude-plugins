@@ -1,0 +1,10 @@
+{
+  "name": "research",
+  "description": "Discovery interviews, GTM planning, and cross-source research synthesis.",
+  "skills": [],
+  "agents": [
+    "the-discovery-facilitator",
+    "the-gtm-planner",
+    "the-research-synthesizer"
+  ]
+}

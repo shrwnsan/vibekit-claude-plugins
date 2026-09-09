@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins"
   },
   "plugins": [
@@ -51,6 +51,21 @@
       "keywords": ["notification", "audio", "alert", "productivity", "sound"],
       "category": "productivity",
       "tags": ["notification", "audio-alert", "sound", "hooks"]
+    },
+    {
+      "name": "haku",
+      "source": "./plugins/haku",
+      "description": "Lean leadership plugin that runs the decide → spec → evidence loop — 8-skill core + 5 gate agents, with 8 opt-in role packs (product, people, engineering)",
+      "version": "0.5.0",
+      "author": {
+        "name": "shrwnsan"
+      },
+      "homepage": "https://github.com/shrwnsan/haku",
+      "repository": "https://github.com/shrwnsan/haku",
+      "license": "CC-BY-SA-4.0",
+      "keywords": ["decision-making", "spec", "product-sense", "leadership", "lean", "lean product sense", "pm", "engineering-manager", "productivity"],
+      "category": "productivity",
+      "tags": ["decision-log", "spec-writing", "leadership", "pm", "product-management", "reflection", "wins-log", "evaluation"]
     }
   ]
 }

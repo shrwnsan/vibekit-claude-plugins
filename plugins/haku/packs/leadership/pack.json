@@ -1,0 +1,19 @@
+{
+  "name": "leadership",
+  "description": "Org-level strategy, metrics design, glue-work audits, and decision-quality practices.",
+  "skills": [
+    "engineering-health",
+    "glue-audit",
+    "impact-audit",
+    "leadership-os",
+    "manage-glue-workers",
+    "metrics-design",
+    "patterns-watch",
+    "premortem",
+    "prioritization-frameworks",
+    "tech-strategy-writer"
+  ],
+  "agents": [
+    "the-architect"
+  ]
+}

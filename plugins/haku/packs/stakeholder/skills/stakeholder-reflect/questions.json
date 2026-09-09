@@ -1,0 +1,638 @@
+{
+  "schema_version": 1,
+  "notes": "stakeholder_categories is an array of which stakeholder types this question applies to. Values: managing-up, managing-across, managing-down, teams, self. sense_category indicates how the question gets answered: 'ask' (must come from them), 'sense' (read their actions, words, tone — their stated answer is unreliable), 'askandsense' (combine both). suggested_freq is a guideline, not a rule.",
+  "questions": [
+    {
+      "id": "mind-at-work",
+      "prompt": "What's on their mind at work?",
+      "subheading": "Get a short overview of what they are working on, what they have accomplished, and what they might be struggling with right now.",
+      "suggested_freq": "weekly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": "* What are they happy about?\n* What are they currently struggling with?\n* Do they have a plan about their next steps?\n* Is what they are doing in line with team and company priorities?"
+    },
+    {
+      "id": "life-context",
+      "prompt": "What's going on in their life?",
+      "subheading": "To get a holistic understanding of them as a person, try to understand what — apart from work — is on their mind. Ask them and share a bit from your side too.",
+      "suggested_freq": "biweekly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": "* Any major life event which just happened or is around the corner?\n* Are they physically and mentally in the right place?\n* What things (apart from work), are top of mind for them right now?"
+    },
+    {
+      "id": "career-goals",
+      "prompt": "What are their career goals?",
+      "subheading": "Get their views on what their career goals are. Knowing this will help you develop them in the right direction.",
+      "suggested_freq": "quarterly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "morale",
+      "prompt": "How's their morale?",
+      "subheading": "Morale is more than just 'good' or 'bad' — it's complex, and the nuances matter. Rather than focus on the morale level itself, sense the leading factors that shape it.",
+      "suggested_freq": "weekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-down", "managing-across"],
+      "things_to_consider": "## In your conversation, look for signs of:\n* Tension, anxiety, fear, frustration, anger, resentment\n* Boredom, lack of energy, lack of clarity, cynicism\n* Enthusiasm, pro-activeness, optimism"
+    },
+    {
+      "id": "needs-challenge",
+      "prompt": "Do they need to be challenged?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "growth-opportunities",
+      "prompt": "What opportunities can you provide for their growth?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "unclear-on",
+      "prompt": "What are they unclear on?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-down", "managing-across"],
+      "things_to_consider": null
+    },
+    {
+      "id": "accomplishments",
+      "prompt": "What have they accomplished lately?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "struggling-with",
+      "prompt": "What are they struggling with lately?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-down", "managing-across"],
+      "things_to_consider": null
+    },
+    {
+      "id": "others-perception",
+      "prompt": "How are others finding working with them?",
+      "subheading": null,
+      "suggested_freq": "quarterly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "environment-enables-success",
+      "prompt": "Does their environment enable their success?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "kept-in-loop",
+      "prompt": "What do they need to be kept in the loop about?",
+      "subheading": null,
+      "suggested_freq": "weekly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "approvals-signoffs",
+      "prompt": "Do you need any approvals/signoffs from them?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-up"],
+      "things_to_consider": null
+    },
+    {
+      "id": "advice-opinion",
+      "prompt": "What advice or opinion would you like from them?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-up", "managing-across"],
+      "things_to_consider": null
+    },
+    {
+      "id": "priorities-incentives-constraints",
+      "prompt": "What are their priorities, incentives and constraints?",
+      "subheading": "What does success look like for them, what is rewarded in their world, and what hard limits are they working within? Understanding this lets you frame your asks in their terms.",
+      "suggested_freq": "biweekly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "concerns",
+      "prompt": "What concerns them?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "how-they-help-you",
+      "prompt": "How can they help you?",
+      "subheading": null,
+      "suggested_freq": "weekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-up", "managing-across"],
+      "things_to_consider": null
+    },
+    {
+      "id": "know-your-workload",
+      "prompt": "How much do they know about your workload?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up"],
+      "things_to_consider": null
+    },
+    {
+      "id": "to-flag-them",
+      "prompt": "Is there anything you need to flag to them?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "communication-style",
+      "prompt": "What's their communication style?",
+      "subheading": null,
+      "suggested_freq": "quarterly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "they-helped-you",
+      "prompt": "How have they helped you lately?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-up", "managing-across"],
+      "things_to_consider": null
+    },
+    {
+      "id": "not-going-well",
+      "prompt": "What's not going well?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "their-feedback-to-you",
+      "prompt": "What's been their feedback to you?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up"],
+      "things_to_consider": null
+    },
+    {
+      "id": "doing-well",
+      "prompt": "What do they think you're doing well?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "improve-on",
+      "prompt": "What do they think you can improve on?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "anticipated-questions",
+      "prompt": "What questions from them can you anticipate?",
+      "subheading": "What do you anticipate they will ask you about — at your next 1:1 or in some other channel? It could be a status update, an analysis, the reasoning behind a recent decision. Think about it in advance and have your answer ready.",
+      "suggested_freq": "weekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-up"],
+      "things_to_consider": null
+    },
+    {
+      "id": "their-goals",
+      "prompt": "What are their goals?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "rapport",
+      "prompt": "How is your rapport with them?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "how-you-help-them",
+      "prompt": "How can you help them?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "you-need-from-them",
+      "prompt": "What do you need from them?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "sense",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "they-need-from-you",
+      "prompt": "What do they need from you?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up", "managing-across", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "expectations",
+      "prompt": "What are their expectations from you?",
+      "subheading": "Make sure you have clarity on exactly what is expected from you — what results, what's in scope, what the priorities are, and what NOT to work on. Have a definition of good and know where the bar is set, so you don't just deliver results — you deliver great results with high-quality output.",
+      "suggested_freq": "monthly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up"],
+      "things_to_consider": null
+    },
+    {
+      "id": "what-they-want-to-achieve",
+      "prompt": "What do they want to achieve?",
+      "subheading": "And what role do you play in it? It's critical to know what your manager is trying to get done, what their most pressing priorities and concerns are — and then be clear on how you fit into their plan. This clarifies what's expected from you and gives you context on why it matters *to them*.\n\nBonus: Trace the chain upward — how does their work fit into their boss's goals, and so on, until you can see how your work connects to overall company goals.",
+      "suggested_freq": "biweekly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up"],
+      "things_to_consider": null
+    },
+    {
+      "id": "product-growth-knowledge",
+      "prompt": "Do they know how the product will grow in the next few months?",
+      "subheading": null,
+      "suggested_freq": "quarterly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up"],
+      "things_to_consider": null
+    },
+    {
+      "id": "market-understanding",
+      "prompt": "Do they understand the competition, industry and market?",
+      "subheading": null,
+      "suggested_freq": "quarterly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up"],
+      "things_to_consider": null
+    },
+    {
+      "id": "tech-debt",
+      "prompt": "Addressing technical debt",
+      "subheading": "Where do they stand on prioritizing technical debt vs. new feature work? What's their tolerance, what's their reasoning, and where do they need data to be persuaded?",
+      "suggested_freq": "monthly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "system-understanding",
+      "prompt": "How good is their understanding of the complete system?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "askandsense",
+      "stakeholder_categories": ["managing-up", "managing-down"],
+      "things_to_consider": null
+    },
+    {
+      "id": "their-kpis",
+      "prompt": "What are their KPIs?",
+      "subheading": "Understand the metrics they're measured on. Knowing what success looks like for them in concrete numbers helps you align your work with their incentives, anticipate their priorities, and frame your asks in their terms.",
+      "suggested_freq": "quarterly",
+      "sense_category": "ask",
+      "stakeholder_categories": ["managing-up", "managing-down"],
+      "things_to_consider": null
+    },
+
+    {
+      "id": "team-roles-clear",
+      "prompt": "Are all clear on their roles?",
+      "subheading": null,
+      "suggested_freq": "quarterly",
+      "sense_category": "team-clarity-alignment",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-goals-defined",
+      "prompt": "Are goals clearly defined?",
+      "subheading": null,
+      "suggested_freq": "quarterly",
+      "sense_category": "team-clarity-alignment",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-credit",
+      "prompt": "Who in the team doesn't get enough credit?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-culture",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-voice",
+      "prompt": "Who is not getting their say?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-culture",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-conflicts",
+      "prompt": "What conflicts do you see?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "team-culture",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-speak-up",
+      "prompt": "Does everyone speak up freely?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "team-culture",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-resource-use",
+      "prompt": "Is the team making the best use of the resources given to it?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-talent-process-resources",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-blockers-current",
+      "prompt": "Which things are getting in the way?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-talent-process-resources",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-resources-wished",
+      "prompt": "Which resources do you wish you had?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-talent-process-resources",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-on-track",
+      "prompt": "Is the team on-track?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "team-results",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-recent-wins",
+      "prompt": "Recent team wins",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-results",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-strengths",
+      "prompt": "What is the team excellent at?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-results",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-luck-factor",
+      "prompt": "The luck factor",
+      "subheading": "How much of the team's recent results came from skill, judgment, and process — and how much came from external good fortune (or misfortune)? Honest answers here protect against over- or under-correcting.",
+      "suggested_freq": "monthly",
+      "sense_category": "team-results",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-improve",
+      "prompt": "What should be improved?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "team-results",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-blockers-future",
+      "prompt": "What blockers do you foresee?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-future",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-uncertainties",
+      "prompt": "What uncertainties lie ahead?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-future",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-looking-forward",
+      "prompt": "What are you looking forward to?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "team-future",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": null
+    },
+    {
+      "id": "team-one-thing-to-improve",
+      "prompt": "What is the one thing to improve in the team in the next few weeks?",
+      "subheading": "Look at the future, but not too far ahead. Think of the next few weeks and reflect on which specific things the team could work on to demonstrate tangible improvement.",
+      "suggested_freq": "monthly",
+      "sense_category": "team-future",
+      "stakeholder_categories": ["teams"],
+      "things_to_consider": "* Think of the future, but not beyond 6 weeks.\n* Think of things which the team could make a tangible impact on in that timeframe.\n* Who in the team would need to take the lead, and who would they need to collaborate with to make it happen?\n* How would you measure that improvement?"
+    },
+
+    {
+      "id": "self-pressure",
+      "prompt": "How have I behaved under pressure lately?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "general-behaviour",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "* Have I lashed out at others?\n* Have I bottled everything in?\n* Did I freeze?\n* Have I had a break-down / panic attack?\n* Have I talked to others about it?\n* Have I made plans and acted on them?"
+    },
+    {
+      "id": "self-communication",
+      "prompt": "How well are you communicating?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "general-behaviour",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "* Written\n* Verbal\n* Non-verbal\n* Am I being understood?"
+    },
+    {
+      "id": "self-handling-feedback",
+      "prompt": "How are you handling feedback?",
+      "subheading": "Handling both positive and negative feedback can be challenging, but it's essential for growth.\n\n## Positive feedback:\nExpress gratitude. Acknowledge the positive impact. Use it as motivation.\n\n## Negative feedback:\nStay calm and avoid getting defensive. Ask for clarification if needed. Evaluate the validity objectively. Use it as an opportunity for growth.",
+      "suggested_freq": "monthly",
+      "sense_category": "general-behaviour",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "**If you received criticism lately:**\n* Did you accept it positively, or did you employ defensiveness or lash out?\n* Did they have a point? Be honest.\n* Do you have a plan to address it?\n* Once you do, how will you demonstrate that you have grown (if needed)?\n\n**If you received praise:**\n* Did you receive it with grace and humility?\n* Did you thank them?\n* Did you learn something new about yourself, or did it reinforce something you already knew?"
+    },
+    {
+      "id": "self-leader-strengths",
+      "prompt": "What makes you a good leader?",
+      "subheading": null,
+      "suggested_freq": "quarterly",
+      "sense_category": "leadership",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "* What makes you a good leader in general?\n* Which of those did you put into action lately?"
+    },
+    {
+      "id": "self-leader-growth",
+      "prompt": "How have you grown as a leader lately?",
+      "subheading": null,
+      "suggested_freq": "monthly",
+      "sense_category": "leadership",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": null
+    },
+    {
+      "id": "self-giving-feedback",
+      "prompt": "How are you giving feedback?",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "general-behaviour",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "Is it:\n* Timely\n* Direct\n* Actionable\n* Kind"
+    },
+    {
+      "id": "self-compensation",
+      "prompt": "Compensation: is it fair?",
+      "subheading": "Ask yourself this from time to time — don't scramble about it just before a salary review. Knowing what you bring to the table, along with market conditions, helps you negotiate better.",
+      "suggested_freq": "biyearly",
+      "sense_category": "current-role",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "Think of your compensation at your current role and experience level — salary, benefits, perks — in context with the prevailing market.\n\n* Is it fair? Are you fine with it for now?\n* If not, what range should you be at?\n  * Why?\n  * How will you make the case to decision-makers?"
+    },
+    {
+      "id": "self-fulfillment",
+      "prompt": "Fulfillment",
+      "subheading": null,
+      "suggested_freq": "quarterly",
+      "sense_category": "current-role",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "* How fulfilled do you feel in the current role?\n* What might increase it?\n* What might decrease it?"
+    },
+    {
+      "id": "self-time-energy",
+      "prompt": "How well have you managed your time and energy recently?",
+      "subheading": "Time management is one of the most important leadership skills. Note: a lot of people struggling with time management are actually struggling with managing their energy. Think deeper here.",
+      "suggested_freq": "biweekly",
+      "sense_category": "current-role",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "Look at your calendar in recent and upcoming days. Take a breath, focus on your body, notice your energy.\n\n* How are you spending your time? Is it on stuff that matters?\n* Does your calendar leave room for deep contemplative work?\n* Does your calendar give a clue about your energy levels?\n* Are you getting enough sleep?\n* Do you need a break? What kind?"
+    },
+    {
+      "id": "self-advocate",
+      "prompt": "Advocating for yourself",
+      "subheading": null,
+      "suggested_freq": "biweekly",
+      "sense_category": "current-role",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "* Where do you need to stand up and advocate for yourself?\n  * e.g. someone taking your credit\n  * e.g. someone bullying you or your team\n  * e.g. lack of acknowledgement\n  * e.g. putting yourself in consideration for promotion\n* Where do you need to stand down? Which fight is not worth it?\n* Are you being heard enough?"
+    },
+    {
+      "id": "self-work-environment",
+      "prompt": "Work environment",
+      "subheading": "Does your current work environment enable your success?",
+      "suggested_freq": "quarterly",
+      "sense_category": "current-role",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": null
+    },
+    {
+      "id": "self-unclear",
+      "prompt": "What are you unclear about?",
+      "subheading": "Self-leadership involves reflecting on this regularly. Step one is identifying it in the first place. Having clarity yourself is the first step to giving it to others.",
+      "suggested_freq": "biweekly",
+      "sense_category": "current-role",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "* Which uncertain things have easy answers? What steps would get them?\n* Which things are baffling you right now? Who or what could help?\n* Anything at work you have a bad feeling about but can't explain why?\n* For each thing you're unclear on, how would clarity help you at work?"
+    },
+    {
+      "id": "self-calendar-review",
+      "prompt": "Calendar review",
+      "subheading": "Look at your calendar and review how you've been allocating your time.",
+      "suggested_freq": "biweekly",
+      "sense_category": "general-behaviour",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "* Any meetings or time blocks that should be removed?\n* Any meetings or time blocks that should be added?\n* Were these meetings the best use of your time? If not, why?"
+    },
+    {
+      "id": "self-leadership-style",
+      "prompt": "What should you work on to become a better leader?",
+      "subheading": "Knowing your strengths and weaknesses lets you delegate wisely, make informed decisions, and lead with authenticity.",
+      "suggested_freq": "monthly",
+      "sense_category": "leadership",
+      "stakeholder_categories": ["self"],
+      "things_to_consider": "* Understand your leadership style.\n* If your style changes by situation and person, think of recent ones you've used.\n* Think of feedback you've received on your leadership lately.\n* Think of your current progress on your efforts."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "comms",
+  "description": "Status updates, readouts, demos, and audience-calibrated communication craft.",
+  "skills": [
+    "demo-prep",
+    "exec-readout-prep",
+    "product-pulse",
+    "pulse-synthesize",
+    "read-the-room"
+  ],
+  "agents": [
+    "the-data-storyteller",
+    "the-explainer",
+    "the-status-crafter",
+    "the-translator"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "stakeholder",
+  "description": "Stakeholder registers, cadences, and reflection loops for managing up, across, and down.",
+  "skills": [
+    "stakeholder-due",
+    "stakeholder-manage",
+    "stakeholder-reflect",
+    "stakeholder-register",
+    "stakeholder-synthesize"
+  ],
+  "agents": []
+}

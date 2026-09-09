@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Emits one line if the user hasn't logged a win within THRESHOLD_DAYS, then
+# goes silent for another THRESHOLD_DAYS (cooldown). Designed to be run as a
+# haku background monitor — zero output = no nudge.
+
+HAKU_HOME="${HAKU_WORK_REFLECTIONS_HOME:-$HOME/haku-work-reflections}"
+WINS_FILE="$HAKU_HOME/wins.md"
+COOLDOWN_FILE="$HAKU_HOME/.wins-nudge-cooldown"
+THRESHOLD_DAYS="${WINS_NUDGE_THRESHOLD_DAYS:-14}"
+
+# Nothing to check if wins.md hasn't been created yet
+[ -f "$WINS_FILE" ] || exit 0
+
+now=$(date +%s)
+
+# Stay silent if we already nudged within the cooldown window
+if [ -f "$COOLDOWN_FILE" ]; then
+  last_nudge=$(cat "$COOLDOWN_FILE")
+  days_since_nudge=$(( (now - last_nudge) / 86400 ))
+  [ "$days_since_nudge" -lt "$THRESHOLD_DAYS" ] && exit 0
+fi
+
+# Parse the date from the most recent entry (entries are prepended, newest first)
+last_date=$(grep -m1 '^## [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' "$WINS_FILE" | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}')
+[ -z "$last_date" ] && exit 0
+
+# Convert date to epoch — handle both BSD (macOS) and GNU date
+if date -j > /dev/null 2>&1; then
+  last_ts=$(date -j -f "%Y-%m-%d" "$last_date" +%s 2>/dev/null)
+else
+  last_ts=$(date -d "$last_date" +%s 2>/dev/null)
+fi
+[ -z "$last_ts" ] && exit 0
+
+days_since_win=$(( (now - last_ts) / 86400 ))
+
+if [ "$days_since_win" -ge "$THRESHOLD_DAYS" ]; then
+  echo "No wins logged in $days_since_win days. Run /haku:wins-log to capture recent work before the details fade."
+  echo "$now" > "$COOLDOWN_FILE"
+fi

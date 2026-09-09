@@ -1,0 +1,24 @@
+{
+  "name": "people",
+  "description": "Career growth, feedback, coaching, and 1:1 craft for anyone who manages, mentors, or grows people.",
+  "skills": [
+    "career-retro",
+    "coaching-mode",
+    "commitments",
+    "feedback-frameworks",
+    "hiring-craft",
+    "influence-without-authority",
+    "one-on-one-prep",
+    "performance-management",
+    "promo-case-glue",
+    "report-career-architect",
+    "report-promo-case",
+    "self-reflect",
+    "visibility-sponsorship",
+    "wins-curate",
+    "wins-due"
+  ],
+  "agents": [
+    "the-career-coach"
+  ]
+}

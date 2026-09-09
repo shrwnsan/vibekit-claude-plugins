@@ -1,0 +1,10 @@
+{
+  "name": "evals",
+  "description": "Experiment and eval design, prompt critique, and scientific rigor for AI features.",
+  "skills": [],
+  "agents": [
+    "the-eval-designer",
+    "the-prompt-critic",
+    "the-scientist"
+  ]
+}

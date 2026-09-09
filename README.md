@@ -136,6 +136,22 @@ Sound notifications and alerts for Claude Code tasks. Get audio feedback when ta
 
 [→ Detailed Documentation](plugins/ping/README.md)
 
+### 📏 Haku
+
+A lean leadership plugin for AI PMs, engineering managers, TPMs, and senior ICs who'd rather decide well than write fast. An always-on core—8 skills + 5 gate agents—runs the decide → spec → evidence loop; 8 opt-in role packs bolt on for product, people, comms, and engineering work.
+
+**Key Features:**
+- 🎯 **Decide → Spec → Evidence Loop**: capture intent, pressure-test specs with a red-team gate, log wins as merge evidence
+- 🧠 **Compounding Memory**: `user-profile` anchor file — explain yourself once, get tailored output forever
+- 🚪 **Gate Agents**: reducer, spec-writer, red-teamer, RFC-reviewer, retro-facilitator — judgment at the decision points
+- 📦 **8 Opt-In Packs**: people, stakeholder, team, comms, leadership, engineering-ops, research, evals
+- 🔍 **Routing Evals**: golden dataset gates every description change in CI
+- 🩺 **Doctor**: health-checks your reflection data, backups, and pack installs
+
+**License:** CC BY-SA 4.0 (the only non-Apache plugin here — vendored from its own upstream repo at tag `v0.5.0`)
+
+[→ Detailed Documentation](plugins/haku/README.md)
+
 ## 🎯 What You Can Do
 
 Our plugins help developers:

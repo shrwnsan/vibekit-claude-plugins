@@ -1,0 +1,7 @@
+[
+  {
+    "name": "wins-cadence",
+    "command": "check-wins-cadence",
+    "description": "Checks whether the user has logged a win recently and emits one nudge if the cadence has lapsed. Silent when up to date or when already nudged within the cooldown window."
+  }
+]

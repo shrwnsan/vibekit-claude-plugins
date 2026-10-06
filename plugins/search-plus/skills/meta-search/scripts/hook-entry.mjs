@@ -3,6 +3,8 @@
 // Reads hook JSON from stdin, detects failed or empty results, runs recovery,
 // and prints ONLY a hookSpecificOutput JSON object to stdout (anything else breaks parsing).
 
+import { pathToFileURL } from 'node:url';
+
 // Library modules log via console.*; keep stdout clean for the hook JSON.
 const sink = process.env.SEARCH_PLUS_DEBUG === '1' ? console.error.bind(console) : () => {};
 console.log = console.info = console.warn = console.error = sink;
@@ -59,6 +61,8 @@ function extractQuery({ tool_input: toolInput, tool_name: tool }) {
   return toolInput.query || null;
 }
 
+export { detectFailure, extractQuery };
+
 async function main() {
   const input = await readStdin();
   const failure = detectFailure(input);
@@ -85,6 +89,9 @@ async function main() {
   }));
 }
 
-// Never block Claude: exit 0 on success, failure, or deadline
-setTimeout(() => process.exit(0), DEADLINE_MS).unref();
-main().catch(() => {}).finally(() => process.exit(0));
+// Run the hook loop only when executed directly; tests import the pure helpers
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
+  // Never block Claude: exit 0 on success, failure, or deadline
+  setTimeout(() => process.exit(0), DEADLINE_MS).unref();
+  main().catch(() => {}).finally(() => process.exit(0));
+}

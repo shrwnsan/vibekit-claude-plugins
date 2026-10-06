@@ -9,6 +9,7 @@ const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAV
 const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.SEARCH_PLUS_JINAAI_API_KEY || process.env.JINA_API_KEY || process.env.JINAAI_API_KEY || null;
 const BRAVE_API_KEY = process.env.SEARCH_PLUS_BRAVE_API_KEY || process.env.BRAVE_API_KEY || null;
 const EXA_API_KEY = process.env.SEARCH_PLUS_EXA_API_KEY || process.env.EXA_API_KEY || null;
+const FIRECRAWL_API_KEY = process.env.SEARCH_PLUS_FIRECRAWL_API_KEY || null;
 
 // Show deprecation warnings for old variable names
 if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
@@ -81,8 +82,7 @@ export async function handleWebSearch(params) {
       query,
       maxResults: params.maxResults || 5,
       includeAnswer: params.includeAnswer !== false,
-      includeRawContent: params.includeRawContent || false,
-      headers: generateRandomHeaders()
+      includeRawContent: params.includeRawContent || false
     };
 
     const result = await performHybridSearch(searchParams, timeout);
@@ -103,7 +103,6 @@ export async function handleWebSearch(params) {
       maxResults: params.maxResults || 5,
       includeAnswer: params.includeAnswer || true,
       includeRawContent: params.includeRawContent || false,
-      headers: generateRandomHeaders(),
       timeout,
       attempt: 1,
       error: error
@@ -131,7 +130,7 @@ export async function handleWebSearch(params) {
 
 /**
  * Hybrid web search with intelligent service selection
- * Sequential: Tavily → Brave → Exa → Jina Search
+ * Sequential: Tavily → Brave → Exa → Jina Search → Firecrawl (keyless)
  */
 export async function performHybridSearch(params, timeoutMs = 10000) {
   // Phase 1: Try Tavily API (premium, best RAG integration)
@@ -185,14 +184,96 @@ export async function performHybridSearch(params, timeoutMs = 10000) {
     }
   }
 
+  // Phase 5: Firecrawl Search (keyless tier works without signup; key raises limits)
+  try {
+    console.log('🔥 Trying Firecrawl Search...');
+    const result = await tryFirecrawlSearch(params, timeoutMs);
+    console.log('✅ Success with Firecrawl Search');
+    return result;
+  } catch (error) {
+    console.log(`❌ Firecrawl Search failed: ${error.message}`);
+  }
+
   throw new Error(
-    'All search services failed. Configure at least one API key:\n' +
+    'All search services failed (including keyless Firecrawl). Configure an API key for higher limits:\n' +
     '  • SEARCH_PLUS_TAVILY_API_KEY (recommended, 1000 free searches/month at tavily.com)\n' +
     '  • SEARCH_PLUS_BRAVE_API_KEY ($5 free credits/month at brave.com/search/api)\n' +
     '  • SEARCH_PLUS_EXA_API_KEY (1000 free searches/month at exa.ai)\n' +
     '  • SEARCH_PLUS_JINA_API_KEY (10M free tokens at jina.ai)\n' +
+    '  • SEARCH_PLUS_FIRECRAWL_API_KEY (1,000 free credits/month at firecrawl.dev)\n' +
     'See: https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus#setup-options'
   );
+}
+
+/**
+ * Attempts web search using Firecrawl Search API.
+ * Works without a key (keyless tier, rate-limited per IP); SEARCH_PLUS_FIRECRAWL_API_KEY raises limits.
+ */
+async function tryFirecrawlSearch(params, timeoutMs = 10000) {
+  const startTime = Date.now();
+  const response = await fetch('https://api.firecrawl.dev/v2/search', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(FIRECRAWL_API_KEY ? { 'Authorization': `Bearer ${FIRECRAWL_API_KEY}` } : {})
+    },
+    body: JSON.stringify({ query: params.query, limit: params.maxResults || 5 }),
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Firecrawl Search error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Firecrawl returns { data: { web: [{ url, title, description }] } }
+  const results = (data.data?.web || []).map(item => ({
+    title: item.title || '',
+    url: item.url || '',
+    content: item.description || item.markdown || ''
+  }));
+
+  if (results.length === 0) {
+    throw new Error('No results found from Firecrawl Search');
+  }
+
+  const standardizedResult = transformToStandard('firecrawl', { results }, params.query, Date.now() - startTime);
+  return { data: standardizedResult, service: 'firecrawl' };
+}
+
+/**
+ * Formats a handleWebSearch() result as compact markdown for the model.
+ * Raw JSON (scores, metadata, every attempt) costs tokens without helping the answer.
+ * @param {Object} result - Successful result from handleWebSearch()
+ * @returns {string} Markdown
+ */
+export function formatResult(result) {
+  const data = result.data;
+  if (typeof data === 'string') return data;
+
+  // URL extraction
+  if (result.isURLExtraction) {
+    const title = data.metadata?.title;
+    return [
+      title ? `# ${title}` : null,
+      `Source: ${data.url} (via ${data.service})`,
+      '',
+      typeof data.content === 'string' ? data.content.trim() : JSON.stringify(data.content, null, 2)
+    ].filter(line => line !== null).join('\n');
+  }
+
+  // Web search
+  const lines = [`Search results for "${data.query}" (via ${data.service || result.service})`, ''];
+  if (data.answer) lines.push(`Answer: ${data.answer}`, '');
+  (data.results || []).forEach((r, i) => {
+    lines.push(`${i + 1}. [${r.title || r.url}](${r.url})${r.published_date ? ` (${r.published_date.slice(0, 10)})` : ''}`);
+    if (r.content) {
+      const snippet = r.content.replace(/\s+/g, ' ').trim();
+      lines.push(`   ${snippet.length > 800 ? snippet.slice(0, 800) + '…' : snippet}`);
+    }
+  });
+  return lines.join('\n');
 }
 
 /**
@@ -352,28 +433,6 @@ async function tryExaSearch(params, timeoutMs = 10000) {
 }
 
 /**
- * Generate random headers to avoid detection
- * @returns {Object} Random headers object
- */
-function generateRandomHeaders() {
-  const userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:89.0) Gecko/20100101 Firefox/89.0'
-  ];
-  
-  return {
-    'User-Agent': userAgents[Math.floor(Math.random() * userAgents.length)],
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Accept-Encoding': 'gzip, deflate',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-  };
-}
-
-/**
  * Determines if an error is retryable
  * @param {Error} error - The error to check
  * @returns {boolean} True if the error is retryable
@@ -478,15 +537,27 @@ async function handleURLExtraction(url, options = {}) {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
       
-      // Try to extract content with custom headers
+      // Don't spoof browser headers: they get API requests challenged by Cloudflare (e.g. r.jina.ai → 403)
       const extractOptions = {
-        headers: generateRandomHeaders(),
         includeImages: false, // Don't include images by default for faster processing
         ...options
       };
-      
+
       const results = await extractContent(url, extractOptions);
-      
+
+      // extractContent already walks every service; a failed result is final, not retryable
+      if (!results.success) {
+        const tried = (results.allResults || []).map(r => `${r.service}: ${(r.error?.message || 'empty content').slice(0, 200)}`);
+        return {
+          error: true,
+          message: tried.length
+            ? `Failed to extract content from URL. Tried:\n  - ${tried.join('\n  - ')}`
+            : `Failed to extract content from URL: ${results.error?.message || 'unknown error'}`,
+          attempt: attempt + 1,
+          isURLExtraction: true
+        };
+      }
+
       return {
         success: true,
         data: results,

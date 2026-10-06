@@ -77,6 +77,22 @@ export SEARCH_PLUS_TAVILY_API_KEY=tvly-your-key-here
 export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 ```
 
+### Firecrawl (Keyless Fallback)
+
+**What it does**: Web search and URL scraping to markdown. Used automatically as the last search provider and as an extraction fallback after Jina Reader.
+
+**Free Tier**:
+- Without API key: keyless tier, rate-limited per IP (no signup)
+- With free API key: 1,000 credits/month (search costs 2 credits per 10 results)
+
+```bash
+export SEARCH_PLUS_FIRECRAWL_API_KEY=fc-your-key-here  # optional
+```
+
+### Defuddle (Keyless Extraction Fallback)
+
+`defuddle.md` converts a URL to clean markdown with no key. It runs after Firecrawl and is also used to read Wayback Machine snapshots. No configuration.
+
 ## Environment Variables Reference
 
 ### Required Variables (Optional)
@@ -90,6 +106,9 @@ SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 
 ### Optional Performance Tuning
 ```bash
+# Print progress logs to stderr from search.mjs / hook-entry.mjs (default: off)
+SEARCH_PLUS_DEBUG=1
+
 # Recovery timeout for individual strategies (default: 5000ms)
 SEARCH_PLUS_RECOVERY_TIMEOUT_MS=5000
 

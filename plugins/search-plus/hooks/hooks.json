@@ -11,6 +11,18 @@
           }
         ]
       }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "WebSearch|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/skills/meta-search/scripts/hook-entry.mjs",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }

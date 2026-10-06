@@ -1,9 +1,17 @@
 #!/usr/bin/env node
-// hook-entry.mjs — CLI entry point for PostToolUse hook
-// Reads JSON from stdin, detects search/fetch errors, runs recovery,
-// and outputs additionalContext for Claude.
+// hook-entry.mjs — entry point for PostToolUse / PostToolUseFailure hooks on WebSearch|WebFetch
+// Reads hook JSON from stdin, detects failed or empty results, runs recovery,
+// and prints ONLY a hookSpecificOutput JSON object to stdout (anything else breaks parsing).
 
-import { handleWebSearch } from './handle-web-search.mjs';
+// Library modules log via console.*; keep stdout clean for the hook JSON.
+const sink = process.env.SEARCH_PLUS_DEBUG === '1' ? console.error.bind(console) : () => {};
+console.log = console.info = console.warn = console.error = sink;
+const { handleWebSearch, formatResult } = await import('./handle-web-search.mjs');
+
+// Claude Code caps additionalContext at 10,000 characters
+const MAX_CONTEXT_CHARS = 9500;
+// Stay under the 30s hook timeout in hooks.json so we exit cleanly instead of being killed
+const DEADLINE_MS = 25000;
 
 function readStdin() {
   return new Promise((resolve, reject) => {
@@ -18,80 +26,65 @@ function readStdin() {
   });
 }
 
-// Detect whether the tool response indicates a recoverable error
-function detectError(input) {
-  const { tool_response, tool_name } = input;
-  if (!tool_response) return null;
+// Returns a short failure label, or null when the tool result looks fine.
+// Only inspects structured fields, never page content: a successful page that
+// mentions "429" or "empty" must not trigger recovery.
+function detectFailure(input) {
+  if (input.hook_event_name === 'PostToolUseFailure') {
+    if (input.is_interrupt) return null;
+    const status = String(input.error || '').match(/\b(403|404|422|429|451|5\d\d)\b/);
+    return status ? status[1] : 'error';
+  }
 
-  const text = typeof tool_response === 'string'
-    ? tool_response
-    : JSON.stringify(tool_response);
+  const { tool_response: response, tool_name: tool } = input;
+  if (!response) return null;
 
-  // HTTP status errors
-  const statusMatch = text.match(/\b(403|422|429|451)\b/);
-  if (statusMatch) return { code: parseInt(statusMatch[1]), text };
+  if (tool === 'WebFetch') {
+    return typeof response === 'object' && Number(response.code) >= 400 ? String(response.code) : null;
+  }
 
-  // Connection errors
-  if (/ECONNREFUSED|ETIMEDOUT/i.test(text)) return { code: 0, text };
-
-  // Silent failures ("Did 0 searches")
-  if (/did 0 searches/i.test(text)) return { code: 422, text };
-
-  // Empty results
-  if (tool_name === 'WebSearch' && /\[\s*\]|no results|empty/i.test(text)) {
-    return { code: 0, text };
+  if (tool === 'WebSearch') {
+    const text = typeof response === 'string' ? response : JSON.stringify(response);
+    if (/did 0 searches/i.test(text)) return 'did 0 searches';
+    // Search results carry links; a response with none is an empty result set
+    if (typeof response === 'object' && !/https?:\/\//.test(text)) return 'empty results';
   }
 
   return null;
 }
 
-// Extract query/URL from the tool input
-function extractQuery(input) {
-  const { tool_input, tool_name } = input;
-  if (!tool_input) return null;
-
-  if (tool_name === 'WebFetch' || tool_name === 'web_fetch') {
-    return tool_input.url || tool_input.URL || null;
-  }
-
-  return tool_input.query || tool_input.search_query || tool_input.q || null;
+function extractQuery({ tool_input: toolInput, tool_name: tool }) {
+  if (!toolInput) return null;
+  if (tool === 'WebFetch') return toolInput.url || null;
+  return toolInput.query || null;
 }
 
 async function main() {
   const input = await readStdin();
+  const failure = detectFailure(input);
+  const query = failure && extractQuery(input);
+  if (!query) return;
 
-  const error = detectError(input);
-  if (!error) {
-    // No error detected — exit silently, let Claude proceed
-    process.exit(0);
+  const result = await handleWebSearch({ query, maxRetries: 2, timeout: 8000 });
+  if (!result.success || !result.data) return;
+
+  let context = [
+    `[search-plus recovery] ${input.tool_name} failed (${failure}). Recovered via ${result.data.service || result.service || 'fallback'}:`,
+    formatResult(result)
+  ].join('\n\n');
+  if (context.length > MAX_CONTEXT_CHARS) {
+    context = context.slice(0, MAX_CONTEXT_CHARS) +
+      `\n\n[truncated — run the meta-search skill script for the full content]`;
   }
 
-  const query = extractQuery(input);
-  if (!query) {
-    process.exit(0);
-  }
-
-  try {
-    const result = await handleWebSearch({ query, maxRetries: 2, timeout: 8000 });
-
-    if (result.success && result.data) {
-      const context = [
-        `[search-plus recovery] Original ${input.tool_name} failed (${error.code || 'error'}). Recovery succeeded via ${result.service || 'fallback'}.`,
-        typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2)
-      ].join('\n\n');
-
-      console.log(JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: 'PostToolUse',
-          additionalContext: context
-        }
-      }));
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: input.hook_event_name || 'PostToolUse',
+      additionalContext: context
     }
-  } catch {
-    // Recovery failed — exit silently, don't block Claude
-  }
-
-  process.exit(0);
+  }));
 }
 
-main().catch(() => process.exit(0));
+// Never block Claude: exit 0 on success, failure, or deadline
+setTimeout(() => process.exit(0), DEADLINE_MS).unref();
+main().catch(() => {}).finally(() => process.exit(0));

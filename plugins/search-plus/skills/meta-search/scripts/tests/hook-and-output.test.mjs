@@ -3,7 +3,9 @@
 //   node --test tests/*.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -142,6 +144,32 @@ test('hook-entry stdout is valid hookSpecificOutput JSON or empty, never prose',
   if (out !== '') {
     const parsed = JSON.parse(out); // throws if progress text leaked into stdout
     assert.ok(parsed.hookSpecificOutput.additionalContext.length <= 10000);
+  }
+});
+
+test('hook-entry runs main() when invoked through a symlinked plugin root', () => {
+  // A healthy-result test can't catch a broken entry guard (empty stdout either way),
+  // so assert main() actually ran: with debug on, recovery logs to stderr. A localhost
+  // URL is rejected by SSRF validation before any network call.
+  const dir = mkdtempSync(join(tmpdir(), 'sp-link-'));
+  try {
+    const link = join(dir, 'scripts');
+    symlinkSync(SCRIPTS_DIR, link, 'dir');
+    const res = spawnSync('node', [join(link, 'hook-entry.mjs')], {
+      encoding: 'utf8',
+      env: { ...process.env, SEARCH_PLUS_DEBUG: '1' },
+      input: JSON.stringify({
+        hook_event_name: 'PostToolUseFailure',
+        tool_name: 'WebFetch',
+        tool_input: { url: 'http://localhost/x' },
+        error: 'Request failed with status code 403',
+      }),
+    });
+    assert.equal(res.status, 0);
+    assert.equal(res.stdout, '');
+    assert.match(res.stderr, /Extracting content from URL/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 

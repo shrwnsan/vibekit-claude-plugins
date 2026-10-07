@@ -3,7 +3,8 @@
 // Reads hook JSON from stdin, detects failed or empty results, runs recovery,
 // and prints ONLY a hookSpecificOutput JSON object to stdout (anything else breaks parsing).
 
-import { pathToFileURL } from 'node:url';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 // Library modules log via console.*; keep stdout clean for the hook JSON.
 const sink = process.env.SEARCH_PLUS_DEBUG === '1' ? console.error.bind(console) : () => {};
@@ -89,8 +90,18 @@ async function main() {
   }));
 }
 
-// Run the hook loop only when executed directly; tests import the pure helpers
-if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
+// Run the hook loop only when executed directly; tests import the pure helpers.
+// Compare realpaths: Node resolves symlinks for import.meta.url but not argv[1],
+// and plugin roots can be symlinked (local marketplaces, /tmp → /private/tmp).
+function isMainModule() {
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   // Never block Claude: exit 0 on success, failure, or deadline
   setTimeout(() => process.exit(0), DEADLINE_MS).unref();
   main().catch(() => {}).finally(() => process.exit(0));

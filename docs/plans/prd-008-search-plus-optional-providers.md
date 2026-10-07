@@ -49,7 +49,7 @@ The keyless tier restores zero-cost operation but shares public rate limits: Fir
 - **Env var**: none — always-on first step.
 - **Slot**: Head of the URL extraction chain, before Tavily/Jina/Firecrawl/Defuddle.
 - **Why it's in this PRD**: it changes provider behavior (not just adds a service), so it merits review even though it's free. It also removes one third-party dependency for well-behaved sites, cutting latency to ~1 round trip.
-- **Guard**: treat as success only when the response is 200 and the body is non-empty text (not an HTML error page); otherwise fall through silently.
+- **Guard**: treat as success only when the response is 200 **and** `Content-Type` is `text/markdown` with a non-empty body. Most sites ignore the `Accept` header and return a normal 200 HTML page, so status alone is not a signal; otherwise fall through silently.
 
 ## Success Metrics
 

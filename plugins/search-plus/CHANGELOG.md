@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.3.0] - 2026-10-08
 
+### Added
+- **Direct markdown fetch** at the head of the URL extraction chain (#99): before any third-party service, the origin is asked for markdown (`Accept: text/markdown`). Trusted only on 200 + `text/markdown` + non-empty body; anything else falls through silently to the existing chain with the attempt visible in the `Tried:` output. Always-on, no configuration, one round trip for sites that honor content negotiation.
+
+### Fixed
+- `github-service.mjs` `Promise.race` timeout timers are now cleared on completion (#98)
+- Wayback availability-API outages are reported as such instead of "No Wayback snapshot available" (#98)
+- Reserved test domains (example.com/net/org) are rejected with an actionable "reserved test domain" message instead of the generic suspicious-domain wording (#98)
+- `agents/search-plus.md` documents the real CLI output contract instead of a schema with fields nothing produces (#96)
+
+## [3.2.0] - 2026-10-08
+
 ### Removed
 - **Legacy recovery machinery (~1,000 lines)**: `handle-search-error.mjs` and `handle-rate-limit.mjs` were unreachable dead code — the only error that could reach their dispatcher was the fixed all-failed message, against which every branch was inert (the 879-line file behaved as a stderr string prefixer). The rate-limit path slept 60s + 120s against the hook's 25s deadline, and its retry-after parsing read a field no provider error carries. `SEARCH_PLUS_RECOVERY_TIMEOUT_MS` and `SEARCH_PLUS_451_SIMPLE_MODE` are gone with them (`SEARCH_PLUS_404_MODE` remains, still live in content extraction).
 - `scripts/test-451-recovery.mjs` (repo root): already broken — imported a path that no longer exists; not referenced by CI.

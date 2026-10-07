@@ -13,7 +13,7 @@ Recovers web content when Claude Code's built-in search fails. Part of the [sear
 | `SEARCH_PLUS_FIRECRAWL_API_KEY` | No | Firecrawl search/scrape | Keyless tier without it; 1,000 credits/month with a free key |
 | `SEARCH_PLUS_DEBUG` | No | Set to `1` to print progress logs to stderr | — |
 
-Works without API keys: search falls back to Firecrawl's keyless tier, and URL extraction uses Jina Reader (20 RPM), Firecrawl, Defuddle, and the Wayback Machine. Keys raise limits and add providers.
+Works without API keys: URL extraction first asks the origin for markdown directly (`Accept: text/markdown`, used only when the server actually serves it), then falls back to Jina Reader (20 RPM), Firecrawl, Defuddle, and the Wayback Machine; search falls back to Firecrawl's keyless tier. Keys raise limits and add providers.
 
 ## Sandbox configuration
 

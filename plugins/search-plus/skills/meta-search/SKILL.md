@@ -20,7 +20,7 @@ node "${CLAUDE_SKILL_DIR}/scripts/search.mjs" "<query-or-url>"
 ```
 
 - **Query** → Tavily → Brave → Exa → Jina Search (each only if its key is set) → Firecrawl (keyless). Prints a markdown list of results.
-- **URL** → Tavily Extract (if key) → Jina Reader → Firecrawl → Defuddle → Wayback Machine snapshot. Prints the page as markdown.
+- **URL** → Direct markdown fetch (asks the origin for `Accept: text/markdown`; only used when it actually serves markdown) → Tavily Extract (if key) → Jina Reader → Firecrawl → Defuddle → Wayback Machine snapshot. Prints the page as markdown.
 
 Exit code 0: use the stdout directly. Non-zero: stderr lists each service tried and why it failed; proceed to Step 2.
 

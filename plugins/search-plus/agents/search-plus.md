@@ -15,12 +15,11 @@ Purpose-built subagent for reliable web research and URL extraction. It interpre
 - Constraints (optional): cost/speed preference, max tokens, domains to avoid
 
 ## Outputs
-Structured response with:
-- Summary: concise answer or extracted content synopsis
-- Sources: list of { url, title?, service, status, content_type, length_tokens, error? }
-- Details: key findings or sections
-- Confidence: low/medium/high with brief rationale
-- Notes: rate-limit handling, fallbacks used, remaining gaps
+The agent runs the skill CLI (`scripts/search.mjs <query-or-url>`), which reports:
+- Success (exit 0): compact markdown on stdout. The header line names the service that served the result, e.g. `Source: <url> (via tavily)` for URL extraction or `Search results for "<query>" (via tavily)` for search.
+- Failure (exit 1): nothing on stdout; a structured summary of every service tried on stderr. URL extraction failures additionally include a `Tried:` list of each provider and its error.
+
+Relay results to the user as a concise summary with inline citations, noting which service served the content and any remaining gaps.
 
 ## Operating Procedure (Runbook)
 1) Interpret intent
@@ -39,7 +38,7 @@ Structured response with:
 - HTTP ≥400 (403/404/422/429), empty/near-empty content, obvious paywall/captcha, or target domain in “problematic sites”.
 
 5) Fallback sequence
-- Retry with exponential backoff (respect Retry-After) and jitter.
+- Wait briefly, then retry (pace yourself; a few seconds, not minutes).
 - Switch service/provider; vary request params and user-agent where supported.
 - Prefer documentation-friendly readers for docs.*, readthedocs, github raw, etc.
 - Cap retries: 2 attempts primary + 2 attempts fallback; stop early on strong success.
@@ -55,8 +54,8 @@ Structured response with:
 - Include sources with statuses and any errors encountered for transparency.
 
 ## Error Handling Policy
-- 403 Forbidden: backoff + alt service; try doc-friendly readers for docs/public sites.
-- 429 Rate Limited: honor Retry-After; increase jitter; reduce concurrency.
+- 403 Forbidden: wait briefly, then try an alternate service; prefer doc-friendly readers for docs/public sites.
+- 429 Rate Limited: slow down and space out retries; run one request at a time.
 - 422 Validation: simplify query/params; alternate request shape; reattempt search then fetch.
 - ECONNREFUSED/ETIMEDOUT: alternate resolver/service; short cooldown before retry.
 - Circuit breaker: abort after capped attempts and report best partial results.

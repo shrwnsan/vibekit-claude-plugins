@@ -167,6 +167,26 @@ gh auth status
 - Respects repository permissions and visibility
 - Supports both repositories and gists
 
+### Service Health Check (Opt-in)
+
+`extractContent()` in `content-extractor.mjs` can probe every extraction service before extracting. Normal extractions never run this check — it is opt-in only, because the probe itself makes real API calls.
+
+**What it checks**:
+- **Tavily**: a live test query (`query: "test"`, 1 result) against the Tavily search API, which also validates your configured key
+- **Jina Reader (public)**: a fetch of `example.com` through `r.jina.ai`
+- **Jina API**: the same fetch authenticated with your `SEARCH_PLUS_JINA_API_KEY` bearer token (only when the key is set)
+
+**Cost**: each run spends real quota — one Tavily search credit plus Jina tokens for the reader requests.
+
+**How to trigger**: programmatically only — there is no CLI flag or environment variable for it. Import the extractor and pass the option:
+
+```js
+import { extractContent } from './content-extractor.mjs';
+const result = await extractContent(url, { performHealthCheck: true });
+```
+
+Per-service availability is printed as `[ContentExtractor]` progress logs. If every service reports unavailable, extraction fails immediately with an `ALL_SERVICES_DOWN` error instead of walking the fallback chain.
+
 ## Service Tiers Comparison
 
 | Configuration | Success Rate | Response Time | Cost | Setup |

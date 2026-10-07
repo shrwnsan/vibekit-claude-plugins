@@ -70,11 +70,11 @@ The keyless tier restores zero-cost operation but shares public rate limits: Fir
 
 Recommended follow-ups, tracked separately:
 
-Provider and validation quality:
-- Delete `handle-search-error.mjs` / `handle-rate-limit.mjs` (~1,000 lines, nearly unreachable; rate-limit path sleeps 60s + 120s).
-- Stop blanket-rejecting Jina output in `validateMeaningfulContent` ("URL Source:" is metadata, not failure).
-- Revisit `validateMeaningfulContent` false signals: parked-domain squatting spam passes (9+ KB of "buy this domain" exited 0 in testing), and Wayback recoveries warn `useless_pattern_detected` because Defuddle output always embeds the archive banner — harmless today, but anything gating on `isMeaningful` could suppress legitimate recoveries.
-- Remove Jina from the Wayback snapshot extractors (`content-extractor.mjs:445`): r.jina.ai is blocked for web.archive.org until 2035, so Defuddle is the only viable snapshot extractor there.
+Provider and validation quality *(resolved 2026-10-08 by the legacy-recovery removal PR)*:
+- ✅ Deleted `handle-search-error.mjs` / `handle-rate-limit.mjs` (~1,000 lines): proven unreachable — the only error reaching their dispatcher was the fixed all-failed message, against which every branch was inert.
+- ✅ Jina output no longer blanket-rejected in `validateMeaningfulContent` (frontmatter keys were metadata, not failure).
+- ✅ `validateMeaningfulContent` false signals fixed: parked-domain spam patterns added, Wayback banner chrome exempted for wayback-sourced sources (covered by tests).
+- ✅ Jina removed from the Wayback snapshot extractors: Defuddle is the only viable extractor there (r.jina.ai blocked for web.archive.org until 2035).
 
 Bugs and nits:
 - Fix uncleared `Promise.race` timers at `github-service.mjs:230` and `:287` (both entrypoints call `process.exit` explicitly, so the impact is latent).

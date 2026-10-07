@@ -45,7 +45,7 @@ The `search-plus` agent follows a structured runbook:
 2. **Choose path** — URL → extraction mode; no URL → research mode
 3. **Primary attempt** — search/fetch using default tools
 4. **Fallback gating** — trigger on HTTP ≥400, empty content, paywall/captcha
-5. **Fallback sequence** — retry with backoff, switch service/provider
+5. **Fallback sequence** — advance to the next provider in the chain; each fetch is bounded by `AbortSignal.timeout` (no backoff/sleeps)
 6. **Validate and dedupe** — require non-empty content, rank by relevance
 7. **Summarize and cite** — produce concise answer with inline citations
 
@@ -79,40 +79,29 @@ When `SEARCH_PLUS_GITHUB_ENABLED=true` and `gh` CLI is installed, GitHub URLs ar
 
 ## Error Handling Strategies
 
-### Error Classification and Recovery
+### Provider Fallback
 
-| Error Type | Detection | Recovery Strategy | Success Rate |
-|------------|-----------|-------------------|--------------|
-| **403 Forbidden** | HTTP 403 | Alternative extraction, header variation | ~80% |
-| **422 Validation** | "Did 0 searches..." | Query reformulation, param simplification | ~100% |
-| **429 Rate Limiting** | HTTP 429 | Exponential backoff, service rotation | ~90% |
-| **451 Security** | HTTP 451 | Domain exclusion + alternative sources (parallel) | ~100% |
-| **ECONNREFUSED** | Connection refused | Alternative endpoints, timeout adjustment | ~50% |
-| **Silent Failures** | Empty results | Enhanced extraction, service switching | ~100% |
+Each provider runs in its own try/catch; a failure (403, 429, 451, timeout, empty
+result) falls through to the next provider in the chain — search: Tavily → Brave →
+Exa → Jina → Firecrawl keyless; URL extraction: Tavily → Jina → Firecrawl →
+Defuddle → Wayback. There is no same-provider retry or backoff: the hook's 25s
+internal deadline (inside Claude Code's 30s hook budget) makes long sleeps
+unshippable, and per-fetch `AbortSignal.timeout` bounds every request.
 
-*Success rates measured in controlled testing. Real-world rates may vary.*
+### All-Providers-Failed
 
-### 403/429 Recovery
+When every search provider fails, the CLI prints a structured failure summary to
+stderr and exits 1; stdout stays empty. URL extraction additionally reports an
+explicit "Tried:" list of every provider attempted and its error.
 
-1. Identify blocked domain/service
-2. Retry with alternative extraction method
-3. Apply exponential backoff (1s, 2s, 4s, 8s) with jitter
-4. Rotate to different service provider
-5. Try cache/archive services as last resort
+### Hook Failure Recovery
 
-### 422 Schema Validation Recovery
-
-1. Detect "Did 0 searches..." response pattern
-2. Remove special characters from query
-3. Simplify request parameters
-4. Try alternative API endpoint
-5. Reattempt with reformulated query
-
-### 451 SecurityCompromise Recovery
-
-1. Exclude blocked domain from search: `"query -site:blocked.com"`
-2. Search for alternative sources: `"query" alternative OR substitute`
-3. Execute both strategies in parallel for speed
+The hook never parses page text. It detects recoverable failures from structured
+fields only — `PostToolUseFailure` error codes (403, 404, 422, 429, 451, 5xx),
+`WebFetch` responses with `code >= 400`, and `WebSearch` responses reporting zero
+searches or containing no result links — then runs a fresh chain and injects the
+recovered content as `additionalContext`, capped at 9,500 characters. On no
+failure, or failed recovery, it exits 0 silently.
 
 ## Security Design
 
@@ -133,7 +122,6 @@ Key variables:
 - `SEARCH_PLUS_EXA_API_KEY` — Exa AI API key (optional, 1,000 free searches/month)
 - `SEARCH_PLUS_FIRECRAWL_API_KEY` — Firecrawl API key (optional; search and extraction work keyless, key raises limits)
 - `SEARCH_PLUS_GITHUB_ENABLED` — Enable GitHub CLI integration (default: false)
-- `SEARCH_PLUS_RECOVERY_TIMEOUT_MS` — Recovery timeout (default: 5000ms)
 - `SEARCH_PLUS_DEBUG` — Set to `1` to print progress logs to stderr from the scripts (default: off)
 
 ---

@@ -28,15 +28,15 @@
       "name": "search-plus",
       "source": "./plugins/search-plus",
       "description": "Enhanced web search with multi-service fallback (Tavily, Brave, Exa, Jina, plus keyless Firecrawl/Defuddle) — works without API keys",
-      "version": "3.1.0",
+      "version": "3.2.0",
       "author": {
         "name": "shrwnsan"
       },
       "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus/README.md",
       "license": "Apache-2.0",
-      "keywords": ["search", "web", "error-handling", "rate-limiting", "schema-validation", "productivity", "url-extraction"],
+      "keywords": ["search", "web", "error-handling", "fallback", "schema-validation", "productivity", "url-extraction"],
       "category": "productivity",
-      "tags": ["search", "web", "tavily", "error-recovery", "schema-validation", "url-extraction"]
+      "tags": ["search", "web", "tavily", "multi-provider", "schema-validation", "url-extraction"]
     },
     {
       "name": "ping",

@@ -10,8 +10,8 @@ Based on comprehensive testing and real-world usage:
 |--------|----------------------|------------------|-------------|
 | **Overall Success Rate** | 0-20% | **95%+** | +400% |
 | **422 Schema Errors** | 100% failure | **100% success** | Complete fix |
-| **429 Rate Limiting** | 100% failure | **90% success** | Major recovery |
-| **403 Forbidden** | 100% failure | **80% success** | High recovery |
+| **429 Rate Limiting** | 100% failure | **90% success** | Major improvement |
+| **403 Forbidden** | 100% failure | **80% success** | High improvement |
 | **Silent Failures** | 100% occurrence | **0%** | Eliminated |
 | **Average Response Time** | Failed/retries | **2.3 seconds** | Faster than retries |
 
@@ -24,7 +24,6 @@ Based on comprehensive testing and real-world usage:
 **Hybrid Web Search Implementation**:
 - **Flexible API Key Configuration**: Supports Tavily and/or Jina API keys for web search
 - **Smart Fallback** *(v2.7-era; the current chain adds keyless Firecrawl search and Firecrawl/Defuddle/Wayback extraction)*: Tavily (with key) → Brave Search (with key) → Exa (with key) → Jina Search (with key); URL extraction via r.jina.ai (free, 20 RPM)
-- **Improved Response Times**: ~89% faster 451 error recovery
 - **Enhanced Success Rates**: 95%+ with API keys configured
 
 **Key Improvements from Latest Updates**:
@@ -85,14 +84,14 @@ Failed: 0 (0%)
 Success Rate Improvement: +400-500% vs baseline
 ```
 
-### By Error Type
+### By Error Type (v2.7-era controlled testing)
 
-| Error Type | Tests | Success Rate | Recovery Strategy |
-|------------|-------|--------------|-------------------|
-| **422 Schema Validation** | 8 | 100% (8/8) | Query reformulation, schema repair |
-| **429 Rate Limiting** | 6 | 90% (5/6) | Exponential backoff, retry logic |
-| **451 Domain Blocking** | 3 | 100% (3/3) | Parallel recovery strategies |
-| **403 Forbidden** | 8 | 80% (6/8) | Header rotation, service variation |
+| Error Type | Tests | Success Rate |
+|------------|-------|--------------|
+| **422 Schema Validation** | 8 | 100% (8/8) |
+| **429 Rate Limiting** | 6 | 90% (5/6) |
+| **451 Domain Blocking** | 3 | 100% (3/3) |
+| **403 Forbidden** | 8 | 80% (6/8) |
 | **ECONNREFUSED** | 2 | 50% (1/2) | Alternative endpoints |
 | **Silent Failures** | 8 | 100% (8/8) | Comprehensive error detection |
 
@@ -170,47 +169,33 @@ Success Rate Improvement: +400-500% vs baseline
 
 ## Error Resolution Success Rates
 
+*(v2.5–v2.7-era measurements taken under the recovery architecture removed in v3.2; failures now fall through the provider chain — see [ARCHITECTURE.md](ARCHITECTURE.md).)*
+
 ### 422 Schema Validation Errors
 
 **Problem**: "Did 0 searches..." responses
-**Solution**: Query reformulation and schema repair
 **Success Rate**: 100% (8/8 test cases)
 **Recovery Time**: 0.3 seconds average
 
 ### 429 Rate Limiting Errors
 
 **Problem**: "Too Many Requests" responses
-**Solution**: Exponential backoff with jitter
 **Success Rate**: 90% (5/6 test cases)
 **Recovery Time**: 2.5 seconds average
 
 ### 451 Domain Blocking Errors (v2.5.0+ optimization)
 
 **Problem**: "Domain blocked due to abuse"
-**Solution**: Parallel recovery strategies
 **Success Rate**: 100% (3/3 test cases)
-**Recovery Time**: 0.87 seconds average (89% faster than sequential)
-
-**Optimization**: v2.5.0+ implements parallel strategy execution:
-- Alternative sources search (1.5s timeout)
-- Archive/cache search (1.0s timeout)
-- Promise.any() for fastest recovery
+**Recovery Time**: 0.87 seconds average
 
 ### 403 Forbidden Errors
 
 **Problem**: "Access Denied" responses
-**Solution**: Header rotation and service variation
 **Success Rate**: 80% (6/8 test cases)
 **Recovery Time**: 1.8 seconds average
 
 ## Performance Optimization Results
-
-### Parallel Execution Benefits
-
-**451 Recovery** (v2.5.0+ improvement):
-- Sequential: ~8000ms average
-- Parallel: ~870ms average
-- **Improvement**: 89% faster recovery
 
 **Multi-Service Fallback** (v2.7.0+ improvement):
 - Sequential Tavily → Jina Search fallback

@@ -43,7 +43,7 @@ Apply the strategy matching the error type:
 2. Shorten to essential keywords only
 3. Split compound queries into separate searches
 
-**451 SecurityCompromise**
+**451 / blocked domain**
 1. Search with domain exclusion: `"<query> -site:<blocked-domain>"`
 2. Search for alternatives: `"<query>" alternative OR mirror`
 

@@ -46,6 +46,8 @@ Automatically tries multiple services until one works:
 - **Fallback 1**: Brave Search API (if configured)
 - **Fallback 2**: Exa AI Search (if configured)
 - **Fallback 3**: Jina.ai Search API (if configured)
+- **Fallback 4**: Firecrawl Search (keyless — works with no API key)
+- **URL extraction**: Tavily (if configured) → Jina Reader → Firecrawl → Defuddle → Wayback Machine
 - **GitHub Integration**: Native GitHub CLI access for repository content (when enabled)
 - **Result**: You get answers instead of errors
 
@@ -81,12 +83,10 @@ Based on 35 comprehensive test scenarios:
 
 ## Setup Options
 
-### Option 1: Quick Start (Free API Keys)
-Web search requires at least one API key. Both services offer generous free tiers:
+### Option 1: Quick Start (No API Keys)
+Works out of the box: web search uses Firecrawl's keyless tier (rate-limited per IP), and URL extraction uses Jina Reader, Firecrawl, Defuddle, and the Wayback Machine. For heavier use, add a free key:
 - **Tavily**: Sign up at [tavily.com](https://tavily.com) → 1,000 free searches/month (recurring)
 - **Jina.ai**: Sign up at [jina.ai](https://jina.ai) → 10M free tokens (~1,000 searches)
-
-URL extraction works without any API key via Jina.ai Public Reader (20 RPM).
 
 ### Option 2: Enhanced Performance (Optional)
 Add API keys for maximum reliability and speed:
@@ -97,6 +97,7 @@ export SEARCH_PLUS_TAVILY_API_KEY=your_tavily_key_here
 export SEARCH_PLUS_BRAVE_API_KEY=your_brave_key_here
 export SEARCH_PLUS_EXA_API_KEY=your_exa_key_here
 export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
+export SEARCH_PLUS_FIRECRAWL_API_KEY=your_firecrawl_key_here
 ```
 
 **Free tiers available**:
@@ -105,10 +106,12 @@ export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 - Exa AI: 1,000 searches/month free (recurring)
 - Jina.ai Search: 10M free tokens (~1,000 searches, one-time)
 - Jina.ai Public Reader: 20 RPM URL extraction only (no key)
+- Firecrawl: keyless tier (no signup), or 1,000 credits/month with a free key
+- Defuddle: URL → markdown extraction (no key)
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete setup details.
 
-> **Sandbox users**: Node.js `fetch()` does not use the proxy env vars that Claude Code's sandbox injects, so all search providers fail with DNS errors. **Fix**: add `"node"` to `excludedCommands` in your Claude Code settings (`~/.claude/settings.json`). This lets Node scripts bypass the sandbox network restrictions. On Node 22.22+ or 24+, you can instead set `NODE_USE_ENV_PROXY=1` to route fetch through the proxy without disabling the sandbox. Also add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, and `api.jina.ai` to `allowedDomains`. See [docs/evals/eval-026](../../docs/evals/eval-026-search-plus-sandbox-dns-investigation.md) for the full investigation.
+> **Sandbox users**: Node.js `fetch()` does not use the proxy env vars that Claude Code's sandbox injects, so all search providers fail with DNS errors. **Fix**: add `"node"` to `excludedCommands` in your Claude Code settings (`~/.claude/settings.json`). This lets Node scripts bypass the sandbox network restrictions. On Node 22.22+ or 24+, you can instead set `NODE_USE_ENV_PROXY=1` to route fetch through the proxy without disabling the sandbox. Also add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, `api.jina.ai`, `api.firecrawl.dev`, `defuddle.md`, and `archive.org` to `allowedDomains`. See [docs/evals/eval-026](../../docs/evals/eval-026-search-plus-sandbox-dns-investigation.md) for the full investigation.
 
 ### Option 3: GitHub CLI Integration (Advanced)
 
@@ -165,7 +168,7 @@ For complex multi-step research:
 ## FAQ
 
 **Q: Is this safe to use?**
-A: Yes. Uses industry-standard APIs with randomized headers. No data stored beyond what's necessary.
+A: Yes. Uses industry-standard APIs. No data stored beyond what's necessary.
 
 **Q: Will this make my searches slower?**
 A: Actually faster on average (2.3 seconds) compared to failed searches that require retries.
@@ -174,7 +177,7 @@ A: Actually faster on average (2.3 seconds) compared to failed searches that req
 A: No. Works with free services out-of-the-box. API keys are optional for enhanced performance.
 
 **Q: Can this get me blocked from websites?**
-A: Uses respectful access patterns with rate limiting and header rotation to avoid issues.
+A: Requests go through extraction services (Tavily, Jina, Firecrawl, Defuddle), not directly to the site, and the plugin does not spoof browser headers.
 
 ## Advanced Information
 

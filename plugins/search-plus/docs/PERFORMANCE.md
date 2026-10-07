@@ -23,7 +23,7 @@ Based on comprehensive testing and real-world usage:
 
 **Hybrid Web Search Implementation**:
 - **Flexible API Key Configuration**: Supports Tavily and/or Jina API keys for web search
-- **Smart Fallback**: Tavily (with key) → Brave Search (with key) → Exa (with key) → Jina Search (with key); URL extraction via r.jina.ai (free, 20 RPM)
+- **Smart Fallback** *(v2.7-era; the current chain adds keyless Firecrawl search and Firecrawl/Defuddle/Wayback extraction)*: Tavily (with key) → Brave Search (with key) → Exa (with key) → Jina Search (with key); URL extraction via r.jina.ai (free, 20 RPM)
 - **Improved Response Times**: ~89% faster 451 error recovery
 - **Enhanced Success Rates**: 95%+ with API keys configured
 
@@ -69,9 +69,9 @@ Comprehensive error validation using reliable HTTP testing infrastructure:
 - Fallback: Jina.ai API (87-92% success, ~1-2.3s)
 - Overall: 95%+ success rate, ~2.3s average response
 
-**Without API Keys** (URL Extraction Only):
-- Jina.ai Public Reader (r.jina.ai) for URL content extraction only (20 RPM)
-- Web search is not available without API keys
+**Without API Keys** (Keyless):
+- Web search via Firecrawl's keyless tier (rate-limited per IP)
+- URL extraction via Jina.ai Public Reader (r.jina.ai, 20 RPM), Firecrawl, Defuddle, and the Wayback Machine
 - Response time: ~1.5-2.1s for URL extraction
 
 ## Success Rate Analysis
@@ -102,7 +102,7 @@ Success Rate Improvement: +400-500% vs baseline
 |---------------|--------------|---------------|----------------|
 | **Both API Keys** | 95-98% | ~2.3s | Environment setup |
 | **Tavily Only** | 90-95% | ~2.1s | API key setup |
-| **No API Keys (URL extraction only)** | N/A (no web search) | ~1.8s | None (URL extraction via r.jina.ai) |
+| **No API Keys (keyless)** | Firecrawl keyless tier (rate-limited per IP) | ~1.8s | None (URL extraction via Jina Reader, Firecrawl, Defuddle, Wayback) |
 | **Native Claude** | 0-20% | Variable/retries | N/A |
 
 ## Response Time Analysis
@@ -134,8 +134,8 @@ Success Rate Improvement: +400-500% vs baseline
 4. Try Jina Search as last resort (~1.5s avg)
 5. Overall: 95%+ success with any one key configured
 
-**Without API Keys** (URL Extraction Only):
-1. Web search unavailable; URL extraction via r.jina.ai (free, 20 RPM)
+**Without API Keys** (Keyless):
+1. Web search via Firecrawl's keyless tier (rate-limited per IP); URL extraction via Jina Reader, Firecrawl, Defuddle, and the Wayback Machine
 2. Overall: ~1.8s for URL extraction
 
 ## Real-World Validation
@@ -165,7 +165,7 @@ Success Rate Improvement: +400-500% vs baseline
 
 **Tested With r.jina.ai (No API Keys)**:
 - URL content extraction: functional (20 RPM rate limit)
-- Web search: requires at least one API key (Tavily or Jina)
+- Web search: now available keyless via Firecrawl's keyless tier (keyless search postdates this test)
 - Response times: 1.2-2.1 seconds for URL extraction
 
 ## Error Resolution Success Rates
@@ -225,10 +225,10 @@ Success Rate Improvement: +400-500% vs baseline
 3. Documentation sites prefer Jina.ai Public Reader
 4. Enhanced metadata requests use Jina.ai API when key available
 
-**Web Search Strategy** (v2.7.0+):
-1. Tavily → Brave → Exa → Jina Search (sequential)
-2. Each service tried only if previous fails and API key is configured
-3. Web search requires at least one API key
+**Web Search Strategy** (current):
+1. Tavily → Brave → Exa → Jina Search → Firecrawl (sequential)
+2. Keyed services (Tavily, Brave, Exa, Jina) are tried only when their API key is configured
+3. Firecrawl works keyless, so web search is available without any API key
 
 ## Quality Assurance
 
@@ -257,6 +257,6 @@ Success Rate Improvement: +400-500% vs baseline
 | Average response time <3s | ~2.3s with API keys | ✅ Achieved |
 | Error recovery rate >80% | 87% average | ✅ Achieved |
 | Zero silent failures | 0% occurrence | ✅ Achieved |
-| Free URL extraction | r.jina.ai available (20 RPM) | ✅ Achieved (v2.7.0+) |
+| Free URL extraction | r.jina.ai (20 RPM), plus keyless Firecrawl, Defuddle, and Wayback | ✅ Achieved (v2.7.0+) |
 
 This performance analysis demonstrates that Search Plus successfully transforms Claude Code's search reliability from inconsistent failure-prone behavior to highly reliable web research capability, with recent architectural improvements further enhancing both performance and accessibility.

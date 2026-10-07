@@ -63,9 +63,9 @@ This document describes the standardized response format implemented across all 
   has_answer: boolean
 }
 
-// Brave Search / Exa AI / Jina Search
+// Brave Search / Exa AI / Jina Search / Firecrawl Search
 {
-  endpoint: string,       // 'api.search.brave.com' | 'api.exa.ai' | 's.jina.ai'
+  endpoint: string,       // 'api.search.brave.com' | 'api.exa.ai' | 's.jina.ai' | 'api.firecrawl.dev'
   has_results: boolean
 }
 ```
@@ -175,6 +175,20 @@ relevance_score = base_score +
 - Relevance scoring with service bonus
 ```
 
+### Firecrawl Search API
+```javascript
+// Input
+{
+  results: [{ title, url, content }]
+}
+
+// Transformation
+- Position-based scoring
+- Relevance scoring with batch optimization (no service bonus — Firecrawl defaults to 0)
+- No published dates
+- Service metadata: endpoint `api.firecrawl.dev`, `has_results` flag
+```
+
 ## Usage Examples
 
 ### Basic Transformation
@@ -247,7 +261,7 @@ const standardResponses = batchTransform(responses);
 
 ### Run Tests
 ```bash
-node scripts/test-search-plus.mjs
+node scripts/tests/hook-and-output.test.mjs
 ```
 
 ### Test Coverage
@@ -288,7 +302,7 @@ node scripts/test-search-plus.mjs
 1. Create transformer in `skills/meta-search/scripts/response-transformer.mjs`
 2. Register transformer using `registerServiceTransformer()`
 3. Implement validation function
-4. Add tests in `scripts/test-search-plus.mjs`
+4. Add tests in `scripts/tests/hook-and-output.test.mjs`
 
 ## Future Enhancements
 

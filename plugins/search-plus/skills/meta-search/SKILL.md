@@ -1,27 +1,28 @@
 ---
 name: meta-search
-description: Recovers web content when searches fail with 403, 429, 422 errors, blocked sites, or empty results. Runs bundled Tavily/Jina extraction scripts, then falls back to manual strategies.
+description: Recovers web content when searches fail with 403, 429, 422 errors, blocked sites, or empty results. Runs a bundled multi-provider script (works without API keys), then falls back to manual strategies.
 allowed-tools:
   - Bash(node *)
-  - web_search
-  - web_fetch
+  - WebSearch
+  - WebFetch
 ---
 
 # Meta Search
 
-Recover web content when standard tools fail. Orchestrates multi-service extraction via bundled scripts (Tavily, Jina.ai, free services), with manual fallback strategies.
+Recover web content when standard tools fail. Orchestrates multi-service search and extraction via a bundled script, with manual fallback strategies.
 
 ## Recovery workflow
 
 ### Step 1: Run the recovery script
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/scripts/search.mjs" <query-or-url> 2>/dev/null
+node "${CLAUDE_SKILL_DIR}/scripts/search.mjs" "<query-or-url>"
 ```
 
-The script tries Tavily API → Jina.ai API → Jina.ai Public Reader with automatic error handling, retries, and service rotation. Output is the recovered content.
+- **Query** → Tavily → Brave → Exa → Jina Search (each only if its key is set) → Firecrawl (keyless). Prints a markdown list of results.
+- **URL** → Tavily Extract (if key) → Jina Reader → Firecrawl → Defuddle → Wayback Machine snapshot. Prints the page as markdown.
 
-If the script succeeds, use the output directly. If it fails (no API keys, network issues, or all services down), proceed to Step 2.
+Exit code 0: use the stdout directly. Non-zero: stderr lists each service tried and why it failed; proceed to Step 2.
 
 ### Step 2: Manual recovery with built-in tools
 
@@ -30,7 +31,7 @@ Apply the strategy matching the error type:
 **403 Forbidden**
 1. Retry with `web_fetch` using the URL directly
 2. Search for the page title or key terms instead
-3. Try cache URLs: `https://webcache.googleusercontent.com/search?q=cache:<URL>` or `https://web.archive.org/web/2/<URL>`
+3. Try the archived copy: `https://web.archive.org/web/2/<URL>`
 
 **429 Rate Limited**
 1. Wait briefly, then retry
@@ -75,7 +76,10 @@ The extraction script makes outbound requests to external services. If Claude Co
         "api.exa.ai",
         "s.jina.ai",
         "r.jina.ai",
-        "api.jina.ai"
+        "api.jina.ai",
+        "api.firecrawl.dev",
+        "defuddle.md",
+        "archive.org"
       ]
     }
   }
@@ -84,12 +88,11 @@ The extraction script makes outbound requests to external services. If Claude Co
 
 Without these, all extraction services will fail with `fetch failed` and the script will fall through to Step 2 (manual recovery).
 
-Free fallback services (Jina.ai Public Reader) use `r.jina.ai` which is already in the allowedDomains list above.
+Keyless services (Jina Reader, Firecrawl, Defuddle, Wayback) are included in the list above.
 
 ## Limitations
 
 - Cannot bypass CAPTCHA or advanced bot protection
 - Some paywalled content remains inaccessible
 - Cache/archive services may have stale content
-- PostToolUse hook does not intercept tool-level exceptions (PostToolUseFailure)
-- Web search requires at least one API key (SEARCH_PLUS_TAVILY_API_KEY or SEARCH_PLUS_JINA_API_KEY)
+- Without API keys, web search depends on Firecrawl's keyless tier (rate-limited per IP); set any provider key for reliability

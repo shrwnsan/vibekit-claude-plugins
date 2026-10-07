@@ -1,5 +1,4 @@
 // scripts/content-extractor.mjs
-import { setTimeout } from 'timers/promises';
 import { promises as dns } from 'dns';
 import net from 'net';
 
@@ -12,133 +11,25 @@ import net from 'net';
  * Optional: Jina.ai API (88% success rate, 2,331ms avg) - Slower, for cost tracking only
  */
 
-// Scalable fallback service definitions
-const FALLBACK_SERVICES = {
-  cacheServices: [
-    {
-      name: 'Google Web Cache',
-      pattern: (url) => `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`,
-      timeout: 15000,
-      priority: 1,
-      notes: 'Google web cache - fastest but sometimes blocked'
-    },
-    {
-      name: 'Internet Archive JSON API',
-      pattern: async (url) => {
-        try {
-          const response = await fetch(`https://archive.org/wayback/available?url=${encodeURIComponent(url)}`, {
-            timeout: 10000,
-            headers: { 'Accept': 'application/json' }
-          });
-          const data = await response.json();
-          if (data.archived_snapshots?.closest?.available) {
-            return data.archived_snapshots.closest.url;
-          }
-          return null;
-        } catch (error) {
-          return null;
-        }
-      },
-      timeout: 15000,
-      priority: 2,
-      notes: 'Archive.org official API - most reliable for older content'
-    },
-    {
-      name: 'Internet Archive Direct',
-      pattern: (url) => `https://web.archive.org/web/2/${encodeURIComponent(url)}`,
-      timeout: 20000,
-      priority: 3,
-      notes: 'Direct archive.org access'
-    },
-    {
-      name: 'Bing Cache',
-      pattern: (url) => `https://cc.bingj.com/cache.aspx?d=&w=${encodeURIComponent(url)}`,
-      timeout: 20000,
-      priority: 4,
-      notes: 'Microsoft Bing cache - alternative to Google'
-    },
-    {
-      name: 'Yandex Turbo',
-      pattern: (url) => `https://yandex.com/turbo?text=${encodeURIComponent(url)}`,
-      timeout: 15000,
-      priority: 5,
-      notes: 'Yandex turbo mode - often good for news/blog content'
-    }
-  ],
-  jinaFormats: [
-    {
-      name: 'Standard',
-      pattern: (url) => url,
-      timeout: 10000
-    },
-    {
-      name: 'Double Redirect',
-      pattern: (url) => `https://r.jina.ai/http://${encodeURIComponent(url)}`,
-      timeout: 12000
-    },
-    {
-      name: 'Triple Redirect',
-      pattern: (url) => `https://r.jina.ai/http://r.jina.ai/http://${encodeURIComponent(url)}`,
-      timeout: 15000
-    },
-    {
-      name: 'Text Extractor',
-      pattern: (url) => `https://r.jina.ai/http://r.jina.ai/http://textise dot iitty?url=${encodeURIComponent(url)}`,
-      timeout: 10000
-    }
-  ],
-  userAgents: [
-    {
-      name: 'Chrome Browser',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Cache-Control': 'max-age=0'
-      },
-      timeout: 30000
-    },
-    {
-      name: 'cURL',
-      headers: {
-        'User-Agent': 'curl/8.0.0',
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive'
-      },
-      timeout: 20000
-    },
-    {
-      name: 'Python Requests',
-      headers: {
-        'User-Agent': 'python-requests/2.31.0',
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive'
-      },
-      timeout: 15000
-    },
-    {
-      name: 'Wget',
-      headers: {
-        'User-Agent': 'Wget/1.21.3',
-        'Accept': '*/*',
-        'Accept-Encoding': 'identity'
-      },
-      timeout: 25000
-    }
-  ]
-};
+// Archive fallback: Wayback Machine availability API (Google/Bing caches were shut down in 2024)
+async function findWaybackSnapshot(url) {
+  try {
+    const response = await fetch(`https://archive.org/wayback/available?url=${encodeURIComponent(url)}`, {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.archived_snapshots?.closest?.available ? data.archived_snapshots.closest.url : null;
+  } catch {
+    return null;
+  }
+}
 
 // Service configuration with fallback for backward compatibility
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
 const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.JINA_API_KEY || null;
+const FIRECRAWL_API_KEY = process.env.SEARCH_PLUS_FIRECRAWL_API_KEY || null;
 
 // Show deprecation warning if using old variables
 if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
@@ -283,9 +174,6 @@ async function extractWithTavily(url, options = {}, timeoutMs = 15000) {
   if (options.extractDepth) requestBody.extract_depth = options.extractDepth;
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(timeoutMs, null).then(() => controller.abort());
-
     const response = await fetch(TAVILY_EXTRACT_URL, {
       method: 'POST',
       headers: {
@@ -293,10 +181,8 @@ async function extractWithTavily(url, options = {}, timeoutMs = 15000) {
         ...options.headers
       },
       body: JSON.stringify(requestBody),
-      signal: controller.signal
+      signal: AbortSignal.timeout(timeoutMs)
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -469,140 +355,106 @@ async function extractWithJinaAPI(url, options = {}, timeoutMs = 10000) {
 }
 
 /**
- * Scalable ultra-resilient fallback using pattern-based services
+ * Keyless extractor: Firecrawl scrape (uses SEARCH_PLUS_FIRECRAWL_API_KEY when set,
+ * otherwise Firecrawl's keyless tier, rate-limited per IP).
+ */
+async function extractWithFirecrawl(url, options = {}, timeoutMs = 20000) {
+  const startTime = Date.now();
+  try {
+    const response = await fetch('https://api.firecrawl.dev/v2/scrape', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(FIRECRAWL_API_KEY ? { 'Authorization': `Bearer ${FIRECRAWL_API_KEY}` } : {})
+      },
+      body: JSON.stringify({ url, formats: ['markdown'], onlyMainContent: true }),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (!response.ok) {
+      throw new Error(`Firecrawl error: ${response.status} - ${(await response.text()).slice(0, 200)}`);
+    }
+    const data = await response.json();
+    const content = data.data?.markdown || '';
+    return {
+      success: true,
+      content,
+      contentLength: content.length,
+      service: 'firecrawl',
+      url,
+      responseTime: Date.now() - startTime,
+      metadata: { title: data.data?.metadata?.title || null }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: { code: extractErrorCode(error.message), message: error.message },
+      service: 'firecrawl', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata: {}
+    };
+  }
+}
+
+/**
+ * Keyless extractor: defuddle.md (independent of Jina/Firecrawl infrastructure)
+ */
+async function extractWithDefuddle(url, options = {}, timeoutMs = 20000) {
+  const startTime = Date.now();
+  try {
+    const response = await fetch(`https://defuddle.md/${url}`, {
+      headers: { 'Accept': 'text/markdown' },
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (!response.ok) {
+      throw new Error(`Defuddle error: ${response.status} - ${(await response.text()).slice(0, 200)}`);
+    }
+    const content = await response.text();
+    return {
+      success: true,
+      content,
+      contentLength: content.length,
+      service: 'defuddle',
+      url,
+      responseTime: Date.now() - startTime,
+      metadata: { title: content.match(/^title:\s*"?(.+?)"?\s*$/m)?.[1] || null }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: { code: extractErrorCode(error.message), message: error.message },
+      service: 'defuddle', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata: {}
+    };
+  }
+}
+
+/**
+ * Last-resort fallback: fetch the closest Wayback Machine snapshot via Jina Reader
  */
 async function tryUltraResilientFallbacks(url, originalOptions, results) {
-  log(`🚨 All standard services failed, trying ultra-resilient fallbacks...`);
+  if (originalOptions.maxArchiveAttempts === 0) {
+    return { success: false, result: results[results.length - 1] };
+  }
 
-  // Try 1: Enhanced Tavily with different user agents
-  if (!originalOptions.triedEnhancedParams && (!results.find(r => r.error?.message?.includes('Unauthorized')))) {
-    log(`🔧 Trying enhanced Tavily with different user agents...`);
+  log(`🕐️ Looking up Wayback Machine snapshot...`);
+  const snapshotURL = await findWaybackSnapshot(url);
+  if (!snapshotURL) {
+    log(`⚠️ No Wayback snapshot available`);
+    return { success: false, result: results[results.length - 1] };
+  }
 
-    for (const userAgent of FALLBACK_SERVICES.userAgents.slice(0, 2)) { // Try top 2 user agents
-      try {
-        const enhancedResult = await extractWithTavily(url, {
-          ...originalOptions,
-          triedEnhancedParams: true,
-          ...userAgent
-        });
-
-        results.push(enhancedResult);
-        if (enhancedResult.success && enhancedResult.contentLength > 0) {
-          log(`✅ Enhanced Tavily (${userAgent.name}) extraction successful!`);
-          return { success: true, result: enhancedResult };
-        }
-      } catch (error) {
-        log(`❌ Enhanced Tavily (${userAgent.name}) failed: ${error.message}`);
-      }
+  // Anonymous Jina access to web.archive.org is often blocked, so try Defuddle first
+  let archiveResult;
+  for (const extractor of [extractWithDefuddle, extractWithJinaPublic]) {
+    archiveResult = await extractor(snapshotURL);
+    results.push(archiveResult);
+    if (archiveResult.success && archiveResult.contentLength > 100) {
+      archiveResult.metadata.snapshotURL = snapshotURL;
+      archiveResult.service = `wayback (via ${archiveResult.service})`;
+      log(`✅ Wayback snapshot extraction successful`);
+      return { success: true, result: archiveResult };
     }
   }
 
-  // Try 2: Enhanced cache services (with async pattern support and prioritization)
-  if (!originalOptions.triedCacheServices) {
-    log(`🕐️ Trying enhanced cache services...`);
-
-    // Get max archive attempts from configuration (default to all if not specified)
-    const maxAttempts = originalOptions.maxArchiveAttempts || FALLBACK_SERVICES.cacheServices.length;
-
-    // Sort by priority and limit attempts
-    const sortedCacheServices = [...FALLBACK_SERVICES.cacheServices]
-      .sort((a, b) => a.priority - b.priority)
-      .slice(0, maxAttempts);
-
-    log(`   Will try up to ${maxAttempts} cache services out of ${FALLBACK_SERVICES.cacheServices.length} available`);
-
-    for (const cacheService of sortedCacheServices) {
-      try {
-        let cacheURL;
-
-        // Handle async pattern functions (like Internet Archive API)
-        if (typeof cacheService.pattern === 'function' && cacheService.constructor.name === 'AsyncFunction') {
-          cacheURL = await cacheService.pattern(url);
-          if (!cacheURL) {
-            log(`⚠️ ${cacheService.name}: No cached version available`);
-            continue;
-          }
-        } else {
-          cacheURL = cacheService.pattern(url);
-        }
-
-        log(`🔍 Trying ${cacheService.name}: ${cacheURL.substring(0, 100)}...`);
-
-        const cacheResult = await extractWithJinaPublic(cacheURL, {
-          ...originalOptions,
-          triedCacheServices: true,
-          timeout: cacheService.timeout
-        });
-
-        // Override service name to correctly identify which cache service was used
-        if (cacheResult.success) {
-          cacheResult.service = cacheService.name;
-          cacheResult.metadata.service = cacheService.name;
-        }
-
-        results.push(cacheResult);
-        if (cacheResult.success && cacheResult.contentLength > 100) {
-          log(`✅ ${cacheService.name} extraction successful!`);
-          return { success: true, result: cacheResult };
-        }
-      } catch (error) {
-        log(`❌ ${cacheService.name} failed: ${error.message}`);
-      }
-    }
-  }
-
-  // Try 3: Alternative Jina formats (pattern-based)
-  if (!originalOptions.triedAltJina) {
-    log(`🔄 Trying alternative Jina AI formats...`);
-
-    for (const jinaFormat of FALLBACK_SERVICES.jinaFormats) {
-      try {
-        const altURL = jinaFormat.pattern(url);
-        const altResult = await extractWithJinaPublic(altURL, {
-          ...originalOptions,
-          triedAltJina: true,
-          timeout: jinaFormat.timeout
-        });
-
-        results.push(altResult);
-        if (altResult.success && altResult.contentLength > 50) {
-          log(`✅ Jina AI (${jinaFormat.name}) extraction successful!`);
-          return { success: true, result: altResult };
-        }
-      } catch (error) {
-        log(`❌ Jina AI (${jinaFormat.name}) failed: ${error.message}`);
-      }
-    }
-  }
-
-  // Try 4: Connection/SSL workarounds with remaining user agents
-  const lastResult = results[results.length - 1];
-  if (!originalOptions.triedSSLWorkaround &&
-      (lastResult?.error?.message?.includes('certificate') || lastResult?.error?.message?.includes('SSL') ||
-       lastResult?.error?.message?.includes('ECONNREFUSED') || lastResult?.error?.message?.includes('timeout'))) {
-    log(`🔐 Trying connection/SSL workarounds with remaining user agents...`);
-
-    for (const userAgent of FALLBACK_SERVICES.userAgents.slice(2)) { // Skip first 2 as they were tried above
-      try {
-        const workaroundResult = await extractWithJinaPublic(url, {
-          ...originalOptions,
-          triedSSLWorkaround: true,
-          ...userAgent
-        });
-
-        results.push(workaroundResult);
-        if (workaroundResult.success && workaroundResult.contentLength > 0) {
-          log(`✅ SSL/Connection workaround (${userAgent.name}) extraction successful!`);
-          return { success: true, result: workaroundResult };
-        }
-      } catch (error) {
-        log(`❌ SSL/Connection workaround (${userAgent.name}) failed: ${error.message}`);
-      }
-    }
-  }
-
-  log(`🏁 Ultra-resilient fallback attempts completed (${results.length - 3} additional attempts)`);
-  return { success: false, result: lastResult };
+  log(`❌ Wayback snapshot extraction failed`);
+  return { success: false, result: archiveResult };
 }
 
 /**
@@ -1212,7 +1064,8 @@ export async function extractContent(url, options = {}) {
   const results = [];
 
   // Perform service health check at the start
-  if (options.performHealthCheck !== false) {
+  // Opt-in only: the health check spends a Tavily credit and Jina tokens on every call
+  if (options.performHealthCheck === true) {
     log(`🔍 Performing service health check...`);
     const healthStatus = await performServiceHealthCheck();
 
@@ -1420,6 +1273,20 @@ export async function extractContent(url, options = {}) {
     }
   }
 
+  // Keyless fallbacks on independent infrastructure: Firecrawl, then Defuddle
+  for (const [name, extractor] of [['firecrawl', extractWithFirecrawl], ['defuddle', extractWithDefuddle]]) {
+    if (result.success && result.contentLength > 0) break;
+    log(`🔄 Trying ${name}...`);
+    const freeResult = await extractor(extractionURL, options);
+    results.push(freeResult);
+    if (freeResult.success && freeResult.contentLength > 0) {
+      result = freeResult;
+      log(`✅ ${name} extraction successful`);
+    } else {
+      log(`❌ ${name} failed: ${freeResult.error?.message || 'Empty content'}`);
+    }
+  }
+
   // Ultra-resilient fallback: Try pattern-based alternative approaches if all standard services failed
   // Use smart 404 configuration to decide whether to attempt recovery
   if (!result.success || result.contentLength === 0) {
@@ -1448,7 +1315,6 @@ export async function extractContent(url, options = {}) {
       const ultraResilientResult = await tryUltraResilientFallbacks(extractionURL, ultraResilientOptions, results);
       if (ultraResilientResult.success) {
         result = ultraResilientResult.result;
-        results.push(ultraResilientResult.result);
         log(`✅ Ultra-resilient fallback successful via ${ultraResilientResult.result.service}`);
       } else {
         log(`❌ Ultra-resilient fallbacks also failed`);
@@ -1601,22 +1467,12 @@ export const tavily = {
   };
 
   try {
-    // Create AbortController for timeout handling
-    const controller = new AbortController();
-    const timeoutId = setTimeout(timeoutMs, null).then(() => {
-      controller.abort();
-    });
-
-    // Make the API request
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
-      signal: controller.signal
+      signal: AbortSignal.timeout(timeoutMs)
     });
-
-    // Clear the timeout if the request completes in time
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -1627,7 +1483,7 @@ export const tavily = {
     return data;
 
   } catch (error) {
-    if (error.name === 'AbortError') {
+    if (error.name === 'TimeoutError' || error.name === 'AbortError') {
       throw new Error(`Request timeout after ${timeoutMs}ms`);
     } else if (error.code === 'ECONNREFUSED') {
       throw new Error(`Connection refused when trying to reach Tavily API: ${error.message}`);

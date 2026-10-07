@@ -5,7 +5,15 @@ on:
     branches: [main]
     paths:
       - 'plugins/*/skills/**'
+      # Static optimization only — the authoritative exclusion is
+      # EXCLUDED_PLUGINS below (paths filters can't read files/env).
       - '!plugins/haku/**'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Log the sync plan (changed/new skills, catalog rows, badge) without pushing or creating a PR'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -21,6 +29,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.AGENTS_HUB_PAT }}
           SOURCE_SHA: ${{ github.sha }}
+          DRY_RUN: ${{ inputs.dry_run || false }}
+          # Authoritative list of plugins kept out of the Apache-2.0 hub
+          # (license or any other reason). Space-separated.
+          # haku: CC BY-SA-4.0 upstream (see plugins/haku/README.md) — copying
+          # its 52 skills would mix licenses and strip required attribution.
+          # Revisit only with a licensing decision.
+          EXCLUDED_PLUGINS: haku
+          # Catalog "Category" column per source plugin. Unmapped plugins fall
+          # back to Workflow and get flagged in the sync PR body.
+          CATEGORY_BY_PLUGIN: "base=Development search-plus=Workflow"
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::AGENTS_HUB_PAT secret is not configured"
@@ -37,29 +55,122 @@ jobs:
           cd /tmp/agents
           git checkout -b "$BRANCH"
 
+          # Snapshot existing skill dirs so the copy loop can tell new skills
+          # from changed ones — new ones get a catalog row + badge bump;
+          # changed ones stay file-only (catalog prose is hand-curated).
+          ls skills > /tmp/pre-sync-skills.txt
+
           # Find and sync each skill directory.
-          # haku stays out of the hub: CC BY-SA-4.0 upstream (see plugins/haku/README.md),
-          # while the hub is Apache-2.0 — copying its 52 skills here would mix licenses
-          # and strip the required attribution. Revisit only with a licensing decision.
           cd "$GITHUB_WORKSPACE"
-          find plugins -path "*/skills/*/SKILL.md" ! -path "plugins/haku/*" | while read -r skill_file; do
+          find plugins -path "*/skills/*/SKILL.md" | while read -r skill_file; do
             skill_dir=$(dirname "$skill_file")
             skill_name=$(basename "$skill_dir")
+            plugin=$(echo "$skill_file" | cut -d/ -f2)
+
+            skip=""
+            for p in $EXCLUDED_PLUGINS; do
+              [ "$plugin" = "$p" ] && skip=1
+            done
+            if [ -n "$skip" ]; then
+              echo "Skipping (excluded): $skill_name ($plugin)"
+              continue
+            fi
 
             echo "Syncing: $skill_name"
             rm -rf "/tmp/agents/skills/$skill_name"
             cp -r "$skill_dir" "/tmp/agents/skills/$skill_name"
+
+            if ! grep -qxF "$skill_name" /tmp/pre-sync-skills.txt; then
+              echo "$skill_name $plugin" >> /tmp/new-skills.txt
+            fi
           done
+
+          # Patch the hub catalog + badge for newly added skills. Strict: a
+          # failure here fails the run — a silent file-only sync of a new
+          # skill is the bug this step exists to prevent.
+          if [ -s /tmp/new-skills.txt ]; then
+            cd /tmp/agents
+            python3 << 'PYEOF'
+          import os, re, yaml
+
+          hub = "/tmp/agents"
+          mapping = dict(p.split("=", 1) for p in os.environ.get("CATEGORY_BY_PLUGIN", "").split() if "=" in p)
+
+          new = []
+          with open("/tmp/new-skills.txt") as f:
+              for line in f:
+                  name, plugin = line.split()
+                  new.append((name, plugin))
+
+          rows = []
+          unmapped = set()
+          for name, plugin in new:
+              desc = None
+              try:
+                  text = open(f"{hub}/skills/{name}/SKILL.md").read()
+                  m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+                  if m:
+                      meta = yaml.safe_load(m.group(1)) or {}
+                      desc = meta.get("description")
+              except Exception as e:
+                  print(f"warn: frontmatter parse failed for {name}: {e}")
+              if not desc:
+                  desc = f"Synced from {plugin} — description pending review"
+              desc = re.sub(r"\s+", " ", str(desc)).replace("|", "/").strip()
+              if len(desc) > 120:
+                  desc = desc[:117].rsplit(" ", 1)[0] + "…"
+              category = mapping.get(plugin)
+              if not category:
+                  category = "Workflow"
+                  unmapped.add(plugin)
+              rows.append(f"| [{name}]({name}/) | {category} | [vibekit](https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/{plugin}) | {desc} |")
+
+          readme = f"{hub}/skills/README.md"
+          lines = open(readme).read().splitlines(keepends=True)
+          last_table = max(i for i, l in enumerate(lines) if l.startswith("| ["))
+          for offset, row in enumerate(rows, 1):
+              lines.insert(last_table + offset, row + "\n")
+          open(readme, "w").write("".join(lines))
+
+          with open("/tmp/new-skills-pr-body.md", "w") as f:
+              f.write("\n## New skills\n\n")
+              for (name, plugin), _ in zip(new, rows):
+                  f.write(f"- **{name}** (from `{plugin}`) — row auto-generated from frontmatter; sanity-check category/description\n")
+              if unmapped:
+                  f.write(f"\nNo category mapping for: {', '.join(sorted(unmapped))} — defaulted to Workflow.\n")
+
+          print(f"Catalog: appended {len(rows)} row(s) to skills/README.md")
+          PYEOF
+            NEW_COUNT=$(find skills -name SKILL.md | wc -l | tr -d ' ')
+            sed -i.bak -E "s/Skills: [0-9]+/Skills: ${NEW_COUNT}/; s|skills-[0-9]+-green|skills-${NEW_COUNT}-green|" README.md && rm README.md.bak
+            echo "Badge updated to: Skills: ${NEW_COUNT}"
+          fi
 
           # Create PR if anything changed
           cd /tmp/agents
           git add -A
-          if ! git diff --cached --quiet; then
+          if git diff --cached --quiet; then
+            echo "No changes to sync"
+          elif [ "$DRY_RUN" = "true" ]; then
+            echo "DRY_RUN: nothing pushed. Would have created and merged PR on $BRANCH with:"
+            git diff --cached --stat
+            if [ -s /tmp/new-skills.txt ]; then
+              echo "New skills: $(awk '{print $1}' /tmp/new-skills.txt | tr '\n' ' ')"
+            fi
+          else
+            PR_BODY=/tmp/sync-pr-body.md
+            {
+              echo "Automated sync of skill files from [vibekit-claude-plugins](https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA})."
+              echo ""
+              echo "This PR was created by the \`sync-skills\` workflow."
+              if [ -s /tmp/new-skills-pr-body.md ]; then
+                cat /tmp/new-skills-pr-body.md
+              fi
+            } > "$PR_BODY"
+
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "sync: update skills from vibekit-claude-plugins
-
-          Source: https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}"
+            git commit -m "sync: update skills from vibekit-claude-plugins" -m "Source: https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}"
             git push --force-with-lease origin "$BRANCH"
 
             # Create PR if one doesn't already exist for this branch
@@ -72,9 +183,7 @@ jobs:
                 --base main \
                 --head "$BRANCH" \
                 --title "sync: update skills from vibekit-claude-plugins" \
-                --body "Automated sync of skill files from [vibekit-claude-plugins](https://github.com/shrwnsan/vibekit-claude-plugins/commit/${SOURCE_SHA}).
-
-          This PR was created by the \`sync-skills\` workflow."
+                --body-file "$PR_BODY"
             fi
 
             PR_NUM=$(gh pr list --repo shrwnsan/agents --head "$BRANCH" --json number --jq '.[0].number')
@@ -84,8 +193,6 @@ jobs:
               --delete-branch
 
             echo "Created and merged PR #${PR_NUM} on agents hub"
-          else
-            echo "No changes to sync"
           fi
 
           rm -rf /tmp/agents

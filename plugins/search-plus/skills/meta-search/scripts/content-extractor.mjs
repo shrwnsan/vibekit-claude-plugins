@@ -426,7 +426,7 @@ async function extractWithDefuddle(url, options = {}, timeoutMs = 20000) {
 }
 
 /**
- * Last-resort fallback: fetch the closest Wayback Machine snapshot via Jina Reader
+ * Last-resort fallback: fetch the closest Wayback Machine snapshot via Defuddle
  */
 async function tryUltraResilientFallbacks(url, originalOptions, results) {
   if (originalOptions.maxArchiveAttempts === 0) {
@@ -440,9 +440,10 @@ async function tryUltraResilientFallbacks(url, originalOptions, results) {
     return { success: false, result: results[results.length - 1] };
   }
 
-  // Anonymous Jina access to web.archive.org is often blocked, so try Defuddle first
+  // r.jina.ai is blocked for web.archive.org until 2035 (Jina-side
+  // AbuseAlleviationError), so Defuddle is the only viable snapshot extractor
   let archiveResult;
-  for (const extractor of [extractWithDefuddle, extractWithJinaPublic]) {
+  for (const extractor of [extractWithDefuddle]) {
     archiveResult = await extractor(snapshotURL);
     results.push(archiveResult);
     if (archiveResult.success && archiveResult.contentLength > 100) {
@@ -679,7 +680,7 @@ function isLowValueContent(url, config) {
 /**
  * Validates if extracted content is meaningful or just service error pages
  */
-function validateMeaningfulContent(content, source = 'unknown') {
+export function validateMeaningfulContent(content, source = 'unknown') {
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return {
       isMeaningful: false,
@@ -691,8 +692,12 @@ function validateMeaningfulContent(content, source = 'unknown') {
   const contentLower = content.toLowerCase();
 
   // Patterns that indicate non-meaningful content (error pages, "no results" pages, etc.)
+  // Note: provider frontmatter keys ("Title:", "URL Source:", "Markdown Content:")
+  // are deliberately NOT patterns — every successful Jina Reader extraction
+  // embeds them, so matching them would reject all Jina output.
   const uselessPatterns = [
-    // Google Cache/Search error patterns
+    // Google Cache/Search error patterns (caches shut down 2024; kept for
+    // cached-page remnants that still circulate)
     'did not match any documents',
     'no cached version available',
     'accessibility links',
@@ -722,21 +727,25 @@ function validateMeaningfulContent(content, source = 'unknown') {
     'service unavailable',
     'connection refused',
 
-    // Cache service error patterns
-    'wayback machine',
-    'archive.org',
+    // Parked-domain spam (squatting pages extracted as if they were content)
+    'buy this domain',
+    'this domain is for sale',
+
+    // Cache/archive service error patterns
     'this page is not available',
     'cached page',
-    'webcache.googleusercontent.com',
-
-    // Minimal content patterns
-    'title: cache:',
-    'url source:',
-    'markdown content:'
+    'webcache.googleusercontent.com'
   ];
 
+  // Wayback chrome appears in EVERY snapshot (Defuddle output embeds the
+  // "The Wayback Machine - ..." banner), so the archive patterns are failure
+  // signals only for non-wayback sources.
+  const patterns = source.startsWith('wayback')
+    ? uselessPatterns
+    : [...uselessPatterns, 'wayback machine', 'archive.org'];
+
   // Check for useless patterns
-  for (const pattern of uselessPatterns) {
+  for (const pattern of patterns) {
     if (contentLower.includes(pattern)) {
       return {
         isMeaningful: false,

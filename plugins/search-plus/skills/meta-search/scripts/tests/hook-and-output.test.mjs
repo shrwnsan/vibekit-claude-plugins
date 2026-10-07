@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import { detectFailure, extractQuery } from '../hook-entry.mjs';
 import { formatResult } from '../handle-web-search.mjs';
+import { validateMeaningfulContent } from '../content-extractor.mjs';
 
 const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url)) + '/..';
 
@@ -183,4 +184,53 @@ test('search.mjs without arguments exits 1 with usage on stderr and clean stdout
       return true;
     },
   );
+});
+
+// --- validateMeaningfulContent: provider-output false signals ---
+
+test('Jina Reader frontmatter keys are not treated as failure patterns', () => {
+  const jinaOutput = [
+    'Title: Plugin Marketplace Guide',
+    'URL Source: https://example.com/guide',
+    'Markdown Content:',
+    '',
+    'This guide explains how to structure a plugin marketplace with more than',
+    'enough real prose to pass every length and uniqueness check that the',
+    'validator applies to extracted pages of this kind.'
+  ].join('\n');
+  const result = validateMeaningfulContent(jinaOutput, 'jina');
+  assert.equal(result.isMeaningful, true, `expected meaningful, got: ${JSON.stringify(result)}`);
+});
+
+test('Wayback banner chrome does not fail validation for wayback-sourced content', () => {
+  const waybackContent = [
+    'The Wayback Machine - http://web.archive.org/web/20070106041556/http://homepage.mac.com/a.arai/index.html',
+    '',
+    'このページは2004年頃の個人的なホームページのアーカイブです。ブログへのリンク、',
+    'カウンター画像、著作権表示が含まれており、アーカイブバナーの下には当時の本当の',
+    'コンテンツが残っています。回収された内容は本来のページそのものです。'
+  ].join('\n');
+  const result = validateMeaningfulContent(waybackContent, 'wayback (via defuddle)');
+  assert.equal(result.isMeaningful, true, `expected meaningful, got: ${JSON.stringify(result)}`);
+});
+
+test('Wayback and archive patterns still fail validation for non-wayback sources', () => {
+  const content = 'The Wayback Machine has no snapshot of this page and archive.org could not help. '.repeat(4);
+  const result = validateMeaningfulContent(content, 'jina');
+  assert.equal(result.isMeaningful, false);
+  assert.equal(result.reason, 'useless_pattern_detected');
+});
+
+test('Parked-domain for-sale spam fails validation', () => {
+  const spam = [
+    'Buy this domain — premium domain name available now.',
+    'This domain is for sale through our escrow service.',
+    'Domain appraisal and broker consultation available on request.',
+    'Related links: sponsored listings, whois lookup, trademark notice.',
+    'Make an offer today; serious inquiries only, financing available.',
+    'Kineticharbor.com — copyright notice, privacy policy, contact webmaster.'
+  ].join(' ').repeat(3);
+  const result = validateMeaningfulContent(spam, 'firecrawl');
+  assert.equal(result.isMeaningful, false, `expected useless, got: ${JSON.stringify(result)}`);
+  assert.equal(result.pattern, 'buy this domain');
 });

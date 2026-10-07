@@ -77,9 +77,9 @@ Provider and validation quality *(resolved 2026-10-08 by the legacy-recovery rem
 - ✅ Jina removed from the Wayback snapshot extractors: Defuddle is the only viable extractor there (r.jina.ai blocked for web.archive.org until 2035).
 
 Bugs and nits:
-- Fix uncleared `Promise.race` timers at `github-service.mjs:230` and `:287` (both entrypoints call `process.exit` explicitly, so the impact is latent).
-- `findWaybackSnapshot` treats any non-OK availability-API response as "no snapshot", conflating archive.org outages with genuinely missing snapshots.
-- Fix the `example.com` anti-test-domain gate (`content-extractor.mjs:941`) that rejects it before any network call — misleading as a manual sanity-check URL.
+- ✅ Cleared the `Promise.race` timeout timers in `github-service.mjs` (`clearTimeout` in the existing fetch `finally` blocks of both fetchers).
+- ✅ `findWaybackSnapshot` now distinguishes an archive.org availability-API outage from a genuinely missing snapshot in its log output (no retry, return value unchanged).
+- ✅ The `example.com` gate still rejects reserved test domains pre-network, but now says so ("reserved test domain ... Provide a real URL") instead of the generic suspicious-domain wording.
 - Cosmetic: the hardcoded `Using Tavily first...` stderr label (`content-extractor.mjs:1153`) does not track the actual provider if the chain order changes.
 
 Documentation *(resolved 2026-10-08 on the docs-ledger-debts branch)*:

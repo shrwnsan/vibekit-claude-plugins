@@ -5,7 +5,7 @@ All notable changes to the search-plus plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.2.0] - 2026-10-08
 
 ### Removed
 - **Legacy recovery machinery (~1,000 lines)**: `handle-search-error.mjs` and `handle-rate-limit.mjs` were unreachable dead code — the only error that could reach their dispatcher was the fixed all-failed message, against which every branch was inert (the 879-line file behaved as a stderr string prefixer). The rate-limit path slept 60s + 120s against the hook's 25s deadline, and its retry-after parsing read a field no provider error carries. `SEARCH_PLUS_RECOVERY_TIMEOUT_MS` and `SEARCH_PLUS_451_SIMPLE_MODE` are gone with them (`SEARCH_PLUS_404_MODE` remains, still live in content extraction).
@@ -94,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Previous versions were not tracked in a CHANGELOG._
 
+[3.2.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v2.11.0...v3.0.0

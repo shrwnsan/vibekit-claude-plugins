@@ -1,7 +1,7 @@
 {
   "name": "search-plus",
   "description": "Enhanced web search with multi-service fallback (Tavily, Brave, Exa, Jina, plus keyless Firecrawl/Defuddle) — works without API keys",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "author": {
     "name": "shrwnsan"
   }

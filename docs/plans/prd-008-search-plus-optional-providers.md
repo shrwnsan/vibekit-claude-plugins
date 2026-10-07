@@ -82,6 +82,6 @@ Bugs and nits:
 - Fix the `example.com` anti-test-domain gate (`content-extractor.mjs:941`) that rejects it before any network call — misleading as a manual sanity-check URL.
 - Cosmetic: the hardcoded `Using Tavily first...` stderr label (`content-extractor.mjs:1153`) does not track the actual provider if the chain order changes.
 
-Documentation:
-- `agents/search-plus.md` describes an output schema (`length_tokens`, `content_type`) that nothing produces.
-- Document the opt-in service health check (`content-extractor.mjs:1066-1075`).
+Documentation *(resolved 2026-10-08 on the docs-ledger-debts branch)*:
+- ✅ Rewrote `agents/search-plus.md` Outputs to the actual CLI interface (compact markdown + exit code, service named in the header line, stderr failure summary with the `Tried:` provider list); dropped the unproduced `length_tokens`/`content_type` schema.
+- ✅ Documented the opt-in service health check (`content-extractor.mjs:1075-1105`) in `docs/CONFIGURATION.md`: programmatic-only via `performHealthCheck: true`, spends a Tavily credit plus Jina tokens per run.

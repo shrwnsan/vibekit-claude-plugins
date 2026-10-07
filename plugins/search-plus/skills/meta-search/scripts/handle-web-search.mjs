@@ -1,6 +1,5 @@
 // scripts/handle-web-search.mjs
 import { tavily, extractContent } from './content-extractor.mjs';
-import { handleWebSearchError } from './handle-search-error.mjs';
 import { gitHubService } from './github-service.mjs';
 import { transformToStandard, createErrorResponse } from './response-transformer.mjs';
 
@@ -95,35 +94,13 @@ export async function handleWebSearch(params) {
     };
 
   } catch (error) {
+    // The only reachable throw is the all-failed error from performHybridSearch;
+    // recovery choreography (handle-search-error.mjs) was removed as dead code.
     console.error('All search strategies failed:', error.message);
-
-    // Final error handling for recovery attempts
-    const errorResult = await handleWebSearchError(error, {
-      query,
-      maxResults: params.maxResults || 5,
-      includeAnswer: params.includeAnswer || true,
-      includeRawContent: params.includeRawContent || false,
-      timeout,
-      attempt: 1,
-      error: error
-    });
-
-    if (errorResult && errorResult.success) {
-      return {
-        success: true,
-        data: errorResult.data,
-        attempt: 1,
-        errorRecovered: true,
-        originalError: error.message,
-        recoveryMessage: errorResult.message
-      };
-    }
-
     return {
       error: true,
-      message: errorResult?.message || error.message,
-      attempt: 1,
-      errorHandlingApplied: true
+      message: error.message,
+      attempt: 1
     };
   }
 }

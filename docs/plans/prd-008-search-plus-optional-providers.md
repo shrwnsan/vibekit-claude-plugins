@@ -45,6 +45,8 @@ The keyless tier restores zero-cost operation but shares public rate limits: Fir
 
 ### 3. Direct fetch with `Accept: text/markdown` (extraction, no key at all)
 
+*(Implemented 2026-10-08 — PR #99, shipped as the extraction chain head exactly as specified below.)*
+
 - **What**: Before any third-party extraction service, try a plain `fetch(url, { headers: { Accept: 'text/markdown' } })`. Confirmed during the repair work to return markdown on Cloudflare-hosted docs.
 - **Env var**: none — always-on first step.
 - **Slot**: Head of the URL extraction chain, before Tavily/Jina/Firecrawl/Defuddle.
@@ -76,11 +78,11 @@ Provider and validation quality *(resolved 2026-10-08 by the legacy-recovery rem
 - ✅ `validateMeaningfulContent` false signals fixed: parked-domain spam patterns added, Wayback banner chrome exempted for wayback-sourced sources (covered by tests).
 - ✅ Jina removed from the Wayback snapshot extractors: Defuddle is the only viable extractor there (r.jina.ai blocked for web.archive.org until 2035).
 
-Bugs and nits:
+Bugs and nits *(resolved 2026-10-08 across PRs #98 and #99)*:
 - ✅ Cleared the `Promise.race` timeout timers in `github-service.mjs` (`clearTimeout` in the existing fetch `finally` blocks of both fetchers).
 - ✅ `findWaybackSnapshot` now distinguishes an archive.org availability-API outage from a genuinely missing snapshot in its log output (no retry, return value unchanged).
 - ✅ The `example.com` gate still rejects reserved test domains pre-network, but now says so ("reserved test domain ... Provide a real URL") instead of the generic suspicious-domain wording.
-- Cosmetic: the hardcoded `Using Tavily first...` stderr label (`content-extractor.mjs:1153`) does not track the actual provider if the chain order changes.
+- ✅ The extraction log label now derives from `PRIMARY_EXTRACTION_SERVICE` instead of the hardcoded "Using Tavily first..." (required once the direct markdown fetch became the chain head).
 
 Documentation *(resolved 2026-10-08 on the docs-ledger-debts branch)*:
 - ✅ Rewrote `agents/search-plus.md` Outputs to the actual CLI interface (compact markdown + exit code, service named in the header line, stderr failure summary with the `Tried:` provider list); dropped the unproduced `length_tokens`/`content_type` schema.

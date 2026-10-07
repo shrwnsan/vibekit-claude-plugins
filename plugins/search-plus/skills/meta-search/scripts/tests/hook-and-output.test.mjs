@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import { detectFailure, extractQuery } from '../hook-entry.mjs';
 import { formatResult } from '../handle-web-search.mjs';
-import { validateMeaningfulContent } from '../content-extractor.mjs';
+import { validateMeaningfulContent, isDirectMarkdownResponse } from '../content-extractor.mjs';
 
 const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url)) + '/..';
 
@@ -250,4 +250,26 @@ test('Parked-domain for-sale spam fails validation', () => {
   const result = validateMeaningfulContent(spam, 'firecrawl');
   assert.equal(result.isMeaningful, false, `expected useless, got: ${JSON.stringify(result)}`);
   assert.equal(result.pattern, 'buy this domain');
+});
+
+// --- isDirectMarkdownResponse: guard for the direct Accept: text/markdown fetch ---
+
+test('direct markdown guard accepts 200 text/markdown with a body', () => {
+  assert.equal(isDirectMarkdownResponse(200, 'text/markdown', '# Hello world'), true);
+});
+
+test('direct markdown guard accepts charset parameters on the content type', () => {
+  assert.equal(isDirectMarkdownResponse(200, 'text/markdown; charset=utf-8', '# Hello world'), true);
+});
+
+test('direct markdown guard rejects 200 HTML (servers that ignore the Accept header)', () => {
+  assert.equal(isDirectMarkdownResponse(200, 'text/html; charset=utf-8', '<html><body>page</body></html>'), false);
+});
+
+test('direct markdown guard rejects empty bodies', () => {
+  assert.equal(isDirectMarkdownResponse(200, 'text/markdown', ''), false);
+});
+
+test('direct markdown guard rejects non-200 statuses even with a markdown content type', () => {
+  assert.equal(isDirectMarkdownResponse(404, 'text/markdown', '# missing'), false);
 });

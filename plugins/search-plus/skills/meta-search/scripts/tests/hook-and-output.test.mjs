@@ -186,6 +186,23 @@ test('search.mjs without arguments exits 1 with usage on stderr and clean stdout
   );
 });
 
+// --- URL gate: reserved test domains are rejected with an actionable message ---
+
+test('search.mjs rejects example.com as a reserved test domain, exit 1 with wording on stderr', () => {
+  assert.throws(
+    () => execFileSync('node', [join(SCRIPTS_DIR, 'search.mjs'), 'https://example.com'], {
+      encoding: 'utf8', env: { ...process.env, SEARCH_PLUS_DEBUG: '' },
+    }),
+    (err) => {
+      assert.equal(err.status, 1);
+      assert.match(err.stderr, /reserved test domain/);
+      assert.match(err.stderr, /example\.com/);
+      assert.equal(err.stdout, '');
+      return true;
+    },
+  );
+});
+
 // --- validateMeaningfulContent: provider-output false signals ---
 
 test('Jina Reader frontmatter keys are not treated as failure patterns', () => {

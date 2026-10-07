@@ -216,6 +216,7 @@ class GitHubService {
 
         const startTime = Date.now();
         let success = false;
+        let timeoutId;
         try {
             if (this.githubEnabled) {
                 if (!await this.rateLimiter.checkLimits()) {
@@ -227,7 +228,9 @@ class GitHubService {
             const apiPath = `repos/${owner}/${repo}/contents/${path}`;
             const { stdout } = await Promise.race([
                 __internal.execAsync('gh', ['api', '--include', apiPath]),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('GH_TIMEOUT')), timeout))
+                new Promise((_, reject) => {
+                    timeoutId = setTimeout(() => reject(new Error('GH_TIMEOUT')), timeout);
+                })
             ]);
 
             const { headers, body } = this.parseGhResponse(stdout);
@@ -250,6 +253,7 @@ class GitHubService {
             console.error(`[GitHub Service] Failed to fetch content from ${owner}/${repo}/${path}:`, error);
             throw this.normalizeGitHubError(error);
         } finally {
+            clearTimeout(timeoutId);
             this.emitMetric('github_fetch_duration_ms', Date.now() - startTime, { success });
         }
     }
@@ -273,6 +277,7 @@ class GitHubService {
 
         const startTime = Date.now();
         let success = false;
+        let timeoutId;
         try {
             if (this.githubEnabled) {
                 if (!await this.rateLimiter.checkLimits()) {
@@ -284,7 +289,9 @@ class GitHubService {
             const apiPath = `gists/${gistId}`;
             const { stdout } = await Promise.race([
                 __internal.execAsync('gh', ['api', '--include', apiPath]),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('GH_TIMEOUT')), timeout))
+                new Promise((_, reject) => {
+                    timeoutId = setTimeout(() => reject(new Error('GH_TIMEOUT')), timeout);
+                })
             ]);
 
             const { headers, body } = this.parseGhResponse(stdout);
@@ -323,6 +330,7 @@ class GitHubService {
             console.error(`[GitHub Service] Failed to fetch gist ${gistId}:`, error);
             throw this.normalizeGitHubError(error);
         } finally {
+            clearTimeout(timeoutId);
             this.emitMetric('gist_fetch_duration_ms', Date.now() - startTime, { success });
         }
     }

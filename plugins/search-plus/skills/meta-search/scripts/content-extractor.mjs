@@ -18,10 +18,19 @@ async function findWaybackSnapshot(url) {
       headers: { 'Accept': 'application/json' },
       signal: AbortSignal.timeout(8000)
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      log(`⚠️ Wayback availability API unavailable (HTTP ${response.status}); skipping snapshot lookup`);
+      return null;
+    }
     const data = await response.json();
-    return data.archived_snapshots?.closest?.available ? data.archived_snapshots.closest.url : null;
+    const snapshotURL = data?.archived_snapshots?.closest?.available ? data.archived_snapshots.closest.url : null;
+    if (!snapshotURL) {
+      log(`⚠️ No Wayback snapshot available`);
+    }
+    return snapshotURL;
   } catch {
+    // Network error, timeout, or unusable response body — an outage, not a missing snapshot
+    log(`⚠️ Wayback availability API unavailable; skipping snapshot lookup`);
     return null;
   }
 }
@@ -436,7 +445,6 @@ async function tryUltraResilientFallbacks(url, originalOptions, results) {
   log(`🕐️ Looking up Wayback Machine snapshot...`);
   const snapshotURL = await findWaybackSnapshot(url);
   if (!snapshotURL) {
-    log(`⚠️ No Wayback snapshot available`);
     return { success: false, result: results[results.length - 1] };
   }
 
@@ -905,6 +913,19 @@ async function validateAndNormalizeURL(url) {
           valid: false,
           issues,
           error: `SSRF attack detected: Hostname '${hostname}' is forbidden.`,
+          originalURL: url,
+          normalizedURL
+      };
+  }
+
+  // Reserved test domains (RFC 2606) never host real content; reject by host
+  // before DNS so the gate does not depend on the network
+  if (/(^|\.)example\.(com|net|org)$/i.test(hostname)) {
+      issues.push('suspicious_domain_pattern');
+      return {
+          valid: false,
+          issues,
+          error: `URL rejected: '${hostname}' is a reserved test domain (example.com/net/org). Provide a real URL to extract.`,
           originalURL: url,
           normalizedURL
       };

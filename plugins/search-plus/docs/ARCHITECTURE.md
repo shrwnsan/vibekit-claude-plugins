@@ -45,7 +45,7 @@ The `search-plus` agent follows a structured runbook:
 2. **Choose path** — URL → extraction mode; no URL → research mode
 3. **Primary attempt** — search/fetch using default tools
 4. **Fallback gating** — trigger on HTTP ≥400, empty content, paywall/captcha
-5. **Fallback sequence** — retry with backoff, switch service/provider
+5. **Fallback sequence** — advance to the next provider in the chain; each fetch is bounded by `AbortSignal.timeout` (no backoff/sleeps)
 6. **Validate and dedupe** — require non-empty content, rank by relevance
 7. **Summarize and cite** — produce concise answer with inline citations
 

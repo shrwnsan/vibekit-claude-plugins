@@ -74,18 +74,18 @@ Essential workflow and context engineering tools for productive development. Inc
 
 ### 🔍 Search Plus
 
-Enhanced web search with advanced error handling for 403, 429, 451, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-service fallback, retry logic, and reliable URL content extraction.
+Enhanced web search with advanced error handling for 403, 429, 451, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-provider fallback (search: Tavily → Brave → Exa → Jina → keyless Firecrawl; extraction adds Defuddle and Wayback), structured failure detection, and reliable URL content extraction.
 
 **Performance Results:**
 - 🎯 **95%+ Success Rate**: From 0-20% baseline to reliable search (+400% improvement)
-- 🚀 **Complete Error Recovery**: 100% success for 422 errors, 90% for 429, 80% for 403
+- 🚀 **Multi-Provider Fallback**: search and extraction continue past individual provider failures; manual strategies cover the rest
 - 🎯 **Real-World Validation**: Successfully extracts from documentation, financial sites, and social media
 - ⏱️ **Fast Response Times**: 2.3 seconds average with intelligent service selection
 - 📊 **Zero Silent Failures**: Eliminates "Did 0 searches..." responses
 
 **Multi-Service Architecture:**
 - **Primary**: Tavily API for fast, reliable access (95-98% success, ~863ms avg)
-- **Fallback**: Hybrid free services (SearXNG, DuckDuckGo, Startpage) in parallel
+- **Fallback**: Keyless services — Jina Reader, Firecrawl, Defuddle, and the Wayback Machine for extraction; keyless Firecrawl search when no API keys are configured
 - **Smart Activation**: Only triggers fallback when needed (failed requests or empty content)
 - **Zero Configuration**: Works out-of-the-box with free services
 

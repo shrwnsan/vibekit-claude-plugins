@@ -2,7 +2,6 @@
 
 This directory contains optimized testing infrastructure for all plugins in the Claude Code marketplace repository.
 
-📖 **For comprehensive testing methodology and detailed analysis, see [Testing Guide](../docs/TESTING-GUIDE.md)**
 
 ## Structure
 
@@ -44,7 +43,6 @@ node scripts/search-plus-automated-ab-testing.mjs --agent
 
 🔧 **Features intelligent dynamic baseline detection** that automatically finds the previous version of each component from git history, eliminating hardcoded commit references.
 
-📚 **For detailed architecture and implementation**, see [Dynamic Baseline Detection System](../docs/TESTING-GUIDE.md#dynamic-baseline-detection-system)
 
 ### Run Skill-Specific A/B Testing
 ```bash
@@ -108,7 +106,6 @@ Tests that patterns correctly:
 - AbortController timeout cleanup
 - Performance benchmarking
 
-📋 **For detailed testing methodology, performance analysis, and troubleshooting, see [Testing Guide](../docs/TESTING-GUIDE.md)**
 
 ## Optimized Testing Framework
 
@@ -171,7 +168,6 @@ Tests that patterns correctly:
 - ✅ **3.2s average response time** with intelligent service selection
 - ✅ **Zero Silent Failures** - eliminated "Did 0 searches..." responses
 
-📈 **For detailed performance metrics, benchmark analysis, and test results breakdown, see [Testing Guide](../docs/TESTING-GUIDE.md#current-performance-metrics)**
 
 ## Test Coverage Overview
 
@@ -187,7 +183,6 @@ Tests that patterns correctly:
 - **Baseline Mode**: `baseline-{timestamp}.json` + failure analysis
 - **Optimization**: 33-50% reduction in file overhead
 
-🔧 **For complete test coverage details, error recovery methodology, and output file analysis, see [Testing Guide](../docs/TESTING-GUIDE.md#test-coverage)**
 
 ## Development Workflow
 
@@ -289,7 +284,6 @@ claude plugin install search-plus@vibekit
 - **Network Problems**: Verify internet connectivity for API calls
 - **Performance Regression**: Monitor success rates and response times
 
-📚 **For detailed troubleshooting guides, error resolution steps, and advanced debugging, see [Testing Guide](../docs/TESTING-GUIDE.md#troubleshooting)**
 
 ## Development Workflow
 
@@ -315,4 +309,3 @@ claude plugin install search-plus@vibekit
 
 ---
 
-📖 **For complete testing methodology, advanced framework documentation, and in-depth analysis, see the full [Testing Guide](../docs/TESTING-GUIDE.md)**

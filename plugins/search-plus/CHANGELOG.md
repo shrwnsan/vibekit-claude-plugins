@@ -5,6 +5,17 @@ All notable changes to the search-plus plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Direct markdown fetch** at the head of the URL extraction chain (#99): before any third-party service, the origin is asked for markdown (`Accept: text/markdown`). Trusted only on 200 + `text/markdown` + non-empty body; anything else falls through silently to the existing chain with the attempt visible in the `Tried:` output. Always-on, no configuration, one round trip for sites that honor content negotiation.
+
+### Fixed
+- `github-service.mjs` `Promise.race` timeout timers are now cleared on completion (#98)
+- Wayback availability-API outages are reported as such instead of "No Wayback snapshot available" (#98)
+- Reserved test domains (example.com/net/org) are rejected with an actionable "reserved test domain" message instead of the generic suspicious-domain wording (#98)
+- `agents/search-plus.md` documents the real CLI output contract instead of a schema with fields nothing produces (#96)
+
 ## [3.2.0] - 2026-10-08
 
 ### Removed

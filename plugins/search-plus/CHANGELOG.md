@@ -81,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Previous versions were not tracked in a CHANGELOG._
 
+[3.1.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v2.11.0...v3.0.0
 [2.11.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v2.10.1...v2.11.0

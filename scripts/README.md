@@ -14,7 +14,6 @@ scripts/
 ├── search-plus-skill-ab-testing.mjs       # Specialized skill invocation A/B testing
 ├── search-plus-service-matrix-testing.mjs # Service decision matrix testing
 ├── test-http-infra.js                     # HTTP infrastructure validation (451-error-free testing)
-├── test-451-recovery.mjs                  # Dedicated 451 recovery enhancement testing
 ├── verify_regex.sh                        # Regex pattern verification for test output filtering
 └── README.md                              # This file
 ```
@@ -79,12 +78,6 @@ node scripts/test-http-infra.js
 🎯 TOP RECOMMENDED UPDATES:
    🥇 httpbingo 403 Status Test: https://httpbingo.org/status/403 (615ms)
    🥇 httpbingo Headers Test: https://httpbingo.org/headers (165ms)
-```
-
-### 451 Recovery Enhancement Testing (NEW)
-```bash
-# Test 451 SecurityCompromiseError recovery improvements
-node scripts/test-451-recovery.mjs
 ```
 
 ### Regex Pattern Verification

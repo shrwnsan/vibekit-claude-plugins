@@ -109,14 +109,8 @@ SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 # Print progress logs to stderr from search.mjs / hook-entry.mjs (default: off)
 SEARCH_PLUS_DEBUG=1
 
-# Recovery timeout for individual strategies (default: 5000ms)
-SEARCH_PLUS_RECOVERY_TIMEOUT_MS=5000
-
 # 404 error handling mode (default: normal)
 SEARCH_PLUS_404_MODE=normal
-
-# 451 error handling - minimal output (default: false)
-SEARCH_PLUS_451_SIMPLE_MODE=false
 ```
 
 ### 404 Mode Configuration
@@ -127,30 +121,6 @@ export SEARCH_PLUS_404_MODE=conservative  # 30% archive probability, 1 attempt
 export SEARCH_PLUS_404_MODE=normal        # 70% archive probability, 2 attempts (default)
 export SEARCH_PLUS_404_MODE=aggressive    # 100% archive probability, 3 attempts
 export SEARCH_PLUS_404_MODE=disabled      # Disable 404 enhancement completely
-```
-
-### Recovery Timeout Configuration
-Controls timeout for 451 SecurityCompromiseError recovery strategies:
-
-```bash
-# Default: 5000ms (5 seconds per strategy)
-export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=5000
-
-# Examples:
-export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=3000  # Fast recovery (3 seconds)
-export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=10000 # Slow networks (10 seconds)
-export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=1000  # Development testing (1 second)
-```
-
-### 451 Error Simple Mode
-Reduce logging output for 451 domain blocking recovery:
-
-```bash
-# Enhanced mode (default): Detailed progress logging
-unset SEARCH_PLUS_451_SIMPLE_MODE
-
-# Simple mode: Minimal output
-export SEARCH_PLUS_451_SIMPLE_MODE=true
 ```
 
 ### GitHub CLI Integration
@@ -306,13 +276,8 @@ curl -I https://r.jina.ai
 ### Performance Issues
 
 **Problem**: Slow response times
-```bash
-# Increase recovery timeout for slow networks
-export SEARCH_PLUS_RECOVERY_TIMEOUT_MS=10000
-
-# Enable simple mode to reduce logging overhead
-export SEARCH_PLUS_451_SIMPLE_MODE=true
-```
+- Set `SEARCH_PLUS_DEBUG=1` to see which provider is slow
+- Ensure you have API keys configured — keyed providers are tried first and are typically faster than the keyless tier
 
 **Problem**: High failure rate
 - Ensure you have API keys configured

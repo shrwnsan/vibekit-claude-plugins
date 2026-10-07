@@ -49,9 +49,7 @@ For best results with sandbox enabled, configure API keys for Tavily and/or Jina
 | `SKILL.md` | Skill instructions loaded by Claude Code |
 | `scripts/search.mjs` | Main recovery script |
 | `scripts/content-extractor.mjs` | URL content extraction logic |
-| `scripts/handle-search-error.mjs` | Search error recovery handler |
 | `scripts/handle-web-search.mjs` | Web search orchestration |
-| `scripts/handle-rate-limit.mjs` | Rate limit handling |
 | `scripts/hook-entry.mjs` | PostToolUse / PostToolUseFailure hook entry point |
 | `scripts/response-transformer.mjs` | Response format transformation |
 | `scripts/search-response.mjs` | Response formatting |

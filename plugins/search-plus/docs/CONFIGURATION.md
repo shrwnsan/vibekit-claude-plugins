@@ -31,6 +31,10 @@ SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 
 ## API Keys and Services
 
+### Direct Markdown Fetch (Always On)
+
+Before any third-party service, the extractor fetches the URL directly with `Accept: text/markdown`. The response is used only when the origin actually serves `text/markdown` (HTTP 200, non-empty body); ordinary HTML pages fall through silently to the services below. No key, no configuration.
+
 ### Tavily API (Primary Service)
 
 **What it does**: Premium web search and URL extraction service

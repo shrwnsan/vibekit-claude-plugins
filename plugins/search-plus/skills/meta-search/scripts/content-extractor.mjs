@@ -6,6 +6,8 @@ import net from 'net';
  * Enhanced Content Extractor with Service Selection Strategy
  *
  * Implements optimal fallback strategy based on comprehensive testing:
+ * Head: Direct fetch with Accept: text/markdown (free, one round trip; only
+ *   succeeds when the origin honors content negotiation)
  * Primary: Tavily Extract API (100% success rate, 863ms avg) - FASTEST AND MOST RELIABLE
  * Fallback: Jina.ai Public Endpoint (75% success rate, 1,066ms avg) - Good for documentation
  * Optional: Jina.ai API (88% success rate, 2,331ms avg) - Slower, for cost tracking only
@@ -81,6 +83,9 @@ const SERVICES = {
     bestFor: ['enhanced_metadata', 'reliability'] // 2.7x slower - provides detailed analytics
   }
 };
+
+// First third-party extraction provider, tried right after the direct markdown probe
+const PRIMARY_EXTRACTION_SERVICE = 'tavily';
 
 /**
  * Determines if a URL is likely to be documentation-heavy
@@ -159,6 +164,59 @@ async function validateTavilyAPIKey() {
     return {
       valid: false,
       reason: `API key validation failed: ${error.message}`
+    };
+  }
+}
+
+/**
+ * Guard for the direct `Accept: text/markdown` fetch: trust the body only when
+ * the server actually honored content negotiation. Most origins ignore the
+ * Accept header and return a normal 200 HTML page, so status alone is not a
+ * signal — a miss must fall through to the extraction services.
+ */
+export function isDirectMarkdownResponse(status, contentType, body) {
+  if (status !== 200) return false;
+  const mediaType = String(contentType || '').split(';')[0].trim().toLowerCase();
+  if (mediaType !== 'text/markdown') return false;
+  return typeof body === 'string' && body.length > 0;
+}
+
+/**
+ * Extraction chain head: fetch the origin directly, asking for markdown.
+ * One cheap round trip for servers that honor content negotiation; guarded
+ * by isDirectMarkdownResponse so ordinary HTML responses fail here and the
+ * chain continues with the third-party extraction services.
+ */
+async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
+  const startTime = Date.now();
+  try {
+    const response = await fetch(url, {
+      headers: { 'Accept': 'text/markdown' },
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    const body = await response.text();
+    const contentType = response.headers.get('content-type');
+    if (!isDirectMarkdownResponse(response.status, contentType, body)) {
+      return {
+        success: false,
+        error: { code: 'NOT_MARKDOWN', message: `Origin returned ${response.status} ${contentType || 'without a content-type'} for Accept: text/markdown` },
+        service: 'direct', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata: { contentType }
+      };
+    }
+    return {
+      success: true,
+      content: body,
+      contentLength: body.length,
+      service: 'direct',
+      url,
+      responseTime: Date.now() - startTime,
+      metadata: { contentType }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: { code: extractErrorCode(error.message), message: error.message },
+      service: 'direct', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata: {}
     };
   }
 }
@@ -811,6 +869,7 @@ export function validateMeaningfulContent(content, source = 'unknown') {
  * Determines the fallback level based on service used and number of attempts
  */
 function determineFallbackLevel(service, totalAttempts) {
+  if (service === 'direct') return 'primary'; // chain head: no third-party service needed
   if (service === 'tavily') return 'primary';
   if (service === 'jinaPublic') return 'secondary';
   if (service === 'jinaAPI') return 'tertiary';
@@ -1179,24 +1238,37 @@ export async function extractContent(url, options = {}) {
 
   let result;
 
-  // Strategy 1: Always start with Tavily (research shows it's fastest and most reliable)
-  log(`🚀 Using Tavily first...`);
-  try {
-    result = await extractWithTavily(extractionURL, options);
-    results.push(result);
-  } catch (error) {
-    result = {
-      success: false,
-      error: { code: 'EXCEPTION', message: error.message },
-      service: 'tavily',
-      url: extractionURL,
-      originalURL: url,
-      responseTime: Date.now() - startTime,
-      content: '',
-      contentLength: 0
-    };
-    results.push(result);
-    log(`❌ Tavily extraction failed with exception: ${error.message}`);
+  // Step 1: Direct markdown — ask the origin for markdown before any third-party
+  // service. isDirectMarkdownResponse rejects ordinary 200 HTML pages, so a miss
+  // here falls through silently to the extraction services below.
+  const directResult = await extractWithDirectMarkdown(extractionURL, options);
+  results.push(directResult);
+
+  if (directResult.success) {
+    result = directResult;
+    log(`✅ Direct markdown fetch successful (${directResult.contentLength} chars)`);
+  } else {
+    log(`↩️ Direct markdown fetch fell through (${directResult.error?.message || 'no markdown response'})`);
+
+    // Step 2: Tavily first among extraction services (research shows it's fastest and most reliable)
+    log(`🚀 Using ${SERVICES[PRIMARY_EXTRACTION_SERVICE].name} first...`);
+    try {
+      result = await extractWithTavily(extractionURL, options);
+      results.push(result);
+    } catch (error) {
+      result = {
+        success: false,
+        error: { code: 'EXCEPTION', message: error.message },
+        service: PRIMARY_EXTRACTION_SERVICE,
+        url: extractionURL,
+        originalURL: url,
+        responseTime: Date.now() - startTime,
+        content: '',
+        contentLength: 0
+      };
+      results.push(result);
+      log(`❌ ${SERVICES[PRIMARY_EXTRACTION_SERVICE].name} extraction failed with exception: ${error.message}`);
+    }
   }
 
   // Determine fallback service based on specific needs and service availability
@@ -1221,7 +1293,7 @@ export async function extractContent(url, options = {}) {
                        (useEnhancedMetadata && !result.success);
 
   if (needsFallback) {
-    log(`⚠️ Tavily failed or returned empty, trying ${fallbackService} (${fallbackReason})...`);
+    log(`⚠️ ${SERVICES[PRIMARY_EXTRACTION_SERVICE].name} failed or returned empty, trying ${fallbackService} (${fallbackReason})...`);
     log(`   Failure reason: ${result.error?.code || result.error?.message || 'Empty content'}`);
 
     let fallbackResult;
@@ -1404,7 +1476,7 @@ export async function extractContent(url, options = {}) {
       isDocumentationSite: isDoc,
       isProblematicDomain: isProblematic,
       enhancedMetadataEnabled: useEnhancedMetadata,
-      primaryService: 'tavily', // ALWAYS Tavily first
+      primaryService: PRIMARY_EXTRACTION_SERVICE, // first provider after the direct markdown probe
       fallbackService,
       fallbackReason
     },

@@ -67,11 +67,12 @@ The skill instructs Claude to use these services in priority order:
 
 | Priority | Service | Notes |
 |----------|---------|-------|
-| 1 | Tavily Extract API | Requires API key |
-| 2 | Jina.ai Reader | Free public reader, 20 RPM; API variant used when `SEARCH_PLUS_JINA_API_KEY` is set and enhanced metadata is requested |
-| 3 | Firecrawl | Keyless tier — no key required; `SEARCH_PLUS_FIRECRAWL_API_KEY` raises limits |
-| 4 | Defuddle | Keyless URL → markdown via `defuddle.md` |
-| 5 | Wayback Machine | Archived snapshot; snapshots are read via Defuddle since r.jina.ai is blocked for web.archive.org until 2035 |
+| 1 | Direct markdown fetch | Free probe of the origin with `Accept: text/markdown`; used only on a 200 `text/markdown` response, otherwise falls through silently |
+| 2 | Tavily Extract API | Requires API key |
+| 3 | Jina.ai Reader | Free public reader, 20 RPM; API variant used when `SEARCH_PLUS_JINA_API_KEY` is set and enhanced metadata is requested |
+| 4 | Firecrawl | Keyless tier — no key required; `SEARCH_PLUS_FIRECRAWL_API_KEY` raises limits |
+| 5 | Defuddle | Keyless URL → markdown via `defuddle.md` |
+| 6 | Wayback Machine | Archived snapshot; snapshots are read via Defuddle since r.jina.ai is blocked for web.archive.org until 2035 |
 
 ### GitHub Integration
 
@@ -83,10 +84,11 @@ When `SEARCH_PLUS_GITHUB_ENABLED=true` and `gh` CLI is installed, GitHub URLs ar
 
 Each provider runs in its own try/catch; a failure (403, 429, 451, timeout, empty
 result) falls through to the next provider in the chain — search: Tavily → Brave →
-Exa → Jina → Firecrawl keyless; URL extraction: Tavily → Jina → Firecrawl →
-Defuddle → Wayback. There is no same-provider retry or backoff: the hook's 25s
-internal deadline (inside Claude Code's 30s hook budget) makes long sleeps
-unshippable, and per-fetch `AbortSignal.timeout` bounds every request.
+Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily →
+Jina → Firecrawl → Defuddle → Wayback. There is no same-provider retry or
+backoff: the hook's 25s internal deadline (inside Claude Code's 30s hook budget)
+makes long sleeps unshippable, and per-fetch `AbortSignal.timeout` bounds every
+request.
 
 ### All-Providers-Failed
 
@@ -132,7 +134,7 @@ The plugin registers `PostToolUse` and `PostToolUseFailure` hooks on `WebSearch|
 
 1. Reads the hook JSON from stdin (`tool_name`, `tool_input`, `tool_response` — or the error payload for `PostToolUseFailure`)
 2. Detects recoverable failures from structured fields only, never page text: `PostToolUseFailure` error codes (403, 404, 422, 429, 451, 5xx), `WebFetch` responses with `code >= 400`, and `WebSearch` responses that report zero searches or contain no result links
-3. If a failure is detected, delegates to `handleWebSearch()` for recovery via the multi-provider chain (search: Tavily → Brave → Exa → Jina → Firecrawl keyless; URL extraction: Tavily → Jina → Firecrawl → Defuddle → Wayback)
+3. If a failure is detected, delegates to `handleWebSearch()` for recovery via the multi-provider chain (search: Tavily → Brave → Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily → Jina → Firecrawl → Defuddle → Wayback)
 4. Outputs `additionalContext` JSON to stdout so Claude receives the recovered content
 
 Progress logs go to stderr and only when `SEARCH_PLUS_DEBUG=1` — stdout is reserved for the hook JSON. Injected context is capped at 9,500 characters (Claude Code caps `additionalContext` at 10,000), and the script self-terminates after 25 seconds so it always exits inside the 30-second hook budget.

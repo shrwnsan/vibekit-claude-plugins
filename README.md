@@ -74,7 +74,7 @@ Essential workflow and context engineering tools for productive development. Inc
 
 ### 🔍 Search Plus
 
-Enhanced web search with advanced error handling for 403, 429, 451, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-provider fallback (search: Tavily → Brave → Exa → Jina → keyless Firecrawl; extraction adds Defuddle and Wayback), structured failure detection, and reliable URL content extraction.
+Enhanced web search with advanced error handling for 403, 429, 451, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-provider fallback (search: Tavily → Brave → Exa → Jina → keyless Firecrawl; extraction asks the origin for markdown first, then adds Defuddle and Wayback), structured failure detection, and reliable URL content extraction.
 
 **Performance Results:**
 - 🎯 **95%+ Success Rate**: From 0-20% baseline to reliable search (+400% improvement)

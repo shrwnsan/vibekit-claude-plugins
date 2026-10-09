@@ -8,6 +8,19 @@ A curated collection of productivity-enhancing plugins for Claude Code, designed
 - 📚 **Well Documented**: Clear examples and comprehensive guides
 - 🔧 **Zero Config**: Install and use immediately - no setup required
 
+## 🧭 The Idea Behind VibeKit
+
+Agentic development has four friction points, and each plugin targets one:
+
+| Friction point | Plugin | The fix |
+|---|---|---|
+| **Inputs** — the agent stalls when the web says 403 | 🔍 [search-plus](#-search-plus) | Multi-provider fallback keeps the information supply reliable, even keyless |
+| **Judgment** — agents execute well but decide poorly | 📏 [haku](#-haku) | A decide → spec → evidence loop with gate agents for the human-machine decision points |
+| **Output** — vibes need hygiene | 🛠️ [base](#️-base) | Disciplined commits, quality gates, and worktree isolation before anything lands |
+| **Attention** — long agent runs pull you out of flow | 🔔 [ping](#-ping) | Sound notifications call you back exactly when it's your turn |
+
+The through-line: **remove the human as the bottleneck** — either by making the agent self-sufficient (search fallback, quality gates) or by pacing your attention (notifications, decision logs). And it stays deliberately low-dependency: search-plus works without API keys, ping needs no services, haku is process rather than API.
+
 ## 🚀 Quick Start
 
 Add this marketplace to Claude Code:

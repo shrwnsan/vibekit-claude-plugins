@@ -25,6 +25,8 @@ docs/
 | [prd-005](plans/prd-005-plugin-optimizer.md) | Plugin Linter — Quality and Compliance Validator |
 | [prd-006](plans/prd-006-base-plugin.md) | Base Plugin |
 | [prd-007](plans/prd-007-meta-searching-standalone-skill.md) | Extract Meta-Searching into a Standalone Portable Skill |
+| [prd-008](plans/prd-008-search-plus-optional-providers.md) | Search-Plus Optional Providers |
+| [prd-009](plans/prd-009-search-plus-follow-up-hardening.md) | Search-Plus Follow-Up Hardening |
 
 ### Task Breakdowns (`tasks-*`)
 

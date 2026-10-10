@@ -1,6 +1,6 @@
 # PRD: Search-Plus Optional Providers
 
-<!-- Version: 0.2.0 | Status: READY | Updated: 2026-10-07 -->
+<!-- Version: 0.3.0 | Status: READY | Updated: 2026-10-10 -->
 
 ## Overview
 
@@ -52,7 +52,7 @@ The keyless tier restores zero-cost operation but shares public rate limits: Fir
 - **Slot**: Head of the URL extraction chain, before Tavily/Jina/Firecrawl/Defuddle.
 - **Why it's in this PRD**: it changes provider behavior (not just adds a service), so it merits review even though it's free. It also removes one third-party dependency for well-behaved sites, cutting latency to ~1 round trip.
 - **Guard**: treat as success only when the response is 200 **and** `Content-Type` is `text/markdown` with a non-empty body. Most sites ignore the `Accept` header and return a normal 200 HTML page, so status alone is not a signal; otherwise fall through silently.
-- **Precondition**: runs after `validateAndNormalizeURL`/SSRF validation like every provider — chain-head placement does not bypass URL checks.
+- **Precondition**: runs after `validateAndNormalizeURL`/SSRF validation like every provider. **Gap found post-ship:** that validation covers only the initial URL. Redirects are followed without re-validation, and the private-address blocklist is incomplete. Fix tracked as PRD-009 F1 (3.3.1).
 - **Timeout**: reuse the existing per-fetch `AbortSignal.timeout` pattern; no separate configuration knob (resolves former open question 3).
 
 ## Success Metrics
@@ -68,6 +68,10 @@ The keyless tier restores zero-cost operation but shares public rate limits: Fir
 
 *(Former questions 2 and 3 are resolved in the candidate sections above.)*
 
+## Follow-Up
+
+The post-3.3.0 review, its sequencing for SearXNG and Parallel, and the decision to defer a provider-registry refactor are in [PRD-009: Search-Plus Follow-Up Hardening](prd-009-search-plus-follow-up-hardening.md).
+
 ## Related (out of scope here)
 
 Recommended follow-ups, tracked separately:
@@ -75,7 +79,7 @@ Recommended follow-ups, tracked separately:
 Provider and validation quality *(resolved 2026-10-08 by the legacy-recovery removal PR)*:
 - ✅ Deleted `handle-search-error.mjs` / `handle-rate-limit.mjs` (~1,000 lines): proven unreachable — the only error reaching their dispatcher was the fixed all-failed message, against which every branch was inert.
 - ✅ Jina output no longer blanket-rejected in `validateMeaningfulContent` (frontmatter keys were metadata, not failure).
-- ✅ `validateMeaningfulContent` false signals fixed: parked-domain spam patterns added, Wayback banner chrome exempted for wayback-sourced sources (covered by tests).
+- ✅ `validateMeaningfulContent` false signals fixed: parked-domain spam patterns added, Wayback banner chrome exempted for wayback-sourced sources (covered by tests). *Note:* validation is still metadata-only, so parked pages still exit 0 without falling through; tracked as PRD-009 F2.
 - ✅ Jina removed from the Wayback snapshot extractors: Defuddle is the only viable extractor there (r.jina.ai blocked for web.archive.org until 2035).
 
 Bugs and nits *(resolved 2026-10-08 across PRs #98 and #99)*:

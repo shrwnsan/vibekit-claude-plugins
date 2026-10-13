@@ -292,6 +292,38 @@ const firecrawlTransformer = {
 };
 
 /**
+ * SearXNG Search Transformer
+ */
+const searxngTransformer = {
+  validate: (response) => response && Array.isArray(response.results),
+
+  transform: (response, query) => {
+    const results = calculateBatchRelevanceScores(response.results.map((item, index) => ({
+      title: item.title || '',
+      url: item.url || '',
+      content: item.content || '',
+      score: normalizeScore(null, index, response.results.length),
+      published_date: normalizeDate(item.published_date || item.publishedDate),
+      engine: item.engine || null,
+      source: 'searxng',
+      relevance_score: 0
+    })), query, 'searxng');
+
+    return {
+      results,
+      answer: null,
+      query,
+      success_rate: 1.0,
+      metadata: {
+        total_results: results.length,
+        query_processed_at: new Date().toISOString(),
+        service_info: { endpoint: 'searxng', has_results: results.length > 0 }
+      }
+    };
+  }
+};
+
+/**
  * Error Response Transformer
  * Creates standardized error responses
  */
@@ -323,6 +355,7 @@ registerServiceTransformer('jina-search', jinaSearchTransformer);
 registerServiceTransformer('brave', braveTransformer);
 registerServiceTransformer('exa', exaTransformer);
 registerServiceTransformer('firecrawl', firecrawlTransformer);
+registerServiceTransformer('searxng', searxngTransformer);
 
 /**
  * Get list of registered services

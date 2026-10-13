@@ -187,21 +187,50 @@ export function isDirectMarkdownResponse(status, contentType, body) {
  * by isDirectMarkdownResponse so ordinary HTML responses fail here and the
  * chain continues with the third-party extraction services.
  */
+const MAX_DIRECT_REDIRECTS = 5;
+
 async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
   const startTime = Date.now();
+  const fail = (code, message, metadata = {}) => ({
+    success: false,
+    error: { code, message },
+    service: 'direct', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata
+  });
   try {
-    const response = await fetch(url, {
-      headers: { 'Accept': 'text/markdown' },
-      signal: AbortSignal.timeout(timeoutMs)
-    });
-    const body = await response.text();
+    // One timeout across all hops; redirects are followed manually so every
+    // hop is re-validated (SSRF: a public URL must not bounce to a private one)
+    const signal = AbortSignal.timeout(timeoutMs);
+    let currentURL = url;
+    let response;
+    for (let hop = 0; ; hop++) {
+      response = await fetch(currentURL, {
+        headers: { 'Accept': 'text/markdown' },
+        redirect: 'manual',
+        signal
+      });
+      const location = response.headers.get('location');
+      if (response.status < 300 || response.status >= 400 || !location) break;
+      await response.body?.cancel();
+      if (hop >= MAX_DIRECT_REDIRECTS) {
+        return fail('TOO_MANY_REDIRECTS', `Direct fetch exceeded ${MAX_DIRECT_REDIRECTS} redirects`);
+      }
+      const nextURL = new URL(location, currentURL).href;
+      const validation = await validateAndNormalizeURL(nextURL);
+      if (!validation.valid) {
+        return fail('UNSAFE_REDIRECT', `Direct fetch redirect to ${nextURL} rejected: ${validation.error}`);
+      }
+      currentURL = nextURL;
+    }
     const contentType = response.headers.get('content-type');
+    const notMarkdown = () => fail('NOT_MARKDOWN', `Origin returned ${response.status} ${contentType || 'without a content-type'} for Accept: text/markdown`, { contentType });
+    // Check status and media type before downloading the body
+    if (!isDirectMarkdownResponse(response.status, contentType, ' ')) {
+      await response.body?.cancel();
+      return notMarkdown();
+    }
+    const body = await response.text();
     if (!isDirectMarkdownResponse(response.status, contentType, body)) {
-      return {
-        success: false,
-        error: { code: 'NOT_MARKDOWN', message: `Origin returned ${response.status} ${contentType || 'without a content-type'} for Accept: text/markdown` },
-        service: 'direct', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata: { contentType }
-      };
+      return notMarkdown();
     }
     return {
       success: true,
@@ -213,11 +242,7 @@ async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
       metadata: { contentType }
     };
   } catch (error) {
-    return {
-      success: false,
-      error: { code: extractErrorCode(error.message), message: error.message },
-      service: 'direct', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata: {}
-    };
+    return fail(extractErrorCode(error.message), error.message);
   }
 }
 
@@ -891,22 +916,60 @@ function determineStrategy(isDoc, useEnhancedMetadata) {
  * @param {string} ip - The IP address to check.
  * @returns {boolean} - True if the IP is private, false otherwise.
  */
-function isPrivateIP(ip) {
+export function isPrivateIP(ip) {
   if (net.isIPv4(ip)) {
     const parts = ip.split('.').map(part => parseInt(part, 10));
+    // 0.0.0.0/8 - "This network" (0.0.0.0 reaches localhost on many systems)
+    if (parts[0] === 0) return true;
     // 127.0.0.0/8 - Loopback
     if (parts[0] === 127) return true;
     // 10.0.0.0/8 - Private
     if (parts[0] === 10) return true;
+    // 100.64.0.0/10 - Carrier-grade NAT (shared address space)
+    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
     // 172.16.0.0/12 - Private
     if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
     // 192.168.0.0/16 - Private
     if (parts[0] === 192 && parts[1] === 168) return true;
     // 169.254.0.0/16 - Link-local (includes AWS metadata service)
     if (parts[0] === 169 && parts[1] === 254) return true;
+    return false;
   }
-  // No IPv6 checks for now as per requirements, but can be added.
+  if (net.isIPv6(ip)) {
+    const h = expandIPv6(ip);
+    if (!h) return true; // Unparseable: fail closed
+    const leadingZeros = h.slice(0, 5).every(x => x === 0);
+    // :: (unspecified) and ::1 (loopback)
+    if (leadingZeros && h[5] === 0 && h[6] === 0 && (h[7] === 0 || h[7] === 1)) return true;
+    // ::ffff:a.b.c.d - IPv4-mapped; apply the IPv4 rules to the embedded address
+    if (leadingZeros && h[5] === 0xffff) {
+      return isPrivateIP(`${h[6] >> 8}.${h[6] & 0xff}.${h[7] >> 8}.${h[7] & 0xff}`);
+    }
+    // fc00::/7 - Unique local
+    if ((h[0] & 0xfe00) === 0xfc00) return true;
+    // fe80::/10 - Link-local
+    if ((h[0] & 0xffc0) === 0xfe80) return true;
+  }
   return false;
+}
+
+/**
+ * Expands an IPv6 address (including embedded dotted IPv4) into 8 numeric hextets.
+ * @returns {number[]|null}
+ */
+function expandIPv6(ip) {
+  let addr = ip.split('%')[0].toLowerCase();
+  const dotted = addr.match(/(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) {
+    const p = dotted[1].split('.').map(n => parseInt(n, 10));
+    addr = addr.slice(0, -dotted[1].length) + `${((p[0] << 8) | p[1]).toString(16)}:${((p[2] << 8) | p[3]).toString(16)}`;
+  }
+  const [head, tail] = addr.split('::');
+  const headParts = head ? head.split(':') : [];
+  const tailParts = tail ? tail.split(':') : [];
+  const fill = addr.includes('::') ? 8 - headParts.length - tailParts.length : 0;
+  const hextets = [...headParts, ...Array(fill).fill('0'), ...tailParts].map(x => parseInt(x, 16));
+  return hextets.length === 8 && hextets.every(x => x >= 0 && x <= 0xffff) ? hextets : null;
 }
 
 /**
@@ -963,7 +1026,8 @@ async function validateAndNormalizeURL(url) {
     };
   }
 
-  const { hostname } = parsedURL;
+  // URL.hostname brackets IPv6 literals ("[::1]"); strip them so net.isIP classifies them
+  const hostname = parsedURL.hostname.replace(/^\[(.*)\]$/, '$1');
 
   // SSRF Protection Step 2: Hostname check
   if (hostname === 'localhost' || hostname.endsWith('.local')) {

@@ -5,6 +5,17 @@ All notable changes to the search-plus plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **SearXNG** search provider (PRD-009): set `SEARCH_PLUS_SEARXNG_URL` to your own instance to try it first for search; optional `SEARCH_PLUS_SEARXNG_API_KEY` is sent as a Bearer token. A 403 response explains that JSON output must be enabled in the instance's `settings.yml`.
+- Offline test coverage for every search provider (PRD-009 F3): recorded, sanitized responses with stubbed `fetch` check each provider's endpoint, auth, normalization, and fallback order.
+- Docs-sync test (PRD-009 F4): fails when a provider host is missing from SKILL.md `allowedDomains` or a `SEARCH_PLUS_*` variable is undocumented.
+
+### Fixed
+- **Placeholder content no longer counts as success** (PRD-009 F2): parked-domain pages, blank bodies, and provider error bodies returned with HTTP 200 now fail that attempt, so the extraction chain moves to the next provider and the attempt shows as rejected under `Tried:`. Generic words such as "forbidden" or "rate limit" are not treated as failures, because real articles contain them.
+- Tavily search with zero results now falls through to the next provider, like the other providers.
+
 ## [3.3.0] - 2026-10-08
 
 ### Added

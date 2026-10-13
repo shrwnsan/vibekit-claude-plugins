@@ -93,6 +93,26 @@ export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 export SEARCH_PLUS_FIRECRAWL_API_KEY=fc-your-key-here  # optional
 ```
 
+### SearXNG (Self-Hosted Search, Optional)
+
+**What it does**: Searches through your own [SearXNG](https://docs.searxng.org/) instance. When configured, it is tried before every other search provider. Search only; it does not extract pages.
+
+```bash
+export SEARCH_PLUS_SEARXNG_URL=http://localhost:8080    # enables SearXNG
+export SEARCH_PLUS_SEARXNG_API_KEY=your_token            # optional, sent as a Bearer token
+```
+
+**Instance requirement**: JSON output must be enabled in the instance's `settings.yml`, otherwise SearXNG answers 403:
+
+```yaml
+search:
+  formats:
+    - html
+    - json
+```
+
+If the sandbox is enabled, also add your instance's host to `allowedDomains`.
+
 ### Defuddle (Keyless Extraction Fallback)
 
 `defuddle.md` converts a URL to clean markdown with no key. It runs after Firecrawl and is also used to read Wayback Machine snapshots. No configuration.

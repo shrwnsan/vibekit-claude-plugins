@@ -42,6 +42,7 @@ Extracts content from blocked or problematic URLs:
 
 ### ⚡ Intelligent Fallback
 Automatically tries multiple services until one works:
+- **Self-hosted (optional)**: your SearXNG instance, tried first when `SEARCH_PLUS_SEARXNG_URL` is set
 - **Primary**: Tavily API (if configured)
 - **Fallback 1**: Brave Search API (if configured)
 - **Fallback 2**: Exa AI Search (if configured)

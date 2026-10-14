@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Placeholder content no longer counts as success** (PRD-009 F2): parked-domain pages, blank bodies, and provider error bodies returned with HTTP 200 now fail that attempt, so the extraction chain moves to the next provider and the attempt shows as rejected under `Tried:`. Generic words such as "forbidden" or "rate limit" are not treated as failures, because real articles contain them.
 - Tavily search with zero results now falls through to the next provider, like the other providers.
 
+### Security
+- **Direct markdown fetch could reach internal addresses** (PRD-009 F1): redirects are now followed manually (max 5 hops) and every hop is re-validated, so a public URL can no longer bounce the request to a loopback or private address. The private-address blocklist now also covers `0.0.0.0/8`, `100.64.0.0/10`, and IPv6 loopback/unspecified, unique-local, link-local, and IPv4-mapped addresses; bracketed IPv6 literals in URLs are classified correctly.
+- **DNS rebinding on the direct fetch is closed**: the direct fetch now uses its own `http`/`https` transport whose DNS resolution validates every address at connect time — inside the resolver call the connection itself uses, honoring both the single-address and Node ≥ 20 `autoSelectFamily` (`all: true`) contracts. A short-TTL answer can no longer hand the socket a private address the pre-flight check never saw.
+- The blocklist now covers the remaining IANA special-purpose ranges: IPv4 protocol assignments (`192.0.0.0/24`), TEST-NET-1/2/3, benchmarking (`198.18.0.0/15`), multicast (`224.0.0.0/4`), and reserved/broadcast (`240.0.0.0/4`); IPv6 IPv4-compatible (`::/96`), 6to4 (`2002::/16`), NAT64 (`64:ff9b::/96`), and Teredo (`2001:0::/32`) are checked through their embedded IPv4, plus documentation (`2001:db8::/32`) and multicast (`ff00::/8`). Subdomains and trailing-dot forms of `localhost` are rejected before DNS resolution.
+- **Direct-fetch bodies are size-capped** at 2 MiB of decoded bytes (gzip/deflate/br responses are decompressed first so a compression bomb cannot slip past), and a body declaring a larger `Content-Length` is refused before any byte is downloaded.
+
+### Changed
+- The direct fetch checks status and `Content-Type` before downloading the body, so non-markdown pages are no longer fully downloaded and discarded.
+- The direct fetch sends a `User-Agent` (previously `fetch`'s implicit one) so UA-filtering origins do not silently waste the chain head, and transport errors keep their code (`ETIMEDOUT` etc.) when the underlying error message is empty.
+- The SSRF regression suite runs fully offline: redirect hops, DNS (including a rebinding scenario), and the transport are stubbed, so the DNS-dependent skip is gone.
+
 ## [3.3.0] - 2026-10-08
 
 ### Added

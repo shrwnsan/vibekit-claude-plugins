@@ -1,6 +1,9 @@
 // scripts/content-extractor.mjs
 import { promises as dns } from 'dns';
+import http from 'http';
+import https from 'https';
 import net from 'net';
+import zlib from 'zlib';
 
 /**
  * Enhanced Content Extractor with Service Selection Strategy
@@ -188,6 +191,134 @@ export function isDirectMarkdownResponse(status, contentType, body) {
  * chain continues with the third-party extraction services.
  */
 const MAX_DIRECT_REDIRECTS = 5;
+// Markdown bodies are text; anything larger is not a document but a download
+const MAX_DIRECT_BODY_BYTES = 2 * 1024 * 1024;
+// Some origins reject UA-less requests outright, which would silently waste
+// the direct chain head; send an honest one (fetch previously sent undici's)
+const DIRECT_FETCH_USER_AGENT = 'vibekit-search-plus meta-search (direct markdown fetch)';
+
+/**
+ * DNS lookup hook for the direct fetch: validates every address at connect
+ * time, inside the resolver call the connection itself uses.
+ * validateAndNormalizeURL checks one resolution earlier; without this hook the
+ * connection re-resolves on its own, and a short-TTL answer can hand the
+ * socket a private address the earlier check never saw (DNS rebinding).
+ * Honors both resolver contracts: single (err, address, family) and
+ * Node >= 20 autoSelectFamily's (err, [{ address, family }]) via options.all.
+ */
+export function ssrfGuardedLookup(hostname, options, callback) {
+  const lookupOptions = { family: options?.family ?? 0, hints: options?.hints };
+  if (options?.all) lookupOptions.all = true;
+  dns.lookup(hostname, lookupOptions)
+    .then((result) => {
+      if (options?.all) {
+        const addresses = Array.isArray(result) ? result : [result];
+        const forbidden = addresses.find((a) => isPrivateIP(a.address));
+        if (forbidden) {
+          callback(new Error(`SSRF attack detected: ${hostname} resolves to forbidden address ${forbidden.address}`), null);
+          return;
+        }
+        callback(null, addresses);
+        return;
+      }
+      const { address, family } = result;
+      if (isPrivateIP(address)) {
+        callback(new Error(`SSRF attack detected: ${hostname} resolves to forbidden address ${address}`), null);
+        return;
+      }
+      callback(null, address, family);
+    })
+    .catch(callback);
+}
+
+/**
+ * Reads a response body as UTF-8 text, refusing to buffer more than maxBytes.
+ * A stream that crosses the cap is destroyed, so an oversized body is never
+ * held in memory or returned.
+ */
+export function readBodyWithCap(stream, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let received = 0;
+    let settled = false;
+    const finish = (settle, value) => { if (!settled) { settled = true; settle(value); } };
+    stream.on('data', (chunk) => {
+      received += chunk.length;
+      if (received > maxBytes) {
+        stream.destroy();
+        finish(reject, new Error(`Response body exceeded ${maxBytes} bytes`));
+        return;
+      }
+      chunks.push(chunk);
+    });
+    stream.on('end', () => finish(resolve, Buffer.concat(chunks).toString('utf8')));
+    stream.on('error', (error) => finish(reject, error));
+    stream.on('close', () => finish(reject, new Error('Response stream closed before completion')));
+  });
+}
+
+/**
+ * Direct-fetch transport over http/https with the SSRF-guarded DNS lookup.
+ * http.request (unlike fetch) lets the resolver call be intercepted, which is
+ * what makes connect-time validation possible. Redirects are NOT followed
+ * here; the caller follows them manually so every hop is re-validated.
+ */
+function directHttpTransport(urlString, { headers, signal, timeoutMs = 10000 } = {}) {
+  return new Promise((resolve, reject) => {
+    let target;
+    try {
+      target = new URL(urlString);
+    } catch (error) {
+      reject(error);
+      return;
+    }
+    const transport = target.protocol === 'https:' ? https : http;
+    const request = transport.request(target, {
+      headers,
+      lookup: ssrfGuardedLookup,
+      signal,
+      timeout: timeoutMs,
+      agent: false
+    }, (response) => {
+      resolve({
+        status: response.statusCode,
+        headers: {
+          get: (name) => {
+            const value = response.headers[String(name).toLowerCase()];
+            return value === undefined ? null : (Array.isArray(value) ? value.join(', ') : value);
+          }
+        },
+        cancel: () => response.destroy(),
+        text: () => {
+          // Serve compressed responses decoded; the cap applies to the decoded
+          // bytes so a compression bomb cannot slip past it
+          const encoding = String(response.headers['content-encoding'] || '').trim().toLowerCase();
+          let source = response;
+          if (encoding === 'gzip' || encoding === 'deflate' || encoding === 'br') {
+            source = encoding === 'gzip' ? zlib.createGunzip()
+              : encoding === 'deflate' ? zlib.createInflate()
+              : zlib.createBrotliDecompress();
+            response.on('error', (error) => source.destroy(error));
+            response.pipe(source);
+          }
+          const reading = readBodyWithCap(source, MAX_DIRECT_BODY_BYTES);
+          reading.catch(() => response.destroy());
+          return reading;
+        }
+      });
+    });
+    request.on('timeout', () => request.destroy(new Error(`Direct fetch timeout after ${timeoutMs}ms`)));
+    request.on('error', reject);
+    request.end();
+  });
+}
+
+// Test seam: swapped out by tests/ssrf.test.mjs so redirect and guard logic
+// runs without any network. Production path is directHttpTransport above.
+let directTransport = directHttpTransport;
+export function _setDirectTransportForTests(transport = null) {
+  directTransport = transport ?? directHttpTransport;
+}
 
 async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
   const startTime = Date.now();
@@ -203,14 +334,14 @@ async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
     let currentURL = url;
     let response;
     for (let hop = 0; ; hop++) {
-      response = await fetch(currentURL, {
-        headers: { 'Accept': 'text/markdown' },
-        redirect: 'manual',
-        signal
+      response = await directTransport(currentURL, {
+        headers: { 'Accept': 'text/markdown', 'User-Agent': DIRECT_FETCH_USER_AGENT },
+        signal,
+        timeoutMs
       });
       const location = response.headers.get('location');
       if (response.status < 300 || response.status >= 400 || !location) break;
-      await response.body?.cancel();
+      response.cancel?.();
       if (hop >= MAX_DIRECT_REDIRECTS) {
         return fail('TOO_MANY_REDIRECTS', `Direct fetch exceeded ${MAX_DIRECT_REDIRECTS} redirects`);
       }
@@ -225,8 +356,15 @@ async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
     const notMarkdown = () => fail('NOT_MARKDOWN', `Origin returned ${response.status} ${contentType || 'without a content-type'} for Accept: text/markdown`, { contentType });
     // Check status and media type before downloading the body
     if (!isDirectMarkdownResponse(response.status, contentType, ' ')) {
-      await response.body?.cancel();
+      response.cancel?.();
       return notMarkdown();
+    }
+    // Refuse bodies that declare themselves larger than the cap before any
+    // byte is downloaded
+    const declaredLength = Number(response.headers.get('content-length') || 0);
+    if (declaredLength > MAX_DIRECT_BODY_BYTES) {
+      response.cancel?.();
+      return fail('TOO_LARGE', `Direct fetch body declared ${declaredLength} bytes, over the ${MAX_DIRECT_BODY_BYTES}-byte limit`);
     }
     const body = await response.text();
     if (!isDirectMarkdownResponse(response.status, contentType, body)) {
@@ -242,7 +380,10 @@ async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
       metadata: { contentType }
     };
   } catch (error) {
-    return fail(extractErrorCode(error.message), error.message);
+    const message = error.name === 'AbortError' || error.name === 'TimeoutError'
+      ? `Direct fetch timeout after ${timeoutMs}ms: ${error.message}`
+      : (error.message || error.code || error.name || 'Direct fetch failed');
+    return fail(extractErrorCode(message), message);
   }
 }
 
@@ -553,12 +694,14 @@ async function tryUltraResilientFallbacks(url, originalOptions, results) {
  * Extracts error code from error message for classification
  */
 function extractErrorCode(errorMessage) {
+  if (errorMessage.includes('SSRF attack detected')) return 'INVALID_URL';
+  if (errorMessage.includes('body exceeded')) return 'TOO_LARGE';
   if (errorMessage.includes('403')) return '403';
   if (errorMessage.includes('429')) return '429';
   if (errorMessage.includes('451')) return '451';
   if (errorMessage.includes('400')) return '400';
   if (errorMessage.includes('404')) return '404';
-  if (errorMessage.includes('timeout')) return 'TIMEOUT';
+  if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) return 'TIMEOUT';
   if (errorMessage.includes('ECONNREFUSED')) return 'ECONNREFUSED';
   if (errorMessage.includes('incorrect header check')) return 'HEADER_CHECK';
   if (errorMessage.includes('SecurityCompromiseError')) return 'SECURITY_COMPROMISE';
@@ -933,22 +1076,44 @@ export function isPrivateIP(ip) {
     if (parts[0] === 192 && parts[1] === 168) return true;
     // 169.254.0.0/16 - Link-local (includes AWS metadata service)
     if (parts[0] === 169 && parts[1] === 254) return true;
+    // 192.0.0.0/24 - IETF protocol assignments
+    if (parts[0] === 192 && parts[1] === 0 && parts[2] === 0) return true;
+    // 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24 - TEST-NET-1/2/3 (RFC 5737)
+    if ((parts[0] === 192 && parts[1] === 0 && parts[2] === 2) ||
+        (parts[0] === 198 && parts[1] === 51 && parts[2] === 100) ||
+        (parts[0] === 203 && parts[1] === 0 && parts[2] === 113)) return true;
+    // 198.18.0.0/15 - Benchmarking (RFC 2544)
+    if (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19)) return true;
+    // 224.0.0.0/4 - Multicast
+    if (parts[0] >= 224 && parts[0] <= 239) return true;
+    // 240.0.0.0/4 - Reserved (includes the 255.255.255.255 broadcast)
+    if (parts[0] >= 240) return true;
     return false;
   }
   if (net.isIPv6(ip)) {
     const h = expandIPv6(ip);
     if (!h) return true; // Unparseable: fail closed
+    const embeddedV4 = (hi, lo) => `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
     const leadingZeros = h.slice(0, 5).every(x => x === 0);
     // :: (unspecified) and ::1 (loopback)
     if (leadingZeros && h[5] === 0 && h[6] === 0 && (h[7] === 0 || h[7] === 1)) return true;
-    // ::ffff:a.b.c.d - IPv4-mapped; apply the IPv4 rules to the embedded address
-    if (leadingZeros && h[5] === 0xffff) {
-      return isPrivateIP(`${h[6] >> 8}.${h[6] & 0xff}.${h[7] >> 8}.${h[7] & 0xff}`);
+    // ::/96 IPv4-compatible and ::ffff:0:0/96 IPv4-mapped: the embedded address
+    // decides (a mapped 8.8.8.8 is public; a compatible 127.0.0.1 is not)
+    if (leadingZeros && (h[5] === 0 || h[5] === 0xffff)) {
+      return isPrivateIP(embeddedV4(h[6], h[7]));
     }
+    // 2002::/16 - 6to4 with embedded IPv4
+    if (h[0] === 0x2002) return isPrivateIP(embeddedV4(h[2], h[3]));
+    // 64:ff9b::/96 - NAT64 with embedded IPv4
+    if (h[0] === 0x0064 && h[1] === 0xff9b) return isPrivateIP(embeddedV4(h[6], h[7]));
+    // 2001:0::/32 - Teredo; 2001:db8::/32 - documentation
+    if (h[0] === 0x2001 && (h[1] === 0 || h[1] === 0x0db8)) return true;
     // fc00::/7 - Unique local
     if ((h[0] & 0xfe00) === 0xfc00) return true;
     // fe80::/10 - Link-local
     if ((h[0] & 0xffc0) === 0xfe80) return true;
+    // ff00::/8 - Multicast
+    if ((h[0] & 0xff00) === 0xff00) return true;
   }
   return false;
 }
@@ -1029,13 +1194,16 @@ async function validateAndNormalizeURL(url) {
   // URL.hostname brackets IPv6 literals ("[::1]"); strip them so net.isIP classifies them
   const hostname = parsedURL.hostname.replace(/^\[(.*)\]$/, '$1');
 
-  // SSRF Protection Step 2: Hostname check
-  if (hostname === 'localhost' || hostname.endsWith('.local')) {
+  // SSRF Protection Step 2: Hostname check. A trailing FQDN dot and any
+  // subdomain of localhost resolve to loopback on many systems, so the gate
+  // must not depend on DNS to catch them.
+  const bareHostname = hostname.replace(/\.+$/, '');
+  if (bareHostname === 'localhost' || bareHostname.endsWith('.localhost') || bareHostname.endsWith('.local')) {
       issues.push('forbidden_hostname');
       return {
           valid: false,
           issues,
-          error: `SSRF attack detected: Hostname '${hostname}' is forbidden.`,
+          error: `SSRF attack detected: Hostname '${bareHostname}' is forbidden.`,
           originalURL: url,
           normalizedURL
       };

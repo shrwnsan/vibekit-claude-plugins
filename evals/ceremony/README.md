@@ -10,8 +10,9 @@ without being less safe. Full protocol and rationale:
 - `golden-tasks.json` — the task set (id, tier, prompt, limits); tier labels are
   ground truth for future triage evals
 - `conditions.json` — plugin conditions: `bare`, `superpowers`, `tempo` (future)
-- `run-eval.mjs` — runner: sandboxes under `$TMPDIR`, isolation via
-  `enabledPlugins: false` for every user-scope plugin, treatment via `--plugin-dir`
+- `run-eval.mjs` — runner: sandboxes under `$TMPDIR`, isolation via a fresh
+  `CLAUDE_CONFIG_DIR` per session (no user plugins, no global rules), treatment
+  via `--plugin-dir`
 - `collect.mjs` — stream-json parser; `node collect.mjs <log>` or `--summary`
 - `fixtures/<id>/repo/` — seeded zero-dependency Node repo
 - `fixtures/<id>/verify/hidden/` — verification tests the agent never sees,

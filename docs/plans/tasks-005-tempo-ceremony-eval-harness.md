@@ -22,9 +22,15 @@ under controlled plugin conditions, in disposable sandboxes under `$TMPDIR`
 
 | Condition | Plugin configuration |
 |---|---|
-| `bare` | All user-scope plugins disabled via sandbox project settings |
+| `bare` | Fresh `CLAUDE_CONFIG_DIR` per session: no user plugins, no global rules — the built-in floor |
 | `superpowers` | Same, plus superpowers 5.1.0 loaded via `--plugin-dir` from the local marketplace cache |
 | `tempo` | (future) Same, plus the tempo plugin directory |
+
+Isolation note (validated in smoke): project-level `enabledPlugins: false` and
+`disableAllPlugins: true` do **not** disable user-scope plugins — a fresh
+`CLAUDE_CONFIG_DIR` is the only reliable kill switch, and it also removes the
+user's global AGENTS.md rules, which is desirable: the experiment wants an
+identical environment across conditions.
 
 Prompts are natural user requests — no methodology words ("plan", "TDD",
 "test-first") — so the treatment variable is purely the plugin set. Verification
@@ -84,12 +90,28 @@ node run-eval.mjs --summary
   and total wall-clock are the proxies.
 - One backend per run — absolute numbers are only comparable within a run set.
 
+## Smoke results (2026-10-15, glm-5.3-flash backend)
+
+Protocol validated end-to-end: isolation confirmed (bare lists 12 built-in
+skills only; superpowers condition adds exactly its 14), SessionStart injection
+**does fire headlessly** (probe: 20,983 tok vs 18,883 bare = +2.1k for
+`using-superpowers`), verify pipeline works, both conditions completed.
+
+First ceremony-cost signal, same tier-0 typo fix, single run each:
+
+| Condition | Turns | Tokens | Wall | Verify |
+|---|---|---|---|---|
+| bare | 17 | 21,128 | 55s | PASS |
+| superpowers | 26 | 26,642 | 69s | PASS |
+
++26% tokens, +53% turns, +25% wall-clock for a one-character fix — direction
+matches prd-010's thesis; magnitude needs the full baseline (and note run-to-run
+variance is real, so baselines should run each task more than once and use the
+median; `--summary` already medians across result files).
+
 ## Next steps
 
-1. Smoke run (validates: plugin isolation works headless, SessionStart hooks
-   fire or don't in `-p` mode — either result is a finding, verify pipeline works).
-2. Full `bare` and `superpowers` baselines; record numbers in this doc.
-3. If superpowers ≈ bare headless (hooks don't fire in `-p`), that is finding #1
-   for prd-010: process enforcement is interactive-only today; tempo's
-   headless-native enforcement is the open lane.
-4. MVP skeleton work begins against these numbers (prd-010 §7).
+1. ~~Smoke run~~ done (results above).
+2. Full `bare` and `superpowers` baselines (consider 2–3 runs per task); record
+   numbers in this doc.
+3. MVP skeleton work begins against these numbers (prd-010 §7).

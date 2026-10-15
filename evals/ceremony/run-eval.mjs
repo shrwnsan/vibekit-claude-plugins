@@ -32,8 +32,8 @@ const GOLDEN = JSON.parse(readFileSync(path.join(HERE, 'golden-tasks.json'), 'ut
 const CONDITIONS = JSON.parse(readFileSync(path.join(HERE, 'conditions.json'), 'utf8'));
 
 function installedPluginIds() {
-  // Exact "name@marketplace" keys from the user's install state, so the
-  // sandbox can disable every user-scope plugin for isolation.
+  // Exact "name@marketplace" keys from the user's install state. Retained for
+  // diagnostics (the probe diff shows what a condition adds over the floor).
   const f = path.join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
   try {
     return Object.keys(JSON.parse(readFileSync(f, 'utf8')).plugins || {});
@@ -61,14 +61,12 @@ function runSession(task, conditionName) {
     cpSync(path.join(FIXTURES, task.fixture, 'repo'), sandbox, { recursive: true });
   }
 
-  // Isolation: disable every user-scope plugin; conditions add back only what
-  // they study (via pluginDirs / pluginUrl flags, never user install state).
-  const enabledPlugins = Object.fromEntries(installedPluginIds().map((id) => [id, false]));
-  mkdirSync(path.join(sandbox, '.claude'), { recursive: true });
-  writeFileSync(
-    path.join(sandbox, '.claude', 'settings.json'),
-    JSON.stringify({ enabledPlugins }, null, 2),
-  );
+  // Isolation: every session runs with a fresh CLAUDE_CONFIG_DIR — no user
+  // plugins, no user global rules, identical environment across conditions.
+  // Conditions add back only what they study via --plugin-dir. (Project-level
+  // settings cannot disable user-scope plugins; the config dir is the only
+  // reliable kill switch. macOS keychain auth is config-dir independent.)
+  const configDir = mkdtempSync(path.join(tmpdir(), 'tempo-ceremony-cfg-'));
 
   if (task.fixture) {
     gitIn(sandbox, ['init', '-q']);
@@ -111,7 +109,7 @@ function runSession(task, conditionName) {
     encoding: 'utf8',
     timeout: task.timeout_ms ?? 900_000,
     maxBuffer: 256 * 1024 * 1024,
-    env: process.env,
+    env: { ...process.env, CLAUDE_CONFIG_DIR: configDir },
   });
   const wall_ms = Date.now() - started;
   const log = r.stdout ?? '';
@@ -226,7 +224,8 @@ if (!condArg || !CONDITIONS[condArg]) {
   process.exit(1);
 }
 
-let tasks = GOLDEN.tasks.filter((t) => t.fixture); // probes are smoke-only
-if (task) tasks = tasks.filter((t) => t.id === task);
+let tasks = task
+  ? GOLDEN.tasks.filter((t) => t.id === task) // explicit --task may name a probe
+  : GOLDEN.tasks.filter((t) => t.fixture); // default: fixtures only
 if (tier !== null) tasks = tasks.filter((t) => String(t.tier) === tier);
 for (const t of tasks) runSession(t, condArg);

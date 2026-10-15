@@ -676,7 +676,7 @@ async function tryUltraResilientFallbacks(url, originalOptions, results) {
   // AbuseAlleviationError), so Defuddle is the only viable snapshot extractor
   let archiveResult;
   for (const extractor of [extractWithDefuddle]) {
-    archiveResult = await extractor(snapshotURL);
+    archiveResult = rejectHardContentFailure(await extractor(snapshotURL));
     results.push(archiveResult);
     if (archiveResult.success && archiveResult.contentLength > 100) {
       archiveResult.metadata.snapshotURL = snapshotURL;
@@ -1031,6 +1031,70 @@ export function validateMeaningfulContent(content, source = 'unknown') {
     textLength: textContent.length,
     source
   };
+}
+
+// High-confidence failure signals: content matching these is never the page
+// the user asked for, so the attempt is treated as failed and the chain moves
+// on. Generic words ("forbidden", "rate limit", "page not found", ...) stay
+// metadata-only in validateMeaningfulContent because real articles use them.
+const PARKED_DOMAIN_PATTERNS = [
+  'buy this domain',
+  'this domain is for sale',
+  'this domain may be for sale'
+];
+
+// Provider error bodies that can arrive with HTTP 200 (Jina/Firecrawl/Defuddle).
+// Only checked on short bodies, anchored at the start, so an article that
+// discusses these errors is not rejected.
+const PROVIDER_ERROR_BODY_MAX_LENGTH = 500;
+const PROVIDER_ERROR_BODY_PATTERNS = [
+  /^\{\s*"(data"\s*:\s*null|code"\s*:\s*[45]\d\d|error"|name"\s*:\s*"\w*Error")/i, // JSON error envelope
+  /^(error|failed to (fetch|extract|scrape|load)|extraction failed)\s*:/i, // "Error: ...", not "Error 403 handling ..."
+  /^(timeouterror|navigation timeout)\b/i
+];
+
+function hardContentFailureReason(content, source = 'unknown') {
+  if (typeof content !== 'string' || content.trim().length === 0) {
+    return 'empty content';
+  }
+  const contentLower = content.toLowerCase();
+  if (PARKED_DOMAIN_PATTERNS.some(pattern => contentLower.includes(pattern))) {
+    return 'parked/placeholder page';
+  }
+  const trimmed = content.trim();
+  if (trimmed.length <= PROVIDER_ERROR_BODY_MAX_LENGTH &&
+      PROVIDER_ERROR_BODY_PATTERNS.some(pattern => pattern.test(trimmed))) {
+    return `provider error page from ${source}`;
+  }
+  return null;
+}
+
+/**
+ * True when content is a high-confidence failure (parked/placeholder page,
+ * blank body, or provider error page) that should not count as a successful
+ * extraction. Generic error words are deliberately not considered here.
+ */
+export function isHardContentFailure(content, source = 'unknown') {
+  return hardContentFailureReason(content, source) !== null;
+}
+
+/**
+ * Downgrades a "successful" attempt whose content is a hard failure, so the
+ * chain falls through and the attempt is reported as failed under `Tried:`.
+ */
+function rejectHardContentFailure(attempt, { allowEmpty = false } = {}) {
+  if (!attempt?.success || typeof attempt.content !== 'string') return attempt;
+  // Enhanced-metadata mode deliberately accepts metadata-only (empty) results
+  if (allowEmpty && attempt.content.trim().length === 0) return attempt;
+  const reason = hardContentFailureReason(attempt.content, attempt.service);
+  if (!reason) return attempt;
+  log(`🚫 ${attempt.service} returned unusable content (${reason}); trying next provider`);
+  attempt.success = false;
+  attempt.error = { code: 'CONTENT_REJECTED', message: reason };
+  attempt.metadata = { ...attempt.metadata, rejectedContentLength: attempt.contentLength };
+  attempt.content = '';
+  attempt.contentLength = 0;
+  return attempt;
 }
 
 /**
@@ -1473,7 +1537,7 @@ export async function extractContent(url, options = {}) {
   // Step 1: Direct markdown — ask the origin for markdown before any third-party
   // service. isDirectMarkdownResponse rejects ordinary 200 HTML pages, so a miss
   // here falls through silently to the extraction services below.
-  const directResult = await extractWithDirectMarkdown(extractionURL, options);
+  const directResult = rejectHardContentFailure(await extractWithDirectMarkdown(extractionURL, options));
   results.push(directResult);
 
   if (directResult.success) {
@@ -1485,7 +1549,7 @@ export async function extractContent(url, options = {}) {
     // Step 2: Tavily first among extraction services (research shows it's fastest and most reliable)
     log(`🚀 Using ${SERVICES[PRIMARY_EXTRACTION_SERVICE].name} first...`);
     try {
-      result = await extractWithTavily(extractionURL, options);
+      result = rejectHardContentFailure(await extractWithTavily(extractionURL, options), { allowEmpty: useEnhancedMetadata });
       results.push(result);
     } catch (error) {
       result = {
@@ -1535,6 +1599,7 @@ export async function extractContent(url, options = {}) {
       } else {
         fallbackResult = await extractWithJinaPublic(extractionURL, options);
       }
+      rejectHardContentFailure(fallbackResult, { allowEmpty: useEnhancedMetadata });
       results.push(fallbackResult);
 
       // Use fallback if it succeeded
@@ -1577,6 +1642,7 @@ export async function extractContent(url, options = {}) {
         await extractWithJinaAPI(extractionURL, options) :
         await extractWithJinaPublic(extractionURL, options);
 
+      rejectHardContentFailure(finalFallback);
       results.push(finalFallback);
 
       if (finalFallback.success && finalFallback.contentLength > 0) {
@@ -1611,7 +1677,7 @@ export async function extractContent(url, options = {}) {
   for (const [name, extractor] of [['firecrawl', extractWithFirecrawl], ['defuddle', extractWithDefuddle]]) {
     if (result.success && result.contentLength > 0) break;
     log(`🔄 Trying ${name}...`);
-    const freeResult = await extractor(extractionURL, options);
+    const freeResult = rejectHardContentFailure(await extractor(extractionURL, options));
     results.push(freeResult);
     if (freeResult.success && freeResult.contentLength > 0) {
       result = freeResult;

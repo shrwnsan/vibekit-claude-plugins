@@ -11,6 +11,8 @@ Recovers web content when Claude Code's built-in search fails. Part of the [sear
 | `SEARCH_PLUS_EXA_API_KEY` | No | Exa AI Search | 1,000 searches/month |
 | `SEARCH_PLUS_JINA_API_KEY` | No | Jina.ai reader API | 10M free tokens |
 | `SEARCH_PLUS_FIRECRAWL_API_KEY` | No | Firecrawl search/scrape | Keyless tier without it; 1,000 credits/month with a free key |
+| `SEARCH_PLUS_SEARXNG_URL` | No | Your self-hosted SearXNG instance, tried first for search (e.g. `http://localhost:8080`) | Free (self-hosted) |
+| `SEARCH_PLUS_SEARXNG_API_KEY` | No | Bearer token, only if your SearXNG instance requires auth | — |
 | `SEARCH_PLUS_DEBUG` | No | Set to `1` to print progress logs to stderr | — |
 
 Works without API keys: URL extraction first asks the origin for markdown directly (`Accept: text/markdown`, used only when the server actually serves it), then falls back to Jina Reader (20 RPM), Firecrawl, Defuddle, and the Wayback Machine; search falls back to Firecrawl's keyless tier. Keys raise limits and add providers.

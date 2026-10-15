@@ -9,6 +9,9 @@ const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.SEARCH_
 const BRAVE_API_KEY = process.env.SEARCH_PLUS_BRAVE_API_KEY || process.env.BRAVE_API_KEY || null;
 const EXA_API_KEY = process.env.SEARCH_PLUS_EXA_API_KEY || process.env.EXA_API_KEY || null;
 const FIRECRAWL_API_KEY = process.env.SEARCH_PLUS_FIRECRAWL_API_KEY || null;
+// User's own SearXNG instance; often localhost, so it intentionally bypasses the extraction SSRF checks
+const SEARXNG_URL = process.env.SEARCH_PLUS_SEARXNG_URL ? process.env.SEARCH_PLUS_SEARXNG_URL.trim().replace(/\/+$/, '') : null;
+const SEARXNG_API_KEY = process.env.SEARCH_PLUS_SEARXNG_API_KEY || null;
 
 // Show deprecation warnings for old variable names
 if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
@@ -107,15 +110,30 @@ export async function handleWebSearch(params) {
 
 /**
  * Hybrid web search with intelligent service selection
- * Sequential: Tavily → Brave → Exa → Jina Search → Firecrawl (keyless)
+ * Sequential: SearXNG (self-hosted) → Tavily → Brave → Exa → Jina Search → Firecrawl (keyless)
  */
 export async function performHybridSearch(params, timeoutMs = 10000) {
+  // Phase 0: Try the user's self-hosted SearXNG instance (no per-query cost)
+  if (SEARXNG_URL) {
+    try {
+      console.log('🔎 Trying SearXNG...');
+      const result = await trySearxngSearch(params, timeoutMs);
+      console.log('✅ Success with SearXNG');
+      return result;
+    } catch (error) {
+      console.log(`❌ SearXNG failed: ${error.message}`);
+    }
+  }
+
   // Phase 1: Try Tavily API (premium, best RAG integration)
   if (TAVILY_API_KEY) {
     try {
       console.log('🚀 Trying Tavily API...');
       const startTime = Date.now();
       const rawResult = await tavily.search(params, timeoutMs);
+      if (!rawResult?.results?.length) {
+        throw new Error('No results found from Tavily');
+      }
       const responseTime = Date.now() - startTime;
 
       const standardizedResult = transformToStandard('tavily', rawResult, params.query, responseTime);
@@ -178,8 +196,57 @@ export async function performHybridSearch(params, timeoutMs = 10000) {
     '  • SEARCH_PLUS_EXA_API_KEY (1000 free searches/month at exa.ai)\n' +
     '  • SEARCH_PLUS_JINA_API_KEY (10M free tokens at jina.ai)\n' +
     '  • SEARCH_PLUS_FIRECRAWL_API_KEY (1,000 free credits/month at firecrawl.dev)\n' +
+    '  • SEARCH_PLUS_SEARXNG_URL (your own SearXNG instance, e.g. http://localhost:8080)\n' +
     'See: https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus#setup-options'
   );
+}
+
+/**
+ * Attempts web search using a self-hosted SearXNG instance.
+ * Requires SEARCH_PLUS_SEARXNG_URL; SEARCH_PLUS_SEARXNG_API_KEY is sent as a Bearer token if set.
+ */
+async function trySearxngSearch(params, timeoutMs = 10000) {
+  if (!SEARXNG_URL) {
+    throw new Error('SearXNG URL not configured');
+  }
+
+  const maxResults = params.maxResults || 5;
+  const startTime = Date.now();
+  const searchUrl = `${SEARXNG_URL}/search?q=${encodeURIComponent(params.query)}&format=json`;
+
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      ...(SEARXNG_API_KEY ? { 'Authorization': `Bearer ${SEARXNG_API_KEY}` } : {})
+    },
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+
+  if (response.status === 403) {
+    throw new Error('SearXNG error: 403 (JSON output is likely disabled; add "json" to search.formats in the instance settings.yml)');
+  }
+  if (!response.ok) {
+    throw new Error(`SearXNG error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // SearXNG returns { results: [{ title, url, content, publishedDate, engine }] }
+  const results = (data.results || []).slice(0, maxResults).map(item => ({
+    title: item.title || '',
+    url: item.url || '',
+    content: item.content || '',
+    published_date: item.publishedDate || null,
+    engine: item.engine || null
+  }));
+
+  if (results.length === 0) {
+    throw new Error('No results found from SearXNG');
+  }
+
+  const standardizedResult = transformToStandard('searxng', { results }, params.query, Date.now() - startTime);
+  return { data: standardizedResult, service: 'searxng' };
 }
 
 /**

@@ -5,7 +5,7 @@ All notable changes to the search-plus plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.3.1] - 2026-10-15
+## [Unreleased]
 
 ### Added
 - **SearXNG** search provider (PRD-009): set `SEARCH_PLUS_SEARXNG_URL` to your own instance to try it first for search; optional `SEARCH_PLUS_SEARXNG_API_KEY` is sent as a Bearer token. A 403 response explains that JSON output must be enabled in the instance's `settings.yml`.
@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Placeholder content no longer counts as success** (PRD-009 F2): parked-domain pages, blank bodies, and provider error bodies returned with HTTP 200 now fail that attempt, so the extraction chain moves to the next provider and the attempt shows as rejected under `Tried:`. Generic words such as "forbidden" or "rate limit" are not treated as failures, because real articles contain them.
 - Tavily search with zero results now falls through to the next provider, like the other providers.
+
+## [3.3.1] - 2026-10-15
 
 ### Security
 - **Direct markdown fetch could reach internal addresses** (PRD-009 F1): redirects are now followed manually (max 5 hops) and every hop is re-validated, so a public URL can no longer bounce the request to a loopback or private address. The private-address blocklist now also covers `0.0.0.0/8`, `100.64.0.0/10`, and IPv6 loopback/unspecified, unique-local, link-local, and IPv4-mapped addresses; bracketed IPv6 literals in URLs are classified correctly.

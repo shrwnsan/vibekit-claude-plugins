@@ -136,15 +136,15 @@ function runSession(task, conditionName) {
     };
   }
 
-  // Verification with hidden tests the agent never saw.
+  // Verification with hidden tests the agent never saw. Only the hidden tests
+  // decide pass/fail: seeded tests can be stale by design (t0-pagesize: the
+  // spec moved) or rewritten by the agent, so they are not ground truth.
   let verify = null;
-  if (task.fixture && task.verify !== false) {
-    const hidden = path.join(FIXTURES, task.fixture, 'verify', 'hidden');
-    if (existsSync(hidden)) {
-      mkdirSync(path.join(sandbox, 'test', 'hidden'), { recursive: true });
-      cpSync(hidden, path.join(sandbox, 'test', 'hidden'), { recursive: true });
-    }
-    const v = spawnSync(process.execPath, ['--test'], {
+  const hidden = path.join(FIXTURES, task.fixture, 'verify', 'hidden');
+  if (task.fixture && task.verify !== false && existsSync(hidden)) {
+    mkdirSync(path.join(sandbox, 'test', 'hidden'), { recursive: true });
+    cpSync(hidden, path.join(sandbox, 'test', 'hidden'), { recursive: true });
+    const v = spawnSync(process.execPath, ['--test', 'test/hidden/**/*.test.js'], {
       cwd: sandbox,
       encoding: 'utf8',
       timeout: 120_000,

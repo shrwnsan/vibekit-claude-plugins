@@ -5,7 +5,7 @@ All notable changes to the search-plus plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.3.1] - 2026-10-15
 
 ### Added
 - **SearXNG** search provider (PRD-009): set `SEARCH_PLUS_SEARXNG_URL` to your own instance to try it first for search; optional `SEARCH_PLUS_SEARXNG_API_KEY` is sent as a Bearer token. A 403 response explains that JSON output must be enabled in the instance's `settings.yml`.

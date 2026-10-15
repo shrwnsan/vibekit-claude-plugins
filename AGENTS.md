@@ -173,14 +173,24 @@ Always update BOTH:
 ## Current plugins
 
 ### Base (`plugins/base/`)
-- Git workflow automation
-- Intelligent commit message crafting
-- Quality assurance automation
+- Git workflow automation (commit crafting, branch hygiene)
+- Quality assurance automation and systematic debugging
+- Handoff context for session continuation
 
 ### Search Plus (`plugins/search-plus/`)
-- Enhanced web search with error handling
-- Multi-service fallback architecture
-- URL content extraction
+- Enhanced web search with multi-service fallback (Tavily, Brave, Exa, Jina, keyless Firecrawl/Defuddle)
+- Works without API keys
+- URL content extraction and structured failure detection
+
+### Ping (`plugins/ping/`)
+- Sound notifications for session events, prompts, and task completion
+- Cross-platform: macOS, Linux, Windows
+- Configurable via `~/.claude/ping-config.json`
+
+### Haku (`plugins/haku/`, vendored from [shrwnsan/haku](https://github.com/shrwnsan/haku))
+- Lean leadership loop: decide → spec → evidence
+- 8-skill core + 5 gate agents + 8 opt-in role packs
+- License: CC BY-SA 4.0 (only non-Apache plugin)
 
 ## PR guidelines
 

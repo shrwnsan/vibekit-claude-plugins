@@ -1,9 +1,13 @@
 // scripts/content-extractor.mjs
 import { promises as dns } from 'dns';
-import http from 'http';
-import https from 'https';
 import net from 'net';
-import zlib from 'zlib';
+
+import { DIRECT_FETCH_USER_AGENT, MAX_DIRECT_BODY_BYTES, fetchDirect } from './direct-fetch.mjs';
+import { isPrivateIP } from './security-utils.mjs';
+
+// Re-exported for tests and downstream imports (these live in their own modules now)
+export { _setDirectTransportForTests } from './direct-fetch.mjs';
+export { isPrivateIP };
 
 /**
  * Enhanced Content Extractor with Service Selection Strategy
@@ -191,134 +195,6 @@ export function isDirectMarkdownResponse(status, contentType, body) {
  * chain continues with the third-party extraction services.
  */
 const MAX_DIRECT_REDIRECTS = 5;
-// Markdown bodies are text; anything larger is not a document but a download
-const MAX_DIRECT_BODY_BYTES = 2 * 1024 * 1024;
-// Some origins reject UA-less requests outright, which would silently waste
-// the direct chain head; send an honest one (fetch previously sent undici's)
-const DIRECT_FETCH_USER_AGENT = 'vibekit-search-plus meta-search (direct markdown fetch)';
-
-/**
- * DNS lookup hook for the direct fetch: validates every address at connect
- * time, inside the resolver call the connection itself uses.
- * validateAndNormalizeURL checks one resolution earlier; without this hook the
- * connection re-resolves on its own, and a short-TTL answer can hand the
- * socket a private address the earlier check never saw (DNS rebinding).
- * Honors both resolver contracts: single (err, address, family) and
- * Node >= 20 autoSelectFamily's (err, [{ address, family }]) via options.all.
- */
-export function ssrfGuardedLookup(hostname, options, callback) {
-  const lookupOptions = { family: options?.family ?? 0, hints: options?.hints };
-  if (options?.all) lookupOptions.all = true;
-  dns.lookup(hostname, lookupOptions)
-    .then((result) => {
-      if (options?.all) {
-        const addresses = Array.isArray(result) ? result : [result];
-        const forbidden = addresses.find((a) => isPrivateIP(a.address));
-        if (forbidden) {
-          callback(new Error(`SSRF attack detected: ${hostname} resolves to forbidden address ${forbidden.address}`), null);
-          return;
-        }
-        callback(null, addresses);
-        return;
-      }
-      const { address, family } = result;
-      if (isPrivateIP(address)) {
-        callback(new Error(`SSRF attack detected: ${hostname} resolves to forbidden address ${address}`), null);
-        return;
-      }
-      callback(null, address, family);
-    })
-    .catch(callback);
-}
-
-/**
- * Reads a response body as UTF-8 text, refusing to buffer more than maxBytes.
- * A stream that crosses the cap is destroyed, so an oversized body is never
- * held in memory or returned.
- */
-export function readBodyWithCap(stream, maxBytes) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let received = 0;
-    let settled = false;
-    const finish = (settle, value) => { if (!settled) { settled = true; settle(value); } };
-    stream.on('data', (chunk) => {
-      received += chunk.length;
-      if (received > maxBytes) {
-        stream.destroy();
-        finish(reject, new Error(`Response body exceeded ${maxBytes} bytes`));
-        return;
-      }
-      chunks.push(chunk);
-    });
-    stream.on('end', () => finish(resolve, Buffer.concat(chunks).toString('utf8')));
-    stream.on('error', (error) => finish(reject, error));
-    stream.on('close', () => finish(reject, new Error('Response stream closed before completion')));
-  });
-}
-
-/**
- * Direct-fetch transport over http/https with the SSRF-guarded DNS lookup.
- * http.request (unlike fetch) lets the resolver call be intercepted, which is
- * what makes connect-time validation possible. Redirects are NOT followed
- * here; the caller follows them manually so every hop is re-validated.
- */
-function directHttpTransport(urlString, { headers, signal, timeoutMs = 10000 } = {}) {
-  return new Promise((resolve, reject) => {
-    let target;
-    try {
-      target = new URL(urlString);
-    } catch (error) {
-      reject(error);
-      return;
-    }
-    const transport = target.protocol === 'https:' ? https : http;
-    const request = transport.request(target, {
-      headers,
-      lookup: ssrfGuardedLookup,
-      signal,
-      timeout: timeoutMs,
-      agent: false
-    }, (response) => {
-      resolve({
-        status: response.statusCode,
-        headers: {
-          get: (name) => {
-            const value = response.headers[String(name).toLowerCase()];
-            return value === undefined ? null : (Array.isArray(value) ? value.join(', ') : value);
-          }
-        },
-        cancel: () => response.destroy(),
-        text: () => {
-          // Serve compressed responses decoded; the cap applies to the decoded
-          // bytes so a compression bomb cannot slip past it
-          const encoding = String(response.headers['content-encoding'] || '').trim().toLowerCase();
-          let source = response;
-          if (encoding === 'gzip' || encoding === 'deflate' || encoding === 'br') {
-            source = encoding === 'gzip' ? zlib.createGunzip()
-              : encoding === 'deflate' ? zlib.createInflate()
-              : zlib.createBrotliDecompress();
-            response.on('error', (error) => source.destroy(error));
-            response.pipe(source);
-          }
-          const reading = readBodyWithCap(source, MAX_DIRECT_BODY_BYTES);
-          reading.catch(() => response.destroy());
-          return reading;
-        }
-      });
-    });
-    request.on('timeout', () => request.destroy(new Error(`Direct fetch timeout after ${timeoutMs}ms`)));
-    request.on('error', reject);
-    request.end();
-  });
-}
-
-// Test seam: swapped out by tests/ssrf.test.mjs so redirect and guard logic
-// runs without any network. Production path is directHttpTransport above.
-let directTransport = directHttpTransport;
-export function _setDirectTransportForTests(transport = null) {
-  directTransport = transport ?? directHttpTransport;
-}
 
 async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
   const startTime = Date.now();
@@ -334,7 +210,7 @@ async function extractWithDirectMarkdown(url, options = {}, timeoutMs = 10000) {
     let currentURL = url;
     let response;
     for (let hop = 0; ; hop++) {
-      response = await directTransport(currentURL, {
+      response = await fetchDirect(currentURL, {
         headers: { 'Accept': 'text/markdown', 'User-Agent': DIRECT_FETCH_USER_AGENT },
         signal,
         timeoutMs
@@ -1116,89 +992,6 @@ function determineStrategy(isDoc, useEnhancedMetadata) {
   if (useEnhancedMetadata) return 'tavily_first_enhanced_metadata';
   if (isDoc) return 'tavily_first_optimal_fallback';
   return 'tavily_first_default';
-}
-
-/**
- * Checks if an IP address is in a private or reserved range.
- * @param {string} ip - The IP address to check.
- * @returns {boolean} - True if the IP is private, false otherwise.
- */
-export function isPrivateIP(ip) {
-  if (net.isIPv4(ip)) {
-    const parts = ip.split('.').map(part => parseInt(part, 10));
-    // 0.0.0.0/8 - "This network" (0.0.0.0 reaches localhost on many systems)
-    if (parts[0] === 0) return true;
-    // 127.0.0.0/8 - Loopback
-    if (parts[0] === 127) return true;
-    // 10.0.0.0/8 - Private
-    if (parts[0] === 10) return true;
-    // 100.64.0.0/10 - Carrier-grade NAT (shared address space)
-    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
-    // 172.16.0.0/12 - Private
-    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-    // 192.168.0.0/16 - Private
-    if (parts[0] === 192 && parts[1] === 168) return true;
-    // 169.254.0.0/16 - Link-local (includes AWS metadata service)
-    if (parts[0] === 169 && parts[1] === 254) return true;
-    // 192.0.0.0/24 - IETF protocol assignments
-    if (parts[0] === 192 && parts[1] === 0 && parts[2] === 0) return true;
-    // 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24 - TEST-NET-1/2/3 (RFC 5737)
-    if ((parts[0] === 192 && parts[1] === 0 && parts[2] === 2) ||
-        (parts[0] === 198 && parts[1] === 51 && parts[2] === 100) ||
-        (parts[0] === 203 && parts[1] === 0 && parts[2] === 113)) return true;
-    // 198.18.0.0/15 - Benchmarking (RFC 2544)
-    if (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19)) return true;
-    // 224.0.0.0/4 - Multicast
-    if (parts[0] >= 224 && parts[0] <= 239) return true;
-    // 240.0.0.0/4 - Reserved (includes the 255.255.255.255 broadcast)
-    if (parts[0] >= 240) return true;
-    return false;
-  }
-  if (net.isIPv6(ip)) {
-    const h = expandIPv6(ip);
-    if (!h) return true; // Unparseable: fail closed
-    const embeddedV4 = (hi, lo) => `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
-    const leadingZeros = h.slice(0, 5).every(x => x === 0);
-    // :: (unspecified) and ::1 (loopback)
-    if (leadingZeros && h[5] === 0 && h[6] === 0 && (h[7] === 0 || h[7] === 1)) return true;
-    // ::/96 IPv4-compatible and ::ffff:0:0/96 IPv4-mapped: the embedded address
-    // decides (a mapped 8.8.8.8 is public; a compatible 127.0.0.1 is not)
-    if (leadingZeros && (h[5] === 0 || h[5] === 0xffff)) {
-      return isPrivateIP(embeddedV4(h[6], h[7]));
-    }
-    // 2002::/16 - 6to4 with embedded IPv4
-    if (h[0] === 0x2002) return isPrivateIP(embeddedV4(h[2], h[3]));
-    // 64:ff9b::/96 - NAT64 with embedded IPv4
-    if (h[0] === 0x0064 && h[1] === 0xff9b) return isPrivateIP(embeddedV4(h[6], h[7]));
-    // 2001:0::/32 - Teredo; 2001:db8::/32 - documentation
-    if (h[0] === 0x2001 && (h[1] === 0 || h[1] === 0x0db8)) return true;
-    // fc00::/7 - Unique local
-    if ((h[0] & 0xfe00) === 0xfc00) return true;
-    // fe80::/10 - Link-local
-    if ((h[0] & 0xffc0) === 0xfe80) return true;
-    // ff00::/8 - Multicast
-    if ((h[0] & 0xff00) === 0xff00) return true;
-  }
-  return false;
-}
-
-/**
- * Expands an IPv6 address (including embedded dotted IPv4) into 8 numeric hextets.
- * @returns {number[]|null}
- */
-function expandIPv6(ip) {
-  let addr = ip.split('%')[0].toLowerCase();
-  const dotted = addr.match(/(\d+\.\d+\.\d+\.\d+)$/);
-  if (dotted) {
-    const p = dotted[1].split('.').map(n => parseInt(n, 10));
-    addr = addr.slice(0, -dotted[1].length) + `${((p[0] << 8) | p[1]).toString(16)}:${((p[2] << 8) | p[3]).toString(16)}`;
-  }
-  const [head, tail] = addr.split('::');
-  const headParts = head ? head.split(':') : [];
-  const tailParts = tail ? tail.split(':') : [];
-  const fill = addr.includes('::') ? 8 - headParts.length - tailParts.length : 0;
-  const hextets = [...headParts, ...Array(fill).fill('0'), ...tailParts].map(x => parseInt(x, 16));
-  return hextets.length === 8 && hextets.every(x => x >= 0 && x <= 0xffff) ? hextets : null;
 }
 
 /**

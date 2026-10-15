@@ -6,7 +6,6 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import dnsDefault from 'node:dns';
-import { PassThrough } from 'node:stream';
 
 import * as ce from '../content-extractor.mjs';
 const { extractContent } = ce;
@@ -206,54 +205,6 @@ test('declared Content-Length over the cap is refused without downloading the bo
   } finally {
     ce._setDirectTransportForTests();
     restoreDns();
-  }
-});
-
-test('readBodyWithCap rejects and destroys the stream past the cap', async () => {
-  assert.equal(typeof ce.readBodyWithCap, 'function', 'readBodyWithCap is not exported');
-  const src = new PassThrough();
-  src.on('error', () => {}); // post-destroy writes must not crash the test runner
-  const read = ce.readBodyWithCap(src, 16);
-  src.write('a'.repeat(15));
-  src.write('bbbb'); // crosses the cap
-  await assert.rejects(read, /body exceeded 16 bytes/);
-});
-
-test('readBodyWithCap returns the concatenated body under the cap', async () => {
-  assert.equal(typeof ce.readBodyWithCap, 'function', 'readBodyWithCap is not exported');
-  const src = new PassThrough();
-  const read = ce.readBodyWithCap(src, 100);
-  src.write('hello ');
-  src.end('world');
-  assert.equal(await read, 'hello world');
-});
-
-test('ssrfGuardedLookup honors the all: true resolver contract (Node autoSelectFamily)', async () => {
-  assert.equal(typeof ce.ssrfGuardedLookup, 'function', 'ssrfGuardedLookup is not exported');
-  const restore = stubLookup([{ address: '93.184.216.34', family: 4 }]);
-  try {
-    const addresses = await new Promise((resolve, reject) => {
-      ce.ssrfGuardedLookup('autoselect.test', { family: 0, all: true }, (err, value) => (err ? reject(err) : resolve(value)));
-    });
-    assert.deepEqual(addresses, [{ address: '93.184.216.34', family: 4 }],
-      'all: true callers must receive an array of { address, family } records');
-  } finally {
-    restore();
-  }
-});
-
-test('ssrfGuardedLookup rejects a private answer under the all: true contract', async () => {
-  assert.equal(typeof ce.ssrfGuardedLookup, 'function', 'ssrfGuardedLookup is not exported');
-  const restore = stubLookup([{ address: '127.0.0.2', family: 4 }]);
-  try {
-    await assert.rejects(
-      new Promise((resolve, reject) => {
-        ce.ssrfGuardedLookup('autoselect.test', { family: 0, all: true }, (err, value) => (err ? reject(err) : resolve(value)));
-      }),
-      /forbidden address 127\.0\.0\.2/
-    );
-  } finally {
-    restore();
   }
 });
 

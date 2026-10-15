@@ -1,5 +1,6 @@
-# prd-010: Lean SDLC Plugin (working name: `swift`)
+# prd-010: Lean SDLC Plugin (`tempo`)
 
+**Tagline:** safety-proportional process for agentic SDLC
 **Status:** Draft
 **Date:** 2026-10-15
 **Author:** shrwnsan, drafted with Claude Code (GLM)
@@ -157,7 +158,8 @@ review-triage gates, model/effort routing integration with harness `/effort`.
 
 ## 8. Open questions
 
-- Plugin name (`swift` is a placeholder).
+- Plugin name: resolved — `tempo` (see [research-012](../evals/research-012-naming-lean-sdlc-plugin.md)
+  for the naming DD, adversarial review, and falsification criteria).
 - How much of superpowers' rigor to keep in tier-2 — copy philosophy or vendor as
   "pairs with superpowers" (composability story)?
 - Does decision-model triage run as a hook (PreToolUse/UserPromptSubmit) or inside the

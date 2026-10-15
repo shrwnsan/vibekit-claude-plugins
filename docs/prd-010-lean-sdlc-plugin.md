@@ -1,4 +1,4 @@
-# prd-001: Lean SDLC Plugin (working name: `swift`)
+# prd-010: Lean SDLC Plugin (working name: `swift`)
 
 **Status:** Draft
 **Date:** 2026-10-15

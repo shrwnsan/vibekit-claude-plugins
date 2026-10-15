@@ -1,6 +1,6 @@
 # PRD: Search-Plus Follow-Up Hardening
 
-<!-- Version: 0.1.0 | Status: READY | Updated: 2026-10-10 -->
+<!-- Version: 0.1.1 | Status: SHIPPED — 3.3.1 (#104), 3.4.0 (#105) | Updated: 2026-10-15 -->
 
 ## Overview
 
@@ -127,6 +127,7 @@ F3's recorded-response tests make the refactor low-risk whenever one of these ha
 - F2: a parked page falls through to the next provider, and articles that mention status codes are unaffected.
 - F3/F4: the offline suite covers every keyed search provider and fails when a provider host or env var is missing from the docs.
 - The skill keeps working end-to-end with zero API keys, and `claude plugin validate .` passes.
+- Shipped: F1 in 3.3.1 (#104); F2–F4 and SearXNG in 3.4.0 (#105). The registry refactor stays deferred.
 
 ## Related
 

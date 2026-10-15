@@ -85,9 +85,16 @@ node run-eval.mjs --summary
 ## Known limitations (accepted for v1)
 
 - Single-shot sessions only; multi-turn interactive flows are not measured.
-- Cache-hit ratio depends on the backend populating cache fields in stream-json.
-- `prompt → first test green` is not directly observable; `tokens_to_first_edit`
-  and total wall-clock are the proxies.
+- **This backend (z.ai GLM proxy) omits per-message usage** — only the final
+  `result` event carries token/cache totals. Session totals are therefore
+  authoritative from the result event, but `tokens_to_first_edit` is structurally
+  unusable here (it stays 0). The metric works on backends that populate
+  per-assistant usage.
+- Cache-hit ratio *is* reported in the result event on this backend (~0.85–0.93
+  across all runs so far, parity between conditions — the proxy's cache behavior
+  is not where process plugins lose; turns and output are).
+- `prompt → first test green` is not directly observable; total wall-clock is
+  the proxy.
 - One backend per run — absolute numbers are only comparable within a run set.
 
 ## Smoke results (2026-10-15, glm-5.3-flash backend)
@@ -109,9 +116,44 @@ matches prd-010's thesis; magnitude needs the full baseline (and note run-to-run
 variance is real, so baselines should run each task more than once and use the
 median; `--summary` already medians across result files).
 
+## Baseline results (interim, 2026-10-15/16 — tiers 0–1 complete, tier 2 in flight)
+
+Medians per condition × tier (tier 0: n=7 incl. smoke rows; tier 1: n=6; verify
+is hidden-tests-only after the fix committed mid-run):
+
+| Condition | Tier | Turns | Tokens | Wall | Verify |
+|---|---|---|---|---|---|
+| bare | 0 | 16 | 21,335 | 46s | 7/7 |
+| superpowers | 0 | 24 | 26,409 | 69s | 7/7 |
+| bare | 1 | 16.5 | 19,127 | 82s | 6/6 |
+| superpowers | 1 | 29 | 51,026 | 199s | 6/6 |
+
+Findings so far:
+
+1. **Tier 1 is the damning one.** Superpowers costs 2.7× tokens, ~1.8× turns,
+   2.4× wall-clock versus bare with identical verify outcomes (6/6 both).
+   prd-010's tier-1 target (≤60% of superpowers' tokens) is already met by the
+   bare floor — tempo's job at tier 1 is keeping bare's cost while adding the
+   safety net, not beating superpowers.
+2. **Tier 0 separates on turns and wall, not tokens.** Turns +50% and wall +52%
+   are consistent; token medians are inconclusive at n=3 because same-task
+   variance spans 7.7k–43k on this model. The ceremony *floor* (superpowers
+   never used fewer than 20 turns on tier-0/1 tasks; bare went as low as 3) is
+   the stable tier-0 signal.
+3. **Strategy divergence is real and measurable.** On t0-pagesize, bare's
+   minimal fixers changed 1 file (the constant); superpowers' runs changed 2
+   (code + test). Both satisfy the hidden ground truth — the difference shows
+   up in `git.files_changed`, not verify. This is exactly the
+   safety-proportional-process spectrum tempo will formalize.
+4. **Variance argues for n≥3 + medians** (already the protocol). Same task,
+   same condition: 5.6k–38.7k tokens at tier 0.
+5. **Tier 2 (partial, n=1 each): near-parity** — 47 turns both, 75.3k vs 55.7k
+   tokens on t2-dedupe. Early hint that full-loop ceremony is *least* wasteful
+   exactly where it's justified. Awaiting the remaining runs before claiming.
+
 ## Next steps
 
 1. ~~Smoke run~~ done (results above).
-2. Full `bare` and `superpowers` baselines (consider 2–3 runs per task); record
-   numbers in this doc.
+2. ~~Full `bare` and `superpowers` baselines~~ tiers 0–1 recorded above; tier 2
+   completing — final table replaces the interim one when all runs land.
 3. MVP skeleton work begins against these numbers (prd-010 §7).

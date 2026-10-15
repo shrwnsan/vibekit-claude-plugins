@@ -6,8 +6,7 @@
   },
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
-    "version": "1.6.0",
-    "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins"
+    "version": "1.6.0"
   },
   "plugins": [
     {

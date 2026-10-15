@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "tasks": [
+    {
+      "id": "probe",
+      "tier": null,
+      "fixture": null,
+      "prompt": "List the names of the skills available to you, one per line, nothing else.",
+      "timeout_ms": 120000,
+      "max_turns": 10,
+      "verify": false
+    },
+    {
+      "id": "t0-typo",
+      "tier": 0,
+      "fixture": "t0-typo",
+      "prompt": "The tests in this repo are failing. Find out why and fix it.",
+      "timeout_ms": 300000,
+      "max_turns": 25
+    },
+    {
+      "id": "t0-pagesize",
+      "tier": 0,
+      "fixture": "t0-pagesize",
+      "prompt": "Change the default page size in src/config.js from 20 to 50.",
+      "timeout_ms": 300000,
+      "max_turns": 25
+    },
+    {
+      "id": "t1-slugify",
+      "tier": 1,
+      "fixture": "t1-slugify",
+      "prompt": "Add a slugify(str) function to src/utils.js. Behavior, applied in this order: lowercase the string; convert each whitespace run into a single hyphen; strip any character that isn't a-z, 0-9, or a hyphen; collapse repeated hyphens into one; trim leading and trailing hyphens. Examples: '  Hello,  World!  ' becomes 'hello-world'; 'Ápple & Bánana' becomes 'pple-bnana'; 'a - b' becomes 'a-b'. Also add tests for it. No new dependencies.",
+      "timeout_ms": 900000,
+      "max_turns": 60
+    },
+    {
+      "id": "t1-items-limit",
+      "tier": 1,
+      "fixture": "t1-items-limit",
+      "prompt": "Extend GET /items in src/router.js to support a limit query parameter: ?limit=N returns only the first N items. Rules: when limit is absent, return 10 items; limit must be an integer between 1 and 100 inclusive; anything else (non-integer, out of range, garbage) returns status 400 with body {error: 'invalid limit'}. Don't change any other route or the response shape. Add tests.",
+      "timeout_ms": 900000,
+      "max_turns": 60
+    },
+    {
+      "id": "t2-dedupe",
+      "tier": 2,
+      "fixture": "t2-dedupe",
+      "prompt": "src/csv.js and src/tsv.js both parse and serialize delimiter-separated rows and share the same overall structure. Extract whatever they genuinely share into a new module (e.g. src/tabular.js) and refactor both modules to use it. Requirements: the public API of csv.js and tsv.js must not change; all existing behavior must be preserved exactly; the existing tests must keep passing without modification. Add new tests only for behavior you had to reason about carefully.",
+      "timeout_ms": 1800000,
+      "max_turns": 100
+    },
+    {
+      "id": "t2-fetch-cache",
+      "tier": 2,
+      "fixture": "t2-fetch-cache",
+      "prompt": "src/fetcher.js wraps a transport with get(url, cb). Add a response cache: createFetcher should accept an options object as its second argument ({ ttl = 30000 } milliseconds). Within ttl of a previous successful fetch of the same URL, get() must call back with the cached body WITHOUT invoking the transport again. After ttl expires, the next get() must invoke the transport again. Failed fetches (transport errors) must not be cached. The existing public API must keep working, including createFetcher(transport) with no options. Add tests with a counting fake transport and a small ttl (e.g. 5ms). Do not use the network.",
+      "timeout_ms": 1800000,
+      "max_turns": 100
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "bare": {},
+  "superpowers": {
+    "pluginDirs": [
+      "~/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0"
+    ],
+    "_note": "Bump the version path when superpowers updates; this is the local marketplace cache the harness loads via --plugin-dir."
+  },
+  "tempo": {
+    "pluginDirs": ["../../plugins/tempo"],
+    "_note": "Future: the tempo plugin once plugins/tempo exists. Relative paths resolve against evals/ceremony/."
+  }
+}

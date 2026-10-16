@@ -116,44 +116,59 @@ matches prd-010's thesis; magnitude needs the full baseline (and note run-to-run
 variance is real, so baselines should run each task more than once and use the
 median; `--summary` already medians across result files).
 
-## Baseline results (interim, 2026-10-15/16 — tiers 0–1 complete, tier 2 in flight)
+## Baseline results (final, 2026-10-16 — all tiers complete)
 
-Medians per condition × tier (tier 0: n=7 incl. smoke rows; tier 1: n=6; verify
-is hidden-tests-only after the fix committed mid-run):
+39 result rows recorded (incl. probes); 33 real-task runs, of which 3 are
+excluded as infrastructure failures (2 zero-token API stalls, 1 quota-killed
+mid-run — `completed: false`, counted as flakiness, not as agent outcomes).
+Medians over completed runs; verify is hidden-tests-only:
 
-| Condition | Tier | Turns | Tokens | Wall | Verify |
-|---|---|---|---|---|---|
-| bare | 0 | 16 | 21,335 | 46s | 7/7 |
-| superpowers | 0 | 24 | 26,409 | 69s | 7/7 |
-| bare | 1 | 16.5 | 19,127 | 82s | 6/6 |
-| superpowers | 1 | 29 | 51,026 | 199s | 6/6 |
+| Condition | Tier | n | Turns | Tokens | Wall | Verify |
+|---|---|---|---|---|---|---|
+| bare | 0 | 7 | 16 | 21,335 | 46s | 7/7 |
+| superpowers | 0 | 7 | 24 | 26,409 | 69s | 7/7 |
+| bare | 1 | 6 | 16.5 | 19,127 | 82s | 6/6 |
+| superpowers | 1 | 6 | 29 | 51,026 | 199s | 6/6 |
+| bare | 2 | 4 | 28 | 51,433 | 397s | 4/4 |
+| superpowers | 2 | 4 | 40.5 | 60,908 | 308s | 4/4 |
 
-Findings so far:
+Findings:
 
-1. **Tier 1 is the damning one.** Superpowers costs 2.7× tokens, ~1.8× turns,
+1. **Tier 1 is the damning one.** Superpowers costs 2.7× tokens, 1.8× turns,
    2.4× wall-clock versus bare with identical verify outcomes (6/6 both).
    prd-010's tier-1 target (≤60% of superpowers' tokens) is already met by the
    bare floor — tempo's job at tier 1 is keeping bare's cost while adding the
    safety net, not beating superpowers.
-2. **Tier 0 separates on turns and wall, not tokens.** Turns +50% and wall +52%
-   are consistent; token medians are inconclusive at n=3 because same-task
-   variance spans 7.7k–43k on this model. The ceremony *floor* (superpowers
-   never used fewer than 20 turns on tier-0/1 tasks; bare went as low as 3) is
-   the stable tier-0 signal.
-3. **Strategy divergence is real and measurable.** On t0-pagesize, bare's
+2. **Tier 2 narrows but never inverts.** Tokens 1.19×, turns 1.45× in favor of
+   bare; the wall-clock median reverses (sp 308s vs bare 397s) but is an
+   artifact of one 1,688s bare outlier (n=4 medians are fragile). Ceremony is
+   *least* wasteful exactly where it is justified — supporting prd-010's
+   risk-tiered thesis — yet it still costs strictly positive turns everywhere.
+3. **Tier 0 separates on turns and wall, not tokens.** Turns +50% and wall +52%
+   are consistent; token medians are inconclusive because same-task variance
+   spans 7.7k–43k on this model. The ceremony *floor* is the stable tier-0
+   signal: superpowers never used fewer than 20 turns on any tier-0/1 task;
+   bare went as low as 3.
+4. **No safety divergence anywhere.** 33/33 completed runs passed hidden
+   verification, both conditions, all tiers. On this task set the ceremony
+   bought no measurable correctness — only cost. (Caveat: hidden tests measure
+   task correctness, not maintainability; the tier-2 refactor tasks' behavior
+   pins are the closest proxy.)
+5. **Strategy divergence is real and measurable.** On t0-pagesize, bare's
    minimal fixers changed 1 file (the constant); superpowers' runs changed 2
-   (code + test). Both satisfy the hidden ground truth — the difference shows
-   up in `git.files_changed`, not verify. This is exactly the
-   safety-proportional-process spectrum tempo will formalize.
-4. **Variance argues for n≥3 + medians** (already the protocol). Same task,
-   same condition: 5.6k–38.7k tokens at tier 0.
-5. **Tier 2 (partial, n=1 each): near-parity** — 47 turns both, 75.3k vs 55.7k
-   tokens on t2-dedupe. Early hint that full-loop ceremony is *least* wasteful
-   exactly where it's justified. Awaiting the remaining runs before claiming.
+   (code + test). Both satisfy the hidden ground truth — visible in
+   `git.files_changed`, not verify. This is the safety-proportional-process
+   spectrum tempo will formalize.
+6. **Operational notes for future runs.** Same-task variance (5.6k–62.9k tokens)
+   demands n≥3 and medians; background wrappers need explicit ~60-min timeouts
+   or they kill the harness's own 1,800s cap before a row is written; missed
+   completion notifications require a disk-check fallback (result files are the
+   ground truth); the backend's 5-hour usage quota can cut a batch mid-run.
 
 ## Next steps
 
-1. ~~Smoke run~~ done (results above).
-2. ~~Full `bare` and `superpowers` baselines~~ tiers 0–1 recorded above; tier 2
-   completing — final table replaces the interim one when all runs land.
-3. MVP skeleton work begins against these numbers (prd-010 §7).
+1. ~~Smoke run~~ done.
+2. ~~Full `bare` and `superpowers` baselines~~ done — final table above.
+3. MVP skeleton work begins against these numbers (prd-010 §7): the tier-0/1
+   targets are bare-floor cost + safety net; tier-2 must stay within ~1.2× of
+   bare tokens while adding the review gate.

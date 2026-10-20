@@ -180,6 +180,17 @@ A: No. Works with free services out-of-the-box. API keys are optional for enhanc
 **Q: Can this get me blocked from websites?**
 A: Requests go through extraction services (Tavily, Jina, Firecrawl, Defuddle), not directly to the site, and the plugin does not spoof browser headers.
 
+## Tests
+
+Run the offline regression suite (no API keys needed) with Node's built-in test runner:
+
+```bash
+cd plugins/search-plus/skills/meta-search/scripts
+node --test tests/*.test.mjs
+```
+
+Note the glob is required: `node --test tests/` (directory form) fails with `MODULE_NOT_FOUND` on Node 22. Most tests are fully offline — `fetch`, DNS, and the direct-fetch transport are stubbed. Three end-to-end chain tests in `tests/content-quality.test.mjs` need DNS and skip themselves (reported as `skipped`, not failed) when it is unavailable, e.g. inside a network-restricted sandbox; run them on a machine with DNS for full coverage.
+
 ## Advanced Information
 
 - **Configuration**: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) - API keys and advanced setup

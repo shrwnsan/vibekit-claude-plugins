@@ -66,6 +66,8 @@ Based on 35 comprehensive test scenarios:
 
 *Tested on real-world problematic domains including documentation sites, financial platforms, and social media.*
 
+> **Re-measured on 3.4.0** (Oct 2026, [eval-027](../../docs/evals/eval-027-search-plus-35-scenario-remeasure.md)): 33/35 scenarios with honest post-3.4 success criteria — 100% of legitimate scenarios passed, 0 silent failures; both misses are by-design failure controls (a reserved domain and a clean 404) that failed with structured, actionable errors.
+
 ## When to Use Search Plus
 
 **Use instead of Claude's default search when**:

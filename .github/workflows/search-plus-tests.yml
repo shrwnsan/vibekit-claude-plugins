@@ -1,0 +1,50 @@
+name: search-plus tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/search-plus/**'
+      - '.claude-plugin/marketplace.json'
+      - '.github/workflows/search-plus-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/search-plus/**'
+      - '.claude-plugin/marketplace.json'
+      - '.github/workflows/search-plus-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Offline test suite (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      # No API keys needed: fetch, DNS and the direct-fetch transport are stubbed.
+      # The glob is required; `node --test tests/` fails on Node 22.
+      - name: Run tests
+        working-directory: plugins/search-plus/skills/meta-search/scripts
+        run: node --test tests/*.test.mjs
+
+  validate:
+    name: Plugin validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate marketplace and plugins
+        run: claude plugin validate .

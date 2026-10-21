@@ -49,6 +49,7 @@ Add plugin to `.claude-plugin/marketplace.json`:
 ## Testing
 
 - Validate marketplace: `claude plugin validate .`
+- search-plus offline suite: `cd plugins/search-plus/skills/meta-search/scripts && node --test tests/*.test.mjs` (runs in CI via `.github/workflows/search-plus-tests.yml`)
 - Test plugin installation locally before submitting
 - Check all required fields in plugin.json
 - Verify plugin documentation is complete

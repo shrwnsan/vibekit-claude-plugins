@@ -90,6 +90,8 @@ Without these, all extraction services will fail with `fetch failed` and the scr
 
 Keyless services (Jina Reader, Firecrawl, Defuddle, Wayback) are included in the list above.
 
+The direct markdown fetch (first step for URLs) connects to the target site itself and ignores proxy settings, because its SSRF guard must check DNS answers at connect time. In a proxied sandbox that step always fails (`direct:` in the `Tried:` list) and the chain continues with the providers above; this is expected.
+
 ## Limitations
 
 - Cannot bypass CAPTCHA or advanced bot protection

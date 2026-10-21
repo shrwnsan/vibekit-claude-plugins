@@ -191,6 +191,8 @@ node --test tests/*.test.mjs
 
 Note the glob is required: `node --test tests/` (directory form) fails with `MODULE_NOT_FOUND` on Node 22. Most tests are fully offline — `fetch`, DNS, and the direct-fetch transport are stubbed. Three end-to-end chain tests in `tests/content-quality.test.mjs` need DNS and skip themselves (reported as `skipped`, not failed) when it is unavailable, e.g. inside a network-restricted sandbox; run them on a machine with DNS for full coverage.
 
+CI runs the same suite on Node 22 and 24, plus `claude plugin validate .`, for every pull request and push to `main` that touches `plugins/search-plus/` ([workflow](../../.github/workflows/search-plus-tests.yml)).
+
 ## Advanced Information
 
 - **Configuration**: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) - API keys and advanced setup

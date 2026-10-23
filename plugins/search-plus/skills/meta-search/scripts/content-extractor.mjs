@@ -48,6 +48,7 @@ async function findWaybackSnapshot(url) {
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
 const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.JINA_API_KEY || null;
 const FIRECRAWL_API_KEY = process.env.SEARCH_PLUS_FIRECRAWL_API_KEY || null;
+const TINYFISH_API_KEY = process.env.SEARCH_PLUS_TINYFISH_API_KEY || process.env.TINYFISH_API_KEY || null;
 
 // Show deprecation warning if using old variables
 if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
@@ -55,6 +56,9 @@ if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
 }
 if (!process.env.SEARCH_PLUS_JINA_API_KEY && process.env.JINA_API_KEY) {
   console.warn('⚠️  JINA_API_KEY is deprecated. Please update to SEARCH_PLUS_JINA_API_KEY');
+}
+if (!process.env.SEARCH_PLUS_TINYFISH_API_KEY && process.env.TINYFISH_API_KEY) {
+  console.warn('⚠️  TINYFISH_API_KEY is deprecated. Please update to SEARCH_PLUS_TINYFISH_API_KEY');
 }
 const TAVILY_EXTRACT_URL = 'https://api.tavily.com/extract';
 const JINA_READER_PUBLIC_URL = 'https://r.jina.ai/';
@@ -498,6 +502,47 @@ async function extractWithFirecrawl(url, options = {}, timeoutMs = 20000) {
       success: false,
       error: { code: extractErrorCode(error.message), message: error.message },
       service: 'firecrawl', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata: {}
+    };
+  }
+}
+
+/**
+ * Keyed extractor: TinyFish Fetch renders the page in a real browser (JS, bot walls),
+ * free within a daily URL allowance. Per-URL failures arrive as HTTP 200 with errors[].
+ */
+async function extractWithTinyfish(url, options = {}, timeoutMs = 20000) {
+  const startTime = Date.now();
+  try {
+    const response = await fetch('https://api.fetch.tinyfish.ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': TINYFISH_API_KEY },
+      body: JSON.stringify({ urls: [url], format: 'markdown' }),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (!response.ok) {
+      throw new Error(`TinyFish error: ${response.status} - ${(await response.text()).slice(0, 200)}`);
+    }
+    const data = await response.json();
+    const page = data.results?.[0];
+    if (!page) {
+      const failure = data.errors?.[0];
+      throw new Error(`TinyFish error: ${failure ? `${failure.error}${failure.status ? ` (${failure.status})` : ''}` : 'no result'}`);
+    }
+    const content = typeof page.text === 'string' ? page.text : '';
+    return {
+      success: true,
+      content,
+      contentLength: content.length,
+      service: 'tinyfish',
+      url,
+      responseTime: Date.now() - startTime,
+      metadata: { title: page.title || null }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: { code: extractErrorCode(error.message), message: error.message },
+      service: 'tinyfish', url, responseTime: Date.now() - startTime, content: '', contentLength: 0, metadata: {}
     };
   }
 }
@@ -1466,8 +1511,13 @@ export async function extractContent(url, options = {}) {
     }
   }
 
-  // Keyless fallbacks on independent infrastructure: Firecrawl, then Defuddle
-  for (const [name, extractor] of [['firecrawl', extractWithFirecrawl], ['defuddle', extractWithDefuddle]]) {
+  // Fallbacks on independent infrastructure: TinyFish (only when keyed), then keyless Firecrawl and Defuddle
+  const independentExtractors = [
+    ...(TINYFISH_API_KEY ? [['tinyfish', extractWithTinyfish]] : []),
+    ['firecrawl', extractWithFirecrawl],
+    ['defuddle', extractWithDefuddle]
+  ];
+  for (const [name, extractor] of independentExtractors) {
     if (result.success && result.contentLength > 0) break;
     log(`🔄 Trying ${name}...`);
     const freeResult = rejectHardContentFailure(await extractor(extractionURL, options));

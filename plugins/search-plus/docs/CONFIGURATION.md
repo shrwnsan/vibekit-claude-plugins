@@ -81,6 +81,21 @@ export SEARCH_PLUS_TAVILY_API_KEY=tvly-your-key-here
 export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 ```
 
+### TinyFish (Free Search + Browser-Rendered Fetch, Optional)
+
+**What it does**: Web search, and URL extraction through a real browser (renders JavaScript, handles common bot walls). Search is tried first among the keyed providers (after SearXNG, before Tavily; see [eval-028](../../../docs/evals/eval-028-search-plus-tavily-vs-tinyfish-search.md)); fetch runs after Jina Reader and before Firecrawl. Only used when a key is set.
+
+**Free Tier**:
+- Free API key, no credit card
+- Search: free within a daily allowance (30 requests/min)
+- Fetch: free up to 1,000 URLs/day (150 URLs/min); beyond that requests return 402 and the chain moves on
+
+**Setup**: create a key at [agent.tinyfish.ai/api-keys](https://agent.tinyfish.ai/api-keys).
+
+```bash
+export SEARCH_PLUS_TINYFISH_API_KEY=your_tinyfish_key_here
+```
+
 ### Firecrawl (Keyless Fallback)
 
 **What it does**: Web search and URL scraping to markdown. Used automatically as the last search provider and as an extraction fallback after Jina Reader.
@@ -228,6 +243,7 @@ Previous versions used different environment variable names. These are still sup
 # Legacy (deprecated but still supported)
 TAVILY_API_KEY=your_key_here
 JINA_API_KEY=your_key_here
+TINYFISH_API_KEY=your_key_here
 
 # New namespaced variables (recommended)
 SEARCH_PLUS_TAVILY_API_KEY=your_key_here

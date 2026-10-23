@@ -18,7 +18,7 @@ const PROVIDER_ENV = [
   'SEARCH_PLUS_BRAVE_API_KEY', 'BRAVE_API_KEY',
   'SEARCH_PLUS_EXA_API_KEY', 'EXA_API_KEY',
   'SEARCH_PLUS_JINA_API_KEY', 'SEARCH_PLUS_JINAAI_API_KEY', 'JINA_API_KEY', 'JINAAI_API_KEY',
-  'SEARCH_PLUS_FIRECRAWL_API_KEY'
+  'SEARCH_PLUS_FIRECRAWL_API_KEY', 'SEARCH_PLUS_TINYFISH_API_KEY'
 ];
 
 const FAKE = {
@@ -27,7 +27,8 @@ const FAKE = {
   exa: 'exa-fake-test-key',
   jina: 'jina_fake-test-key',
   firecrawl: 'fc-fake-test-key',
-  searxng: 'searxng-fake-test-key'
+  searxng: 'searxng-fake-test-key',
+  tinyfish: 'tinyfish-fake-test-key'
 };
 const ALL_KEYS = {
   SEARCH_PLUS_TAVILY_API_KEY: FAKE.tavily,
@@ -200,6 +201,35 @@ const SAMPLES = {
     answers: [],
     suggestions: [],
     unresponsive_engines: []
+  },
+  tinyfish: {
+    query: 'claude code hooks',
+    results: [
+      {
+        position: 1,
+        site_name: 'docs.example.com',
+        title: 'Hooks reference - Claude Code Docs',
+        snippet: 'Configure hooks that run on Claude Code events.',
+        url: 'https://docs.example.com/claude-code/hooks',
+        date: '2026-03-02'
+      },
+      {
+        position: 2,
+        site_name: 'blog.example.org',
+        title: 'Claude Code hooks examples',
+        snippet: 'Practical examples of hooks.',
+        url: 'https://blog.example.org/claude-hooks'
+      },
+      {
+        position: 3,
+        site_name: 'third.example.net',
+        title: 'Third result',
+        snippet: 'Should be cut by maxResults.',
+        url: 'https://third.example.net/hooks'
+      }
+    ],
+    total_results: 3,
+    page: 0
   }
 };
 
@@ -209,7 +239,8 @@ const EMPTY = {
   brave: { web: { results: [] } },
   exa: { results: [] },
   jina: { data: [] },
-  firecrawl: { success: true, data: { web: [] } }
+  firecrawl: { success: true, data: { web: [] } },
+  tinyfish: { query: 'q', results: [], total_results: 0, page: 0 }
 };
 
 // --- fetch stub ---
@@ -222,7 +253,8 @@ function providerOf(url) {
     'api.search.brave.com': 'brave',
     'api.exa.ai': 'exa',
     's.jina.ai': 'jina',
-    'api.firecrawl.dev': 'firecrawl'
+    'api.firecrawl.dev': 'firecrawl',
+    'api.search.tinyfish.ai': 'tinyfish'
   }[u.host] || `unknown:${u.host}`;
 }
 
@@ -449,7 +481,8 @@ test('all providers failing throws an error listing every configuration option',
   stubFetch({ firecrawl: EMPTY.firecrawl });
   await assert.rejects(search(PARAMS), (err) => {
     for (const name of ['SEARCH_PLUS_TAVILY_API_KEY', 'SEARCH_PLUS_BRAVE_API_KEY', 'SEARCH_PLUS_EXA_API_KEY',
-      'SEARCH_PLUS_JINA_API_KEY', 'SEARCH_PLUS_FIRECRAWL_API_KEY', 'SEARCH_PLUS_SEARXNG_URL']) {
+      'SEARCH_PLUS_JINA_API_KEY', 'SEARCH_PLUS_FIRECRAWL_API_KEY', 'SEARCH_PLUS_SEARXNG_URL',
+      'SEARCH_PLUS_TINYFISH_API_KEY']) {
       assert.match(err.message, new RegExp(name));
     }
     return true;
@@ -531,4 +564,66 @@ test('SearXNG: 403 (JSON format disabled) explains the settings.yml fix and fall
   assert.match(failure, /403/);
   assert.match(failure, /json/);
   assert.match(failure, /settings\.yml/);
+});
+
+// --- TinyFish ---
+
+test('TinyFish: GETs api.search.tinyfish.ai?query=… with X-API-Key; snippet → content, date, maxResults', async () => {
+  const search = await loadSearch({ SEARCH_PLUS_TINYFISH_API_KEY: FAKE.tinyfish });
+  const calls = stubFetch({ tinyfish: SAMPLES.tinyfish });
+  const result = await search(PARAMS);
+
+  assert.equal(calls.length, 1);
+  const url = new URL(calls[0].url);
+  assert.equal(url.origin, 'https://api.search.tinyfish.ai');
+  assert.equal(url.searchParams.get('query'), 'claude code hooks');
+  assert.equal(calls[0].method, 'GET');
+  assert.equal(calls[0].headers['x-api-key'], FAKE.tinyfish);
+  assert.ok(calls[0].signal, 'request has a timeout signal');
+
+  assert.equal(result.service, 'tinyfish');
+  assert.equal(result.data.service, 'tinyfish');
+  assert.equal(result.data.answer, null);
+  assert.equal(result.data.results.length, 2, 'third result cut by maxResults');
+  const [first, second] = result.data.results;
+  assert.equal(first.title, 'Hooks reference - Claude Code Docs');
+  assert.equal(first.url, 'https://docs.example.com/claude-code/hooks');
+  assert.equal(first.content, 'Configure hooks that run on Claude Code events.');
+  assert.equal(first.published_date, '2026-03-02T00:00:00.000Z');
+  assert.equal(second.url, 'https://blog.example.org/claude-hooks');
+  assert.equal(second.published_date, null);
+});
+
+test('TinyFish: tried after SearXNG and before Tavily and the other keyed providers', async () => {
+  const search = await loadSearch({ ...ALL_KEYS, SEARCH_PLUS_TINYFISH_API_KEY: FAKE.tinyfish, SEARCH_PLUS_SEARXNG_URL: SEARXNG_BASE });
+  const calls = stubFetch({ searxng: EMPTY.searxng, tinyfish: SAMPLES.tinyfish, tavily: SAMPLES.tavily });
+  const result = await search(PARAMS);
+  assert.deepEqual(calls.map(c => c.provider), ['searxng', 'tinyfish']);
+  assert.equal(result.service, 'tinyfish');
+});
+
+test('TinyFish: 402 (daily allowance exhausted) and empty results fall through to Tavily', async () => {
+  for (const route of [http(402, { error: { code: 'INSUFFICIENT_CREDITS' } }), EMPTY.tinyfish]) {
+    const search = await loadSearch({ ...ALL_KEYS, SEARCH_PLUS_TINYFISH_API_KEY: FAKE.tinyfish });
+    const calls = stubFetch({ tinyfish: route, tavily: SAMPLES.tavily });
+    const result = await search(PARAMS);
+    assert.deepEqual(calls.map(c => c.provider), ['tinyfish', 'tavily']);
+    assert.equal(result.service, 'tavily');
+  }
+});
+
+test('TinyFish: skipped when SEARCH_PLUS_TINYFISH_API_KEY is unset', async () => {
+  const search = await loadSearch({ SEARCH_PLUS_BRAVE_API_KEY: FAKE.brave });
+  const calls = stubFetch({ tinyfish: SAMPLES.tinyfish, brave: SAMPLES.brave });
+  const result = await search(PARAMS);
+  assert.deepEqual(calls.map(c => c.provider), ['brave']);
+  assert.equal(result.service, 'brave');
+});
+
+test('TinyFish: legacy TINYFISH_API_KEY is accepted when the prefixed name is unset', async () => {
+  const search = await loadSearch({ TINYFISH_API_KEY: FAKE.tinyfish });
+  const calls = stubFetch({ tinyfish: SAMPLES.tinyfish });
+  const result = await search(PARAMS);
+  assert.deepEqual(calls.map(c => c.provider), ['tinyfish']);
+  assert.equal(result.service, 'tinyfish');
 });

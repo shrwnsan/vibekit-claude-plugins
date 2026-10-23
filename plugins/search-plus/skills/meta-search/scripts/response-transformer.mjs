@@ -324,6 +324,37 @@ const searxngTransformer = {
 };
 
 /**
+ * TinyFish Search Transformer
+ */
+const tinyfishTransformer = {
+  validate: (response) => response && Array.isArray(response.results),
+
+  transform: (response, query) => {
+    const results = calculateBatchRelevanceScores(response.results.map((item, index) => ({
+      title: item.title || '',
+      url: item.url || '',
+      content: item.content || '',
+      score: normalizeScore(null, index, response.results.length),
+      published_date: normalizeDate(item.published_date),
+      source: 'tinyfish',
+      relevance_score: 0
+    })), query, 'tinyfish');
+
+    return {
+      results,
+      answer: null,
+      query,
+      success_rate: 1.0,
+      metadata: {
+        total_results: results.length,
+        query_processed_at: new Date().toISOString(),
+        service_info: { endpoint: 'api.search.tinyfish.ai', has_results: results.length > 0 }
+      }
+    };
+  }
+};
+
+/**
  * Error Response Transformer
  * Creates standardized error responses
  */
@@ -356,6 +387,7 @@ registerServiceTransformer('brave', braveTransformer);
 registerServiceTransformer('exa', exaTransformer);
 registerServiceTransformer('firecrawl', firecrawlTransformer);
 registerServiceTransformer('searxng', searxngTransformer);
+registerServiceTransformer('tinyfish', tinyfishTransformer);
 
 /**
  * Get list of registered services

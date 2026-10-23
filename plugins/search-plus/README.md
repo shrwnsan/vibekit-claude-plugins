@@ -43,12 +43,13 @@ Extracts content from blocked or problematic URLs:
 ### ⚡ Intelligent Fallback
 Automatically tries multiple services until one works:
 - **Self-hosted (optional)**: your SearXNG instance, tried first when `SEARCH_PLUS_SEARXNG_URL` is set
-- **Primary**: Tavily API (if configured)
-- **Fallback 1**: Brave Search API (if configured)
-- **Fallback 2**: Exa AI Search (if configured)
-- **Fallback 3**: Jina.ai Search API (if configured)
-- **Fallback 4**: Firecrawl Search (keyless — works with no API key)
-- **URL extraction**: Tavily (if configured) → Jina Reader → Firecrawl → Defuddle → Wayback Machine
+- **Primary**: TinyFish Search (if configured)
+- **Fallback 1**: Tavily API (if configured)
+- **Fallback 2**: Brave Search API (if configured)
+- **Fallback 3**: Exa AI Search (if configured)
+- **Fallback 4**: Jina.ai Search API (if configured)
+- **Fallback 5**: Firecrawl Search (keyless — works with no API key)
+- **URL extraction**: Tavily (if configured) → Jina Reader → TinyFish (if configured) → Firecrawl → Defuddle → Wayback Machine
 - **GitHub Integration**: Native GitHub CLI access for repository content (when enabled)
 - **Result**: You get answers instead of errors
 
@@ -97,6 +98,7 @@ Add API keys for maximum reliability and speed:
 ```bash
 # Add these to your environment (optional)
 export SEARCH_PLUS_TAVILY_API_KEY=your_tavily_key_here
+export SEARCH_PLUS_TINYFISH_API_KEY=your_tinyfish_key_here
 export SEARCH_PLUS_BRAVE_API_KEY=your_brave_key_here
 export SEARCH_PLUS_EXA_API_KEY=your_exa_key_here
 export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
@@ -105,6 +107,7 @@ export SEARCH_PLUS_FIRECRAWL_API_KEY=your_firecrawl_key_here
 
 **Free tiers available**:
 - Tavily: 1,000 searches/month free (recurring)
+- TinyFish: free key (no card); search and up to 1,000 fetched URLs/day at no cost, with browser rendering
 - Brave Search: $5 free credits/month (~1,000 queries, recurring)
 - Exa AI: 1,000 searches/month free (recurring)
 - Jina.ai Search: 10M free tokens (~1,000 searches, one-time)
@@ -114,7 +117,7 @@ export SEARCH_PLUS_FIRECRAWL_API_KEY=your_firecrawl_key_here
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete setup details.
 
-> **Sandbox users**: Node.js `fetch()` does not use the proxy env vars that Claude Code's sandbox injects, so all search providers fail with DNS errors. **Fix**: add `"node"` to `excludedCommands` in your Claude Code settings (`~/.claude/settings.json`). This lets Node scripts bypass the sandbox network restrictions. On Node 22.22+ or 24+, you can instead set `NODE_USE_ENV_PROXY=1` to route fetch through the proxy without disabling the sandbox. One exception: the direct markdown fetch intentionally ignores proxy settings — its SSRF guard validates DNS answers at connect time, which requires owning the connection — so in a proxied sandbox the direct step always fails and the chain falls through to the other extraction providers. Also add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, `api.jina.ai`, `api.firecrawl.dev`, `defuddle.md`, and `archive.org` to `allowedDomains`. See [docs/evals/eval-026](../../docs/evals/eval-026-search-plus-sandbox-dns-investigation.md) for the full investigation.
+> **Sandbox users**: Node.js `fetch()` does not use the proxy env vars that Claude Code's sandbox injects, so all search providers fail with DNS errors. **Fix**: add `"node"` to `excludedCommands` in your Claude Code settings (`~/.claude/settings.json`). This lets Node scripts bypass the sandbox network restrictions. On Node 22.22+ or 24+, you can instead set `NODE_USE_ENV_PROXY=1` to route fetch through the proxy without disabling the sandbox. One exception: the direct markdown fetch intentionally ignores proxy settings — its SSRF guard validates DNS answers at connect time, which requires owning the connection — so in a proxied sandbox the direct step always fails and the chain falls through to the other extraction providers. Also add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, `api.jina.ai`, `api.firecrawl.dev`, `api.search.tinyfish.ai`, `api.fetch.tinyfish.ai`, `defuddle.md`, and `archive.org` to `allowedDomains`. See [docs/evals/eval-026](../../docs/evals/eval-026-search-plus-sandbox-dns-investigation.md) for the full investigation.
 
 ### Option 3: GitHub CLI Integration (Advanced)
 

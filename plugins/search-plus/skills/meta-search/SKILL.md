@@ -19,8 +19,8 @@ Recover web content when standard tools fail. Orchestrates multi-service search 
 node "${CLAUDE_SKILL_DIR}/scripts/search.mjs" "<query-or-url>"
 ```
 
-- **Query** → SearXNG (if `SEARCH_PLUS_SEARXNG_URL` is set) → Tavily → Brave → Exa → Jina Search (each only if its key is set) → Firecrawl (keyless). Prints a markdown list of results.
-- **URL** → Direct markdown fetch (asks the origin for `Accept: text/markdown`; only used when it actually serves markdown) → Tavily Extract (if key) → Jina Reader → Firecrawl → Defuddle → Wayback Machine snapshot. Prints the page as markdown.
+- **Query** → SearXNG (if `SEARCH_PLUS_SEARXNG_URL` is set) → TinyFish → Tavily → Brave → Exa → Jina Search (each only if its key is set) → Firecrawl (keyless). Prints a markdown list of results.
+- **URL** → Direct markdown fetch (asks the origin for `Accept: text/markdown`; only used when it actually serves markdown) → Tavily Extract (if key) → Jina Reader → TinyFish Fetch (if key) → Firecrawl → Defuddle → Wayback Machine snapshot. Prints the page as markdown.
 
 Exit code 0: use the stdout directly. Non-zero: stderr lists each service tried and why it failed; proceed to Step 2.
 
@@ -78,6 +78,8 @@ The extraction script makes outbound requests to external services. If Claude Co
         "r.jina.ai",
         "api.jina.ai",
         "api.firecrawl.dev",
+        "api.search.tinyfish.ai",
+        "api.fetch.tinyfish.ai",
         "defuddle.md",
         "archive.org"
       ]

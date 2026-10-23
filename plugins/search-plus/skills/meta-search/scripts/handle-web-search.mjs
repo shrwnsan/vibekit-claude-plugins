@@ -9,6 +9,7 @@ const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.SEARCH_
 const BRAVE_API_KEY = process.env.SEARCH_PLUS_BRAVE_API_KEY || process.env.BRAVE_API_KEY || null;
 const EXA_API_KEY = process.env.SEARCH_PLUS_EXA_API_KEY || process.env.EXA_API_KEY || null;
 const FIRECRAWL_API_KEY = process.env.SEARCH_PLUS_FIRECRAWL_API_KEY || null;
+const TINYFISH_API_KEY = process.env.SEARCH_PLUS_TINYFISH_API_KEY || process.env.TINYFISH_API_KEY || null;
 // User's own SearXNG instance; often localhost, so it intentionally bypasses the extraction SSRF checks
 const SEARXNG_URL = process.env.SEARCH_PLUS_SEARXNG_URL ? process.env.SEARCH_PLUS_SEARXNG_URL.trim().replace(/\/+$/, '') : null;
 const SEARXNG_API_KEY = process.env.SEARCH_PLUS_SEARXNG_API_KEY || null;
@@ -25,6 +26,9 @@ if (!process.env.SEARCH_PLUS_BRAVE_API_KEY && process.env.BRAVE_API_KEY) {
 }
 if (!process.env.SEARCH_PLUS_EXA_API_KEY && process.env.EXA_API_KEY) {
   console.warn('⚠️  EXA_API_KEY is deprecated. Please update to SEARCH_PLUS_EXA_API_KEY');
+}
+if (!process.env.SEARCH_PLUS_TINYFISH_API_KEY && process.env.TINYFISH_API_KEY) {
+  console.warn('⚠️  TINYFISH_API_KEY is deprecated. Please update to SEARCH_PLUS_TINYFISH_API_KEY');
 }
 
 /**
@@ -110,7 +114,7 @@ export async function handleWebSearch(params) {
 
 /**
  * Hybrid web search with intelligent service selection
- * Sequential: SearXNG (self-hosted) → Tavily → Brave → Exa → Jina Search → Firecrawl (keyless)
+ * Sequential: SearXNG (self-hosted) → TinyFish → Tavily → Brave → Exa → Jina Search → Firecrawl (keyless)
  */
 export async function performHybridSearch(params, timeoutMs = 10000) {
   // Phase 0: Try the user's self-hosted SearXNG instance (no per-query cost)
@@ -125,7 +129,19 @@ export async function performHybridSearch(params, timeoutMs = 10000) {
     }
   }
 
-  // Phase 1: Try Tavily API (premium, best RAG integration)
+  // Phase 1: Try TinyFish Search (free daily allowance; ranked official sources first in eval-028)
+  if (TINYFISH_API_KEY) {
+    try {
+      console.log('🐟 Trying TinyFish Search...');
+      const result = await tryTinyfishSearch(params, timeoutMs);
+      console.log('✅ Success with TinyFish Search');
+      return result;
+    } catch (error) {
+      console.log(`❌ TinyFish Search failed: ${error.message}`);
+    }
+  }
+
+  // Phase 1b: Try Tavily API (premium, adds a synthesized answer and long snippets)
   if (TAVILY_API_KEY) {
     try {
       console.log('🚀 Trying Tavily API...');
@@ -139,7 +155,7 @@ export async function performHybridSearch(params, timeoutMs = 10000) {
       const standardizedResult = transformToStandard('tavily', rawResult, params.query, responseTime);
       return { data: standardizedResult, service: 'tavily' };
     } catch (error) {
-      console.log('🔄 Tavily failed, trying Brave Search...');
+      console.log(`❌ Tavily failed: ${error.message}`);
     }
   }
 
@@ -191,7 +207,8 @@ export async function performHybridSearch(params, timeoutMs = 10000) {
 
   throw new Error(
     'All search services failed (including keyless Firecrawl). Configure an API key for higher limits:\n' +
-    '  • SEARCH_PLUS_TAVILY_API_KEY (recommended, 1000 free searches/month at tavily.com)\n' +
+    '  • SEARCH_PLUS_TINYFISH_API_KEY (free daily search and fetch allowance at agent.tinyfish.ai)\n' +
+    '  • SEARCH_PLUS_TAVILY_API_KEY (1000 free searches/month at tavily.com; adds a synthesized answer)\n' +
     '  • SEARCH_PLUS_BRAVE_API_KEY ($5 free credits/month at brave.com/search/api)\n' +
     '  • SEARCH_PLUS_EXA_API_KEY (1000 free searches/month at exa.ai)\n' +
     '  • SEARCH_PLUS_JINA_API_KEY (10M free tokens at jina.ai)\n' +
@@ -284,6 +301,43 @@ async function tryFirecrawlSearch(params, timeoutMs = 10000) {
 
   const standardizedResult = transformToStandard('firecrawl', { results }, params.query, Date.now() - startTime);
   return { data: standardizedResult, service: 'firecrawl' };
+}
+
+/**
+ * Attempts web search using TinyFish Search API.
+ * Requires SEARCH_PLUS_TINYFISH_API_KEY (free key, no card; search is free within a daily allowance).
+ */
+async function tryTinyfishSearch(params, timeoutMs = 10000) {
+  const startTime = Date.now();
+  const response = await fetch(`https://api.search.tinyfish.ai?query=${encodeURIComponent(params.query)}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'X-API-Key': TINYFISH_API_KEY
+    },
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+
+  if (!response.ok) {
+    throw new Error(`TinyFish Search error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // TinyFish returns { results: [{ position, site_name, title, snippet, url, date? }] } (no count param)
+  const results = (data.results || []).slice(0, params.maxResults || 5).map(item => ({
+    title: item.title || '',
+    url: item.url || '',
+    content: item.snippet || '',
+    published_date: item.date || null
+  }));
+
+  if (results.length === 0) {
+    throw new Error('No results found from TinyFish Search');
+  }
+
+  const standardizedResult = transformToStandard('tinyfish', { results }, params.query, Date.now() - startTime);
+  return { data: standardizedResult, service: 'tinyfish' };
 }
 
 /**

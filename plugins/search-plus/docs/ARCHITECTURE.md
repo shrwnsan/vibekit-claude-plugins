@@ -57,8 +57,8 @@ The skill instructs Claude to use these services in priority order:
 
 | Priority | Service | Notes |
 |----------|---------|-------|
-| 1 | Tavily API | Requires `SEARCH_PLUS_TAVILY_API_KEY` |
-| 2 | TinyFish Search | Requires `SEARCH_PLUS_TINYFISH_API_KEY` (free daily allowance) |
+| 1 | TinyFish Search | Requires `SEARCH_PLUS_TINYFISH_API_KEY` (free daily allowance; ranked official sources first in [eval-028](../../../docs/evals/eval-028-search-plus-tavily-vs-tinyfish-search.md)) |
+| 2 | Tavily API | Requires `SEARCH_PLUS_TAVILY_API_KEY`; adds a synthesized answer |
 | 3 | Brave Search API | Requires `SEARCH_PLUS_BRAVE_API_KEY` |
 | 4 | Exa AI Search | Requires `SEARCH_PLUS_EXA_API_KEY` |
 | 5 | Jina.ai Search API | Requires `SEARCH_PLUS_JINA_API_KEY` |
@@ -85,7 +85,7 @@ When `SEARCH_PLUS_GITHUB_ENABLED=true` and `gh` CLI is installed, GitHub URLs ar
 ### Provider Fallback
 
 Each provider runs in its own try/catch; a failure (403, 429, 451, timeout, empty
-result) falls through to the next provider in the chain — search: Tavily → TinyFish →
+result) falls through to the next provider in the chain — search: TinyFish → Tavily →
 Brave → Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily →
 Jina → TinyFish → Firecrawl → Defuddle → Wayback. There is no same-provider retry or
 backoff: the hook's 25s internal deadline (inside Claude Code's 30s hook budget)
@@ -137,7 +137,7 @@ The plugin registers `PostToolUse` and `PostToolUseFailure` hooks on `WebSearch|
 
 1. Reads the hook JSON from stdin (`tool_name`, `tool_input`, `tool_response` — or the error payload for `PostToolUseFailure`)
 2. Detects recoverable failures from structured fields only, never page text: `PostToolUseFailure` error codes (403, 404, 422, 429, 451, 5xx), `WebFetch` responses with `code >= 400`, and `WebSearch` responses that report zero searches or contain no result links
-3. If a failure is detected, delegates to `handleWebSearch()` for recovery via the multi-provider chain (search: Tavily → TinyFish → Brave → Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily → Jina → TinyFish → Firecrawl → Defuddle → Wayback)
+3. If a failure is detected, delegates to `handleWebSearch()` for recovery via the multi-provider chain (search: TinyFish → Tavily → Brave → Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily → Jina → TinyFish → Firecrawl → Defuddle → Wayback)
 4. Outputs `additionalContext` JSON to stdout so Claude receives the recovered content
 
 Progress logs go to stderr and only when `SEARCH_PLUS_DEBUG=1` — stdout is reserved for the hook JSON. Injected context is capped at 9,500 characters (Claude Code caps `additionalContext` at 10,000), and the script self-terminates after 25 seconds so it always exits inside the 30-second hook budget.

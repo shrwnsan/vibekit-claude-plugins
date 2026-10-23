@@ -83,7 +83,7 @@ export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 
 ### TinyFish (Free Search + Browser-Rendered Fetch, Optional)
 
-**What it does**: Web search, and URL extraction through a real browser (renders JavaScript, handles common bot walls). Search is tried right after Tavily; fetch runs after Jina Reader and before Firecrawl. Only used when a key is set.
+**What it does**: Web search, and URL extraction through a real browser (renders JavaScript, handles common bot walls). Search is tried first among the keyed providers (after SearXNG, before Tavily; see [eval-028](../../../docs/evals/eval-028-search-plus-tavily-vs-tinyfish-search.md)); fetch runs after Jina Reader and before Firecrawl. Only used when a key is set.
 
 **Free Tier**:
 - Free API key, no credit card

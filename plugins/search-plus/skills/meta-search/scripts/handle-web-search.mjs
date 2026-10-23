@@ -111,7 +111,7 @@ export async function handleWebSearch(params) {
 
 /**
  * Hybrid web search with intelligent service selection
- * Sequential: SearXNG (self-hosted) → Tavily → TinyFish → Brave → Exa → Jina Search → Firecrawl (keyless)
+ * Sequential: SearXNG (self-hosted) → TinyFish → Tavily → Brave → Exa → Jina Search → Firecrawl (keyless)
  */
 export async function performHybridSearch(params, timeoutMs = 10000) {
   // Phase 0: Try the user's self-hosted SearXNG instance (no per-query cost)
@@ -126,7 +126,19 @@ export async function performHybridSearch(params, timeoutMs = 10000) {
     }
   }
 
-  // Phase 1: Try Tavily API (premium, best RAG integration)
+  // Phase 1: Try TinyFish Search (free daily allowance; ranked official sources first in eval-028)
+  if (TINYFISH_API_KEY) {
+    try {
+      console.log('🐟 Trying TinyFish Search...');
+      const result = await tryTinyfishSearch(params, timeoutMs);
+      console.log('✅ Success with TinyFish Search');
+      return result;
+    } catch (error) {
+      console.log(`❌ TinyFish Search failed: ${error.message}`);
+    }
+  }
+
+  // Phase 1b: Try Tavily API (premium, adds a synthesized answer and long snippets)
   if (TAVILY_API_KEY) {
     try {
       console.log('🚀 Trying Tavily API...');
@@ -140,19 +152,7 @@ export async function performHybridSearch(params, timeoutMs = 10000) {
       const standardizedResult = transformToStandard('tavily', rawResult, params.query, responseTime);
       return { data: standardizedResult, service: 'tavily' };
     } catch (error) {
-      console.log('🔄 Tavily failed, trying the next provider...');
-    }
-  }
-
-  // Phase 1.5: Try TinyFish Search (free daily allowance, so preferred over metered keys)
-  if (TINYFISH_API_KEY) {
-    try {
-      console.log('🐟 Trying TinyFish Search...');
-      const result = await tryTinyfishSearch(params, timeoutMs);
-      console.log('✅ Success with TinyFish Search');
-      return result;
-    } catch (error) {
-      console.log(`❌ TinyFish Search failed: ${error.message}`);
+      console.log(`❌ Tavily failed: ${error.message}`);
     }
   }
 
@@ -204,8 +204,8 @@ export async function performHybridSearch(params, timeoutMs = 10000) {
 
   throw new Error(
     'All search services failed (including keyless Firecrawl). Configure an API key for higher limits:\n' +
-    '  • SEARCH_PLUS_TAVILY_API_KEY (recommended, 1000 free searches/month at tavily.com)\n' +
     '  • SEARCH_PLUS_TINYFISH_API_KEY (free daily search and fetch allowance at agent.tinyfish.ai)\n' +
+    '  • SEARCH_PLUS_TAVILY_API_KEY (1000 free searches/month at tavily.com; adds a synthesized answer)\n' +
     '  • SEARCH_PLUS_BRAVE_API_KEY ($5 free credits/month at brave.com/search/api)\n' +
     '  • SEARCH_PLUS_EXA_API_KEY (1000 free searches/month at exa.ai)\n' +
     '  • SEARCH_PLUS_JINA_API_KEY (10M free tokens at jina.ai)\n' +

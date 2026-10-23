@@ -8,7 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **TinyFish** search and fetch provider: set `SEARCH_PLUS_TINYFISH_API_KEY` (free key, no card) to add TinyFish Search right after Tavily, and TinyFish Fetch, which renders pages in a real browser, after Jina Reader and before Firecrawl in the extraction chain. Both are free within TinyFish's daily allowances; a 402 (allowance used), 429, or per-URL error such as `bot_blocked` falls through to the next provider.
+- **TinyFish** search and fetch provider: set `SEARCH_PLUS_TINYFISH_API_KEY` (free key, no card) to add TinyFish Search as the first keyed search provider (after SearXNG, before Tavily), and TinyFish Fetch, which renders pages in a real browser, after Jina Reader and before Firecrawl in the extraction chain. Both are free within TinyFish's daily allowances; a 402 (allowance used), 429, or per-URL error such as `bot_blocked` falls through to the next provider.
+- Search order chosen from a head-to-head eval ([eval-028](../../docs/evals/eval-028-search-plus-tavily-vs-tinyfish-search.md)): TinyFish put the official source first on 23 of 29 queries, against 3–5 for Tavily. Tavily still runs as the fallback and is the only provider that adds a synthesized answer.
+
+### Changed
+- A Tavily search failure now logs its error message, like the other providers.
 
 ## [3.4.0] - 2026-10-15
 

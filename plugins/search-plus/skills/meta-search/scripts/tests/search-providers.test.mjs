@@ -594,21 +594,21 @@ test('TinyFish: GETs api.search.tinyfish.ai?query=â€¦ with X-API-Key; snippet â†
   assert.equal(second.published_date, null);
 });
 
-test('TinyFish: tried after Tavily and before Brave', async () => {
-  const search = await loadSearch({ ...ALL_KEYS, SEARCH_PLUS_TINYFISH_API_KEY: FAKE.tinyfish });
-  const calls = stubFetch({ tavily: http(500, {}), tinyfish: SAMPLES.tinyfish, brave: SAMPLES.brave });
+test('TinyFish: tried after SearXNG and before Tavily and the other keyed providers', async () => {
+  const search = await loadSearch({ ...ALL_KEYS, SEARCH_PLUS_TINYFISH_API_KEY: FAKE.tinyfish, SEARCH_PLUS_SEARXNG_URL: SEARXNG_BASE });
+  const calls = stubFetch({ searxng: EMPTY.searxng, tinyfish: SAMPLES.tinyfish, tavily: SAMPLES.tavily });
   const result = await search(PARAMS);
-  assert.deepEqual(calls.map(c => c.provider), ['tavily', 'tinyfish']);
+  assert.deepEqual(calls.map(c => c.provider), ['searxng', 'tinyfish']);
   assert.equal(result.service, 'tinyfish');
 });
 
-test('TinyFish: 402 (daily allowance exhausted) and empty results fall through to Brave', async () => {
+test('TinyFish: 402 (daily allowance exhausted) and empty results fall through to Tavily', async () => {
   for (const route of [http(402, { error: { code: 'INSUFFICIENT_CREDITS' } }), EMPTY.tinyfish]) {
-    const search = await loadSearch({ SEARCH_PLUS_TINYFISH_API_KEY: FAKE.tinyfish, SEARCH_PLUS_BRAVE_API_KEY: FAKE.brave });
-    const calls = stubFetch({ tinyfish: route, brave: SAMPLES.brave });
+    const search = await loadSearch({ ...ALL_KEYS, SEARCH_PLUS_TINYFISH_API_KEY: FAKE.tinyfish });
+    const calls = stubFetch({ tinyfish: route, tavily: SAMPLES.tavily });
     const result = await search(PARAMS);
-    assert.deepEqual(calls.map(c => c.provider), ['tinyfish', 'brave']);
-    assert.equal(result.service, 'brave');
+    assert.deepEqual(calls.map(c => c.provider), ['tinyfish', 'tavily']);
+    assert.equal(result.service, 'tavily');
   }
 });
 

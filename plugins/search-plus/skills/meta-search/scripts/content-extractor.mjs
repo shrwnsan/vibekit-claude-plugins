@@ -48,7 +48,7 @@ async function findWaybackSnapshot(url) {
 const TAVILY_API_KEY = process.env.SEARCH_PLUS_TAVILY_API_KEY || process.env.TAVILY_API_KEY || null;
 const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.JINA_API_KEY || null;
 const FIRECRAWL_API_KEY = process.env.SEARCH_PLUS_FIRECRAWL_API_KEY || null;
-const TINYFISH_API_KEY = process.env.SEARCH_PLUS_TINYFISH_API_KEY || null;
+const TINYFISH_API_KEY = process.env.SEARCH_PLUS_TINYFISH_API_KEY || process.env.TINYFISH_API_KEY || null;
 
 // Show deprecation warning if using old variables
 if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
@@ -56,6 +56,9 @@ if (!process.env.SEARCH_PLUS_TAVILY_API_KEY && process.env.TAVILY_API_KEY) {
 }
 if (!process.env.SEARCH_PLUS_JINA_API_KEY && process.env.JINA_API_KEY) {
   console.warn('⚠️  JINA_API_KEY is deprecated. Please update to SEARCH_PLUS_JINA_API_KEY');
+}
+if (!process.env.SEARCH_PLUS_TINYFISH_API_KEY && process.env.TINYFISH_API_KEY) {
+  console.warn('⚠️  TINYFISH_API_KEY is deprecated. Please update to SEARCH_PLUS_TINYFISH_API_KEY');
 }
 const TAVILY_EXTRACT_URL = 'https://api.tavily.com/extract';
 const JINA_READER_PUBLIC_URL = 'https://r.jina.ai/';

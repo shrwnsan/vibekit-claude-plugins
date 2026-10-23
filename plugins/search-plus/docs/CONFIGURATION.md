@@ -243,6 +243,7 @@ Previous versions used different environment variable names. These are still sup
 # Legacy (deprecated but still supported)
 TAVILY_API_KEY=your_key_here
 JINA_API_KEY=your_key_here
+TINYFISH_API_KEY=your_key_here
 
 # New namespaced variables (recommended)
 SEARCH_PLUS_TAVILY_API_KEY=your_key_here

@@ -619,3 +619,11 @@ test('TinyFish: skipped when SEARCH_PLUS_TINYFISH_API_KEY is unset', async () =>
   assert.deepEqual(calls.map(c => c.provider), ['brave']);
   assert.equal(result.service, 'brave');
 });
+
+test('TinyFish: legacy TINYFISH_API_KEY is accepted when the prefixed name is unset', async () => {
+  const search = await loadSearch({ TINYFISH_API_KEY: FAKE.tinyfish });
+  const calls = stubFetch({ tinyfish: SAMPLES.tinyfish });
+  const result = await search(PARAMS);
+  assert.deepEqual(calls.map(c => c.provider), ['tinyfish']);
+  assert.equal(result.service, 'tinyfish');
+});

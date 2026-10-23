@@ -9,7 +9,7 @@ const JINA_API_KEY = process.env.SEARCH_PLUS_JINA_API_KEY || process.env.SEARCH_
 const BRAVE_API_KEY = process.env.SEARCH_PLUS_BRAVE_API_KEY || process.env.BRAVE_API_KEY || null;
 const EXA_API_KEY = process.env.SEARCH_PLUS_EXA_API_KEY || process.env.EXA_API_KEY || null;
 const FIRECRAWL_API_KEY = process.env.SEARCH_PLUS_FIRECRAWL_API_KEY || null;
-const TINYFISH_API_KEY = process.env.SEARCH_PLUS_TINYFISH_API_KEY || null;
+const TINYFISH_API_KEY = process.env.SEARCH_PLUS_TINYFISH_API_KEY || process.env.TINYFISH_API_KEY || null;
 // User's own SearXNG instance; often localhost, so it intentionally bypasses the extraction SSRF checks
 const SEARXNG_URL = process.env.SEARCH_PLUS_SEARXNG_URL ? process.env.SEARCH_PLUS_SEARXNG_URL.trim().replace(/\/+$/, '') : null;
 const SEARXNG_API_KEY = process.env.SEARCH_PLUS_SEARXNG_API_KEY || null;
@@ -26,6 +26,9 @@ if (!process.env.SEARCH_PLUS_BRAVE_API_KEY && process.env.BRAVE_API_KEY) {
 }
 if (!process.env.SEARCH_PLUS_EXA_API_KEY && process.env.EXA_API_KEY) {
   console.warn('⚠️  EXA_API_KEY is deprecated. Please update to SEARCH_PLUS_EXA_API_KEY');
+}
+if (!process.env.SEARCH_PLUS_TINYFISH_API_KEY && process.env.TINYFISH_API_KEY) {
+  console.warn('⚠️  TINYFISH_API_KEY is deprecated. Please update to SEARCH_PLUS_TINYFISH_API_KEY');
 }
 
 /**

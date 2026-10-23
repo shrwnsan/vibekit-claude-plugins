@@ -5,16 +5,6 @@ user-invocable: true
 allowed-tools:
   - bash(git:*)
   - Read
-
-# Dynamic context injection
-Current git status:
-!`git status --porcelain 2>/dev/null || echo "No git repo"`
-
-Recent commits for style consistency:
-!`git log --oneline -5 2>/dev/null || echo "No git history"`
-
-Branch information:
-!`git branch --show-current 2>/dev/null || echo "Not in git repo"`
 ---
 
 # Crafting Git Commits
@@ -29,6 +19,9 @@ This skill follows the principle of progressive disclosure. This file contains t
     -   `git status`
     -   `git diff --staged`
     -   `git log --oneline -5`
+    -   `git branch --show-current`
+
+    These four commands supply the working-tree state, staged diff, recent style, and branch context.
 2.  **Planning**: I identify the commit type, scope, and assess any potential impact, including breaking changes.
 3.  **Validation**: I use a detailed checklist to ensure the commit message meets all quality standards. See [validation.md](validation.md) for the full checklist.
 4.  **Execution**: I draft the commit message, add attribution, and execute the commit, verifying it in the git history.

@@ -58,10 +58,11 @@ The skill instructs Claude to use these services in priority order:
 | Priority | Service | Notes |
 |----------|---------|-------|
 | 1 | Tavily API | Requires `SEARCH_PLUS_TAVILY_API_KEY` |
-| 2 | Brave Search API | Requires `SEARCH_PLUS_BRAVE_API_KEY` |
-| 3 | Exa AI Search | Requires `SEARCH_PLUS_EXA_API_KEY` |
-| 4 | Jina.ai Search API | Requires `SEARCH_PLUS_JINA_API_KEY` |
-| 5 | Firecrawl Search | Keyless tier — no key required; `SEARCH_PLUS_FIRECRAWL_API_KEY` raises limits |
+| 2 | TinyFish Search | Requires `SEARCH_PLUS_TINYFISH_API_KEY` (free daily allowance) |
+| 3 | Brave Search API | Requires `SEARCH_PLUS_BRAVE_API_KEY` |
+| 4 | Exa AI Search | Requires `SEARCH_PLUS_EXA_API_KEY` |
+| 5 | Jina.ai Search API | Requires `SEARCH_PLUS_JINA_API_KEY` |
+| 6 | Firecrawl Search | Keyless tier — no key required; `SEARCH_PLUS_FIRECRAWL_API_KEY` raises limits |
 
 ### URL Extraction Services
 
@@ -70,9 +71,10 @@ The skill instructs Claude to use these services in priority order:
 | 1 | Direct markdown fetch | Free probe of the origin with `Accept: text/markdown`; used only on a 200 `text/markdown` response, otherwise falls through silently |
 | 2 | Tavily Extract API | Requires API key |
 | 3 | Jina.ai Reader | Free public reader, 20 RPM; API variant used when `SEARCH_PLUS_JINA_API_KEY` is set and enhanced metadata is requested |
-| 4 | Firecrawl | Keyless tier — no key required; `SEARCH_PLUS_FIRECRAWL_API_KEY` raises limits |
-| 5 | Defuddle | Keyless URL → markdown via `defuddle.md` |
-| 6 | Wayback Machine | Archived snapshot; snapshots are read via Defuddle since r.jina.ai is blocked for web.archive.org until 2035 |
+| 4 | TinyFish Fetch | Requires `SEARCH_PLUS_TINYFISH_API_KEY`; renders the page in a real browser, free up to 1,000 URLs/day |
+| 5 | Firecrawl | Keyless tier — no key required; `SEARCH_PLUS_FIRECRAWL_API_KEY` raises limits |
+| 6 | Defuddle | Keyless URL → markdown via `defuddle.md` |
+| 7 | Wayback Machine | Archived snapshot; snapshots are read via Defuddle since r.jina.ai is blocked for web.archive.org until 2035 |
 
 ### GitHub Integration
 
@@ -83,9 +85,9 @@ When `SEARCH_PLUS_GITHUB_ENABLED=true` and `gh` CLI is installed, GitHub URLs ar
 ### Provider Fallback
 
 Each provider runs in its own try/catch; a failure (403, 429, 451, timeout, empty
-result) falls through to the next provider in the chain — search: Tavily → Brave →
-Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily →
-Jina → Firecrawl → Defuddle → Wayback. There is no same-provider retry or
+result) falls through to the next provider in the chain — search: Tavily → TinyFish →
+Brave → Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily →
+Jina → TinyFish → Firecrawl → Defuddle → Wayback. There is no same-provider retry or
 backoff: the hook's 25s internal deadline (inside Claude Code's 30s hook budget)
 makes long sleeps unshippable, and per-fetch `AbortSignal.timeout` bounds every
 request.
@@ -122,6 +124,7 @@ Key variables:
 - `SEARCH_PLUS_JINA_API_KEY` — Jina.ai API key (optional, enables enhanced fallback)
 - `SEARCH_PLUS_BRAVE_API_KEY` — Brave Search API key (optional, $5 free credits/month)
 - `SEARCH_PLUS_EXA_API_KEY` — Exa AI API key (optional, 1,000 free searches/month)
+- `SEARCH_PLUS_TINYFISH_API_KEY` — TinyFish API key (optional; free search and browser-rendered fetch within a daily allowance)
 - `SEARCH_PLUS_FIRECRAWL_API_KEY` — Firecrawl API key (optional; search and extraction work keyless, key raises limits)
 - `SEARCH_PLUS_GITHUB_ENABLED` — Enable GitHub CLI integration (default: false)
 - `SEARCH_PLUS_DEBUG` — Set to `1` to print progress logs to stderr from the scripts (default: off)
@@ -134,7 +137,7 @@ The plugin registers `PostToolUse` and `PostToolUseFailure` hooks on `WebSearch|
 
 1. Reads the hook JSON from stdin (`tool_name`, `tool_input`, `tool_response` — or the error payload for `PostToolUseFailure`)
 2. Detects recoverable failures from structured fields only, never page text: `PostToolUseFailure` error codes (403, 404, 422, 429, 451, 5xx), `WebFetch` responses with `code >= 400`, and `WebSearch` responses that report zero searches or contain no result links
-3. If a failure is detected, delegates to `handleWebSearch()` for recovery via the multi-provider chain (search: Tavily → Brave → Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily → Jina → Firecrawl → Defuddle → Wayback)
+3. If a failure is detected, delegates to `handleWebSearch()` for recovery via the multi-provider chain (search: Tavily → TinyFish → Brave → Exa → Jina → Firecrawl keyless; URL extraction: direct markdown probe → Tavily → Jina → TinyFish → Firecrawl → Defuddle → Wayback)
 4. Outputs `additionalContext` JSON to stdout so Claude receives the recovered content
 
 Progress logs go to stderr and only when `SEARCH_PLUS_DEBUG=1` — stdout is reserved for the hook JSON. Injected context is capped at 9,500 characters (Claude Code caps `additionalContext` at 10,000), and the script self-terminates after 25 seconds so it always exits inside the 30-second hook budget.

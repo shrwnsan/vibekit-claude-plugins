@@ -81,6 +81,21 @@ export SEARCH_PLUS_TAVILY_API_KEY=tvly-your-key-here
 export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 ```
 
+### TinyFish (Free Search + Browser-Rendered Fetch, Optional)
+
+**What it does**: Web search, and URL extraction through a real browser (renders JavaScript, handles common bot walls). Search is tried right after Tavily; fetch runs after Jina Reader and before Firecrawl. Only used when a key is set.
+
+**Free Tier**:
+- Free API key, no credit card
+- Search: free within a daily allowance (30 requests/min)
+- Fetch: free up to 1,000 URLs/day (150 URLs/min); beyond that requests return 402 and the chain moves on
+
+**Setup**: create a key at [agent.tinyfish.ai/api-keys](https://agent.tinyfish.ai/api-keys).
+
+```bash
+export SEARCH_PLUS_TINYFISH_API_KEY=your_tinyfish_key_here
+```
+
 ### Firecrawl (Keyless Fallback)
 
 **What it does**: Web search and URL scraping to markdown. Used automatically as the last search provider and as an extraction fallback after Jina Reader.

@@ -5,6 +5,11 @@ All notable changes to the search-plus plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **TinyFish** search and fetch provider: set `SEARCH_PLUS_TINYFISH_API_KEY` (free key, no card) to add TinyFish Search right after Tavily, and TinyFish Fetch, which renders pages in a real browser, after Jina Reader and before Firecrawl in the extraction chain. Both are free within TinyFish's daily allowances; a 402 (allowance used), 429, or per-URL error such as `bot_blocked` falls through to the next provider.
+
 ## [3.4.0] - 2026-10-15
 
 ### Added

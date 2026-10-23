@@ -8,16 +8,6 @@ allowed-tools:
   - Grep
   - Glob
   - Bash
-
-# Dynamic context injection
-Current error state:
-!`git log --oneline -5 2>/dev/null || echo "No git history"`
-
-Recent test failures:
-!`find . -name "*.log" -mtime -1 2>/dev/null | head -5 || echo "No recent logs"`
-
-Recent build output:
-!`find . -name "build*.log" -o -name "webpack*.log" 2>/dev/null | head -3 || echo "No build logs"`
 ---
 
 # Systematic Debugging
@@ -72,6 +62,13 @@ Gather information about the problem:
 - Note line numbers, file paths, error codes
 - Check logs for additional context
 - Understand what the system is telling you
+
+Quick context sweep — run these before forming a hypothesis:
+```bash
+git log --oneline -5                                  # recent commits
+find . -name "*.log" -mtime -1 2>/dev/null | head -5  # recent logs
+find . \( -name 'build*.log' -o -name 'webpack*.log' \) -mtime -1 2>/dev/null | head -3  # recent build output
+```
 
 ### 2. Identify Reproduction Steps
 

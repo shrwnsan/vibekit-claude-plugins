@@ -140,8 +140,10 @@ function runSession(task, conditionName) {
   // decide pass/fail: seeded tests can be stale by design (t0-pagesize: the
   // spec moved) or rewritten by the agent, so they are not ground truth.
   let verify = null;
-  const hidden = path.join(FIXTURES, task.fixture, 'verify', 'hidden');
-  if (task.fixture && task.verify !== false && existsSync(hidden)) {
+  const hidden = task.fixture
+    ? path.join(FIXTURES, task.fixture, 'verify', 'hidden')
+    : null;
+  if (hidden && task.verify !== false && existsSync(hidden)) {
     mkdirSync(path.join(sandbox, 'test', 'hidden'), { recursive: true });
     cpSync(hidden, path.join(sandbox, 'test', 'hidden'), { recursive: true });
     const v = spawnSync(process.execPath, ['--test', 'test/hidden/**/*.test.js'], {

@@ -156,13 +156,15 @@ Always update BOTH:
 - `plugins/[name]/.claude-plugin/plugin.json`
 - `.claude-plugin/marketplace.json`
 
+A version bump is **required whenever a plugin's content changes** — skills, agents, commands, hooks, scripts, README — at minimum patch, in the same PR as the change. Un-bumped content changes make release-train bodies unreliable (e.g. #114 shipped a base-skills fix without one, so base 1.12.0 content differed between trains).
+
 ### Release Train (marketplace tags and releases)
 Tags and GitHub Releases are keyed to the **marketplace version** (`.claude-plugin/marketplace.json` `metadata.version`), not to individual plugins — this repo ships several plugins and the Releases page should reflect the marketplace as a whole.
 
 When cutting a release:
 1. Bump `metadata.version` in `.claude-plugin/marketplace.json` (patch for plugin-level fixes, minor for plugin features or new plugins)
 2. Tag the release commit: `git tag -a v<version> -m "..." && git push origin v<version>`
-3. Publish the release with a **plugin-version matrix** in the body — one row per plugin: name, included version, and a one-line delta (from each plugin's CHANGELOG since the previous train). Example: [v1.6.0](https://github.com/shrwnsan/vibekit-claude-plugins/releases/tag/v1.6.0)
+3. Publish the release titled `v<version>`. The body lists the **changes in the bump** — only plugins that changed since the previous train, each with its old → new version range and highlight bullets pulled from its CHANGELOG at the cut; unchanged plugins are omitted. If a cut contains no plugin changes (marketplace/docs-only), say so in one line. No convention-explainer copy in the body. Example: [v1.7.0](https://github.com/shrwnsan/vibekit-claude-plugins/releases/tag/v1.7.0)
 
 Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps ride the next train. (The former plugin-keyed `v2.x`/`v3.x` tags and releases were removed on 2026-10-27, and the marketplace stream is the sole release history — backfilled to v1.0.0, 2025-10-12.)
 

@@ -164,7 +164,7 @@ When cutting a release:
 2. Tag the release commit: `git tag -a v<version> -m "..." && git push origin v<version>`
 3. Publish the release with a **plugin-version matrix** in the body — one row per plugin: name, included version, and a one-line delta (from each plugin's CHANGELOG since the previous train). Example: [v1.6.0](https://github.com/shrwnsan/vibekit-claude-plugins/releases/tag/v1.6.0)
 
-Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps ride the next train. The bare `v2.x`/`v3.x` tags are the archived search-plus-keyed stream and are no longer extended.
+Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps ride the next train. (The former plugin-keyed `v2.x`/`v3.x` tags and releases were removed on 2026-10-27, and the marketplace stream is the sole release history — backfilled to v1.0.0, 2025-10-12.)
 
 ## Decision Principles
 

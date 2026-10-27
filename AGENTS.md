@@ -156,6 +156,16 @@ Always update BOTH:
 - `plugins/[name]/.claude-plugin/plugin.json`
 - `.claude-plugin/marketplace.json`
 
+### Release Train (marketplace tags and releases)
+Tags and GitHub Releases are keyed to the **marketplace version** (`.claude-plugin/marketplace.json` `metadata.version`), not to individual plugins — this repo ships several plugins and the Releases page should reflect the marketplace as a whole.
+
+When cutting a release:
+1. Bump `metadata.version` in `.claude-plugin/marketplace.json` (patch for plugin-level fixes, minor for plugin features or new plugins)
+2. Tag the release commit: `git tag -a v<version> -m "..." && git push origin v<version>`
+3. Publish the release with a **plugin-version matrix** in the body — one row per plugin: name, included version, and a one-line delta (from each plugin's CHANGELOG since the previous train). Example: [v1.6.0](https://github.com/shrwnsan/vibekit-claude-plugins/releases/tag/v1.6.0)
+
+Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps ride the next train. The bare `v2.x`/`v3.x` tags are the archived search-plus-keyed stream and are no longer extended.
+
 ## Decision Principles
 
 1. **Marketplace Integrity**: Never break plugin validation

@@ -227,3 +227,68 @@ test('transport errors with empty messages keep their error code visible', async
     restoreDns();
   }
 });
+
+// --- problematic-pattern gate: hostname shapes must not flag real domains (#87) ---
+
+function assertReachedExtraction(result, url) {
+  assert.notEqual(result.error?.code, 'INVALID_URL',
+    `${url} was rejected by validation: ${result.error?.message}`);
+  assert.doesNotMatch(String(result.error?.message), /suspicious or test domain/,
+    `${url} was flagged as a suspicious domain`);
+  const direct = result.allResults.find(r => r.service === 'direct');
+  assert.ok(direct, `${url} was never attempted by the fetch chain`);
+  assert.notEqual(direct.error?.code, 'INVALID_URL',
+    'the direct attempt must fail for fetch reasons, not URL validation');
+}
+
+test('ccTLD second-level domains (.com.au, .com.hk) pass validation (#87)', async () => {
+  const restoreDns = stubLookup([{ address: '93.184.216.34', family: 4 }]);
+  try {
+    for (const url of ['https://www.amazon.com.au/dp/B0EXAMPLE', 'https://www.carousell.com.hk/listing']) {
+      assertReachedExtraction(await extractContent(url), url);
+    }
+  } finally {
+    restoreDns();
+  }
+});
+
+test('a host merely ending in the substring example.com is not flagged (#87)', async () => {
+  const restoreDns = stubLookup([{ address: '93.184.216.34', family: 4 }]);
+  try {
+    assertReachedExtraction(await extractContent('https://notexample.com/guide'), 'https://notexample.com/guide');
+  } finally {
+    restoreDns();
+  }
+});
+
+test('a suspicious-looking query string does not flag a ccTLD hostname (#87)', async () => {
+  const restoreDns = stubLookup([{ address: '93.184.216.34', family: 4 }]);
+  try {
+    const url = 'https://www.amazon.com.au/s?ref=example.com.bad';
+    assertReachedExtraction(await extractContent(url), url);
+  } finally {
+    restoreDns();
+  }
+});
+
+test('reserved example.com/net/org hosts are still rejected', async () => {
+  const result = await extractContent('https://example.com/page');
+  assert.equal(result.success, false);
+  assert.equal(result.error.code, 'INVALID_URL');
+  assert.match(result.error.message, /reserved test domain/);
+  assert.deepEqual(requested, []);
+});
+
+test('malformed .com TLDs of 3+ letters are still rejected', async () => {
+  const restoreDns = stubLookup([{ address: '93.184.216.34', family: 4 }]);
+  try {
+    for (const url of ['https://example.com.bad/page', 'https://test.com.xyz/']) {
+      const result = await extractContent(url);
+      assert.equal(result.error.code, 'INVALID_URL', `${url} should be rejected`);
+      assert.match(result.error.message, /suspicious or test domain/);
+    }
+    assert.deepEqual(requested, []);
+  } finally {
+    restoreDns();
+  }
+});

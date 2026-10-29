@@ -53,7 +53,7 @@ Check that the plugin is working:
 # Or invoke the search-plus agent
 Use the search-plus agent to investigate a topic
 
-# Or use the meta-searching skill
+# Or use the meta-search skill
 Research latest web development trends
 ```
 

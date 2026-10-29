@@ -1156,14 +1156,17 @@ async function validateAndNormalizeURL(url) {
   }
 
 
-  // Check for obviously problematic domains that would cause API failures
+  // Check for obviously problematic domains that would cause API failures.
+  // Text-shape heuristics run against the full URL; the malformed-TLD shape is
+  // a hostname property, so it runs against the hostname only (#87): a ".com."
+  // inside a query string is not a malformed TLD, and 2-letter ccTLDs such as
+  // .com.hk / .com.au are valid registrations. Reserved example.com/net/org is
+  // already rejected by hostname above.
   const problematicPatterns = [
     /textise dot iitty/i,
     /textise\.iitty/i,  // The normalized version is still invalid
     /example dot com/i,
-    /example\.com$/i,  // Generic example domain
     /test dot /i,
-    /\.com\.[a-z]/i,  // Likely malformed TLD
     /r\.jina\.ai\/http:\/\/[^/]*\.[a-z]{2,}\/?$/i  // Jina AI with obviously fake domain
   ];
 
@@ -1172,6 +1175,10 @@ async function validateAndNormalizeURL(url) {
       issues.push('suspicious_domain_pattern');
       break;
     }
+  }
+
+  if (!issues.includes('suspicious_domain_pattern') && /\.com\.[a-z]{3,}/i.test(hostname)) {
+    issues.push('suspicious_domain_pattern');  // Likely malformed TLD (example.com.bad)
   }
 
   // If we have suspicious patterns that can't be trusted, mark as invalid

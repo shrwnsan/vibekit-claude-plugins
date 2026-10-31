@@ -32,11 +32,12 @@ node collect.mjs --summary                # aggregate test-results/ceremony-*.js
 ```
 
 `--bin` names the claude-compatible CLI that runs the sessions (default
-`claude`). A relative path resolves against this directory; `bin/zai` is a
-shim that reproduces the owner's Z.AI provider env (endpoint, token, model
-overrides) from their zsh config — provider env only, no permission or effort
-overrides, so eval protocol semantics hold. Values move process-to-process
-only; nothing is logged.
+`claude`). A relative path resolves against this directory. `bin/zai` is an
+example shim for provider-env authentication: it sources the local zsh
+config, maps provider variables to the `ANTHROPIC_*` names claude reads, and
+execs claude. It passes provider env only — no permission or effort
+overrides — so eval protocol semantics hold. Adapt it for your own provider;
+secrets move process-to-process only and are never logged.
 
 Runs are headless (`claude -p`) in disposable sandboxes with bounded,
 condition-identical permissions (`acceptEdits` + a read/edit/test allowlist —

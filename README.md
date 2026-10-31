@@ -168,22 +168,20 @@ A lean leadership plugin for AI PMs, engineering managers, TPMs, and senior ICs 
 
 ### ⏱️ tempo
 
-Safety-proportional process for agentic SDLC: trivial changes skip ceremony, risky changes earn it. A ~10-line routing table at session start — not a philosophy lecture. Every task tiers 0/1/2 by risk; tier 0 usually loads nothing at all; fail-twice auto-promotion and a verify-before-done hard gate at every tier.
+Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk: trivial changes load no skills at all, standard changes get test-first with a single agent, risky changes get a plan file and a review gate. A ~10-line routing table at session start, not a philosophy lecture. Fail-twice auto-promotion and a verify-before-done gate hold at every tier.
 
-**Measured** (golden-task harness, hidden tests, GLM backend — see the [tempo README](plugins/tempo/README.md#measured-tempo-vs-superpowers-vs-bare) for the full table):
+**Measured** (one backend, hidden tests; full table in the [tempo README](plugins/tempo/README.md#benchmarks)):
 
-- 📊 **The process-flat tax**: process-heavy plugins cost 1.2–2.7× tokens and 1.45–1.8× turns over bare Claude Code at identical correctness, at every tier
-- 🎯 **tempo tier 0**: at/below the bare floor — trivial fixes load no skills at all
-- 🎯 **tempo tier 1**: bare-floor cost plus the safety net — 44% of superpowers' tokens on the same tasks
-- 🎯 **tempo tier 2**: 0.67× bare tokens with the plan file and review gate included
+- 📊 **The process-flat tax is measurable**: a reference process-heavy plugin cost 1.2–2.7× tokens and 1.45–1.8× turns over bare Claude Code at identical correctness, on every tier
+- 🎯 **tempo**: tier 0 at or below the bare floor, tier 1 at bare cost plus the safety net (44% of superpowers' tokens), tier 2 at 0.67× bare tokens with the plan file and review gate included
 
 **Example Usage:**
 ```bash
 # Nothing to invoke for the common case — triage happens per task
 
 # When you want it explicit:
-/tempo:triage    # classify the current task
- /tempo:tier-2-risky    # force the risky flow
+/tempo:triage      # classify the current task
+/tempo:tier-2-risky  # force the risky flow
 ```
 
 [→ Detailed Documentation](plugins/tempo/README.md)

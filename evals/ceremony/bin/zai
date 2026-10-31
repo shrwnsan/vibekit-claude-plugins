@@ -1,15 +1,18 @@
 #!/bin/zsh -f
-# ceremony zai shim — run eval sessions on the Z.AI (GLM) backend via the
-# same provider env as the user's zai() shell function (~/.zsh_functions).
+# ceremony zai shim — run eval sessions on a Z.AI (GLM) backend.
 #
-# Deliberately reproduces ONLY the provider env (ANTHROPIC_BASE_URL,
-# ANTHROPIC_AUTH_TOKEN, model overrides). zai()'s interactive flags
-# (--allow-dangerously-skip-permissions, --effort max) are NOT passed:
-# eval protocol requires bounded, condition-identical permissions
-# (acceptEdits + allowlist) — see docs/plans/tasks-005 protocol section.
+# Some provider setups authenticate claude through environment variables
+# rather than a logged-in config. This shim sources the local zsh config to
+# pick up ZAI_* provider variables, maps them to the ANTHROPIC_* names claude
+# reads, and execs claude. Adapt the source line or variable names for your
+# own provider setup.
 #
-# Values never leave the process boundary: this shim only moves env from
-# the zsh config into the spawned claude process.
+# Provider env only (ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN, model
+# overrides). No permission bypass and no effort override: eval protocol
+# requires bounded, condition-identical permissions (acceptEdits + allowlist;
+# see docs/plans/tasks-005 protocol section).
+#
+# Secrets move process-to-process only; nothing is logged.
 source "$HOME/.zsh_functions" >/dev/null 2>&1
 
 if [[ -z "$ZAI_API_URL" || -z "$ZAI_API_KEY" ]]; then

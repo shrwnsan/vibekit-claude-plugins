@@ -1,6 +1,7 @@
 ---
 name: tier-1
 description: Tier-1 standard-change flow — one-line plan note, test-first, single agent, systematic debugging on failures. Use for normal feature work and bug fixes with clear requirements. Promote to tempo:tier-2 if the same fix fails twice.
+license: Apache-2.0
 user-invocable: true
 ---
 

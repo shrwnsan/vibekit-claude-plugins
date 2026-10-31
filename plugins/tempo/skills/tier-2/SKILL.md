@@ -1,6 +1,7 @@
 ---
 name: tier-2
 description: Tier-2 heavy-change flow — short plan file, deliberate build, review gate and verify gate before done. Use for architectural changes, public API changes, ambiguous requirements, security/auth/data work, or after a tier-1 task failed twice.
+license: Apache-2.0
 user-invocable: true
 ---
 

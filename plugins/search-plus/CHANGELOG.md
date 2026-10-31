@@ -5,6 +5,13 @@ All notable changes to the search-plus plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.1] - 2026-10-29
+
+### Fixed
+- URL validator no longer rejects legitimate `.com.<ccTLD>` second-level domains such as `amazon.com.au` or `carousell.com.hk` ([#87](https://github.com/shrwnsan/vibekit-claude-plugins/issues/87)). The malformed-TLD check now tests the hostname with a 3+ letter qualifier instead of the full URL string, so a `.com.` appearing in a query string no longer triggers it either.
+- Removed a redundant unanchored `example.com` URL pattern that rejected any host merely ending in the substring `example.com` (e.g. `notexample.com`); reserved `example.com/net/org` hosts are still rejected by the hostname check.
+- Offline regression tests for the suspicious-domain gate: ccTLD hosts pass, malformed `.com.<3+ letter>` TLDs and reserved test domains stay rejected.
+
 ## [3.5.0] - 2026-10-23
 
 ### Added

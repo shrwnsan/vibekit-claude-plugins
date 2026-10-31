@@ -75,11 +75,37 @@ loads nothing at all. When you want it explicit:
 - **superpowers** (external) — pairs fine if you want maximal process; tempo is
   the lean alternative, not a fork.
 
-## Measurement
+## Measured: tempo vs superpowers vs bare
 
-Release gates are numbers, not feel — [evals/ceremony](../../evals/ceremony/README.md)
-runs the golden task set under `bare` / `superpowers` / `tempo` conditions and
-compares tokens, turns, wall-clock, and hidden-test correctness. Baselines and
-targets: [tasks-005](../../docs/plans/tasks-005-tempo-ceremony-eval-harness.md).
+Same golden task set ([evals/ceremony](../../evals/ceremony/README.md)), same
+headless protocol, same GLM backend, hidden tests only. Baselines are medians
+of n=4–7 runs ([tasks-005](../../docs/plans/tasks-005-tempo-ceremony-eval-harness.md));
+tempo is the first MVP smoke (n=1 per task) — directional signal, not a
+release gate:
+
+| Tier | bare | superpowers | tempo (smoke) |
+|---|---|---|---|
+| **0** trivial | 16 turns · 21.3k tok · 46s | 24 turns · 26.4k tok · 69s | **9–13 turns · 14.6–23.8k tok · 12–16s** |
+| **1** standard | 16.5 turns · 19.1k tok · 82s | 29 turns · 51k tok · 199s | **18–22 turns · 21–23.8k tok · 42–44s** |
+| **2** heavy | 28 turns · 51.4k tok · 397s | 40.5 turns · 60.9k tok · 308s | **24–49 turns · 33.1–35.4k tok · 67–223s** |
+
+- **Correctness**: hidden tests passed in 33/33 baseline runs and 6/6 tempo
+  runs. On this task set, process cost bought no measurable correctness — the
+  kept disciplines (TDD, systematic debugging, verify gate) are insurance, not
+  a measured defect-rate win.
+- **The process-flat tax**: superpowers costs 1.2–2.7× tokens and 1.45–1.8×
+  turns over bare at every tier — the overhead tempo removes is real and
+  tier-independent.
+- **tempo's through-line**: tier 0 at/below the bare floor; tier 1 at bare
+  cost with the safety net (44% of superpowers' tokens); tier 2 at 0.67× bare
+  tokens with the plan file and review gate included — turns rise where the
+  ceremony pays (49 on the refactor task), tokens don't.
+- **Caveats**: n=1 tempo vs n≥4 baselines; CLI drift (2.1.292 → 2.1.308);
+  same-task variance is large on this backend. Release gates (prd-010 §6)
+  need n≥3 medians and a re-based bare row.
+
+superpowers (external) is the maximal-process complement — tempo is the lean
+alternative, not a fork. Protocol, golden tasks, and full results:
+[tasks-005](../../docs/plans/tasks-005-tempo-ceremony-eval-harness.md).
 
 License: Apache-2.0.

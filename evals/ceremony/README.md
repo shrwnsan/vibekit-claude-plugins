@@ -26,9 +26,17 @@ node run-eval.mjs --smoke                 # harness validation: probe + t0, both
 node run-eval.mjs --condition bare        # full baseline (6 sessions)
 node run-eval.mjs --condition superpowers # full baseline (6 sessions, tier-2 can be heavy)
 node run-eval.mjs --condition bare --tier 1 --task t1-slugify  # subsets
+node run-eval.mjs --condition tempo --bin bin/zai              # Z.AI provider shim
 node run-eval.mjs --list
 node collect.mjs --summary                # aggregate test-results/ceremony-*.json
 ```
+
+`--bin` names the claude-compatible CLI that runs the sessions (default
+`claude`). A relative path resolves against this directory; `bin/zai` is a
+shim that reproduces the owner's Z.AI provider env (endpoint, token, model
+overrides) from their zsh config — provider env only, no permission or effort
+overrides, so eval protocol semantics hold. Values move process-to-process
+only; nothing is logged.
 
 Runs are headless (`claude -p`) in disposable sandboxes with bounded,
 condition-identical permissions (`acceptEdits` + a read/edit/test allowlist —

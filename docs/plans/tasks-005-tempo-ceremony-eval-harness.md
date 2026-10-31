@@ -169,6 +169,43 @@ Findings:
 
 1. ~~Smoke run~~ done.
 2. ~~Full `bare` and `superpowers` baselines~~ done — final table above.
-3. MVP skeleton work begins against these numbers (prd-010 §7): the tier-0/1
-   targets are bare-floor cost + safety net; tier-2 must stay within ~1.2× of
-   bare tokens while adding the review gate.
+3. ~~MVP skeleton~~ built against these numbers (prd-010 §7) — see the tempo
+   smoke section below.
+
+## tempo MVP smoke (2026-10-31, glm-5.3-flash via z.ai provider shim)
+
+First measurement of the built plugin (feat/tempo-mvp, PR #121). Sessions ran
+via `--bin bin/zai` — the Z.AI provider-env shim (no permission/effort
+overrides; protocol semantics unchanged). One run per task, n=1 — directional
+signal only, not a release gate:
+
+| Task | Tier | Turns | Tokens | Wall | Cache hit | Verify |
+|---|---|---|---|---|---|---|
+| t0-typo | 0 | 13 | 14,635 | 16s | 84.8% | PASS |
+| t0-pagesize | 0 | 9 | 23,793 | 12s | 63.1% | PASS |
+| t1-slugify | 1 | 18 | 20,977 | 42s | 84.0% | PASS |
+| t1-items-limit | 1 | 22 | 23,813 | 44s | 86.4% | PASS |
+| t2-dedupe | 2 | 49 | 35,440 | 223s | 95.1% | PASS |
+| t2-fetch-cache | 2 | 24 | 33,090 | 67s | 81.1% | PASS |
+
+6/6 completed, 6/6 hidden-test passes, zero infra failures. Against the
+baseline medians (caveats: n=1 here, CLI drifted 2.1.292 → 2.1.308, same
+backend):
+
+- **Tier 0**: 11 turns / 19.2k tokens / 14s avg vs bare 16 / 21.3k / 46s — at
+  or under the bare floor; the routing table plus skill discipline did not tax
+  trivial fixes. t0-pagesize diff was 1 file (the constant), matching bare's
+  minimal fixers rather than superpowers' 2-file pattern.
+- **Tier 1**: 20 turns / 22.4k tokens / 43s avg vs bare 16.5 / 19.1k / 82s and
+  superpowers 29 / 51k / 199s — the target "bare-floor cost + safety net"
+  holds on first look (tokens 44% of superpowers'; wall under half of bare's).
+- **Tier 2**: 36.5 turns / 34.3k tokens / 145s avg vs bare 28 / 51.4k / 397s —
+  the plan file and review gate cost turns (49 on t2-dedupe) but total tokens
+  came in at 0.67× bare, inside the prd-010 ~1.2× gate.
+- **Cache**: real-task mean 82.4%, median 84.4% — consistent with the
+  baseline finding that cache ratio is parity across conditions (short
+  sessions mathematically cap the ratio; t0-pagesize's 63.1% is a 9-turn
+  session, not a cache regression).
+
+For release-gate numbers per prd-010 §6: rerun with n≥3 and medians, and
+re-base the `bare` rows on the current CLI version so version drift drops out.

@@ -209,3 +209,7 @@ backend):
 
 For release-gate numbers per prd-010 §6: rerun with n≥3 and medians, and
 re-base the `bare` rows on the current CLI version so version drift drops out.
+
+Note: skills were renamed after this smoke (tier-0/1/2 → tier-0-trivial /
+tier-1-standard / tier-2-risky). Name strings and the routing-table text
+changed; the flows themselves are unchanged.

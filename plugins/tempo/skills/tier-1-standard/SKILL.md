@@ -1,6 +1,6 @@
 ---
-name: tier-1
-description: Tier-1 standard-change flow — one-line plan note, test-first, single agent, systematic debugging on failures. Use for normal feature work and bug fixes with clear requirements. Promote to tempo:tier-2 if the same fix fails twice.
+name: tier-1-standard
+description: Tier-1 standard-change flow — one-line plan note, test-first, single agent, systematic debugging on failures. Use for normal feature work and bug fixes with clear requirements. Promote to tempo:tier-2-risky if the same fix fails twice.
 license: Apache-2.0
 user-invocable: true
 ---
@@ -11,7 +11,7 @@ The whole flow is here; no other tempo skills are needed.
 
 **Plan note (one line, in your reply — not a file):** "Plan: <what changes, how
 verified>." Can't state it in one line? The task is tier 2 — switch to
-`tempo:tier-2` and say so.
+`tempo:tier-2-risky` and say so.
 
 ## Test-first
 
@@ -36,5 +36,5 @@ verified>." Can't state it in one line? The task is tier 2 — switch to
 - one agent did the work; no subagent fan-out at this tier
 
 **Promotion:** the same approach failing twice (test runs, edit-revert cycles,
-debug dead ends) → promote to tier 2 in one line and follow `tempo:tier-2` from
+debug dead ends) → promote to tier 2 in one line and follow `tempo:tier-2-risky` from
 there. Never attempt the same failing approach a third time.

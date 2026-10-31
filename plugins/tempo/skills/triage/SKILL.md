@@ -22,7 +22,7 @@ is the only routing step — it does not contain the flows themselves.
 - a few files in one module; no architecture decisions
 - tests exist for the seam, or writing them is straightforward
 
-**Tier 2 — heavy.** Any of:
+**Tier 2 — risky.** Any of:
 - architecture, cross-module contracts, or public API changes
 - ambiguous or conflicting requirements; unknown root cause after a first look
 - security, auth, data migration, concurrency
@@ -33,9 +33,9 @@ present — ask one question; headless, take tier 2.
 
 ## Route (one line each)
 
-- **Tier 0** → do the change now; rules in `tempo:tier-0` only if unsure it qualifies.
-- **Tier 1** → follow `tempo:tier-1`.
-- **Tier 2** → follow `tempo:tier-2`.
+- **Tier 0** → do the change now; rules in `tempo:tier-0-trivial` only if unsure it qualifies.
+- **Tier 1** → follow `tempo:tier-1-standard`.
+- **Tier 2** → follow `tempo:tier-2-risky`.
 
 ## Promotion (automatic, not a judgment call)
 

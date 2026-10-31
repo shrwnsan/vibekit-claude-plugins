@@ -39,9 +39,9 @@ Hard rules, no judgment calls:
 | Skill | Loads when | Size |
 |---|---|---|
 | `tempo:triage` | a task's risk is unclear, or after a failed attempt | ~45 lines |
-| `tempo:tier-0` | rarely — the routing table already covers tier 0 | ~25 lines |
-| `tempo:tier-1` | standard changes | ~40 lines |
-| `tempo:tier-2` | heavy changes | ~50 lines |
+| `tempo:tier-0-trivial` | rarely — the routing table already covers tier 0 | ~25 lines |
+| `tempo:tier-1-standard` | standard changes | ~40 lines |
+| `tempo:tier-2-risky` | risky changes | ~50 lines |
 
 Design constraints (the anti-patterns being avoided): every skill ≤ ~100 lines,
 static content only, no skill-to-skill cascades, no mid-conversation process
@@ -66,7 +66,7 @@ Nothing to invoke for the common case: triage happens per task, tier 0 usually
 loads nothing at all. When you want it explicit:
 
 - `/tempo:triage` — classify the current task
-- `/tempo:tier-2` — force the heavy flow
+- `/tempo:tier-2-risky` — force the risky flow
 
 ## Relationship to other plugins
 
@@ -87,7 +87,7 @@ release gate:
 |---|---|---|---|
 | **0** trivial | 16 turns · 21.3k tok · 46s | 24 turns · 26.4k tok · 69s | **9–13 turns · 14.6–23.8k tok · 12–16s** |
 | **1** standard | 16.5 turns · 19.1k tok · 82s | 29 turns · 51k tok · 199s | **18–22 turns · 21–23.8k tok · 42–44s** |
-| **2** heavy | 28 turns · 51.4k tok · 397s | 40.5 turns · 60.9k tok · 308s | **24–49 turns · 33.1–35.4k tok · 67–223s** |
+| **2** risky | 28 turns · 51.4k tok · 397s | 40.5 turns · 60.9k tok · 308s | **24–49 turns · 33.1–35.4k tok · 67–223s** |
 
 - **Correctness**: hidden tests passed in 33/33 baseline runs and 6/6 tempo
   runs. On this task set, process cost bought no measurable correctness — the

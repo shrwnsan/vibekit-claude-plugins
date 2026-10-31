@@ -183,7 +183,7 @@ Safety-proportional process for agentic SDLC: trivial changes skip ceremony, ris
 
 # When you want it explicit:
 /tempo:triage    # classify the current task
-/tempo:tier-2    # force the heavy flow
+ /tempo:tier-2-risky    # force the risky flow
 ```
 
 [→ Detailed Documentation](plugins/tempo/README.md)

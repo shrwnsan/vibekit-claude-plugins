@@ -3,6 +3,24 @@
 Safety-proportional process for agentic SDLC. Trivial changes skip ceremony;
 risky changes earn it. Spec: [prd-010](../../docs/plans/prd-010-lean-sdlc-plugin.md).
 
+## Results at a glance
+
+Measured on a fixed benchmark harness, medians of 3 runs per task, every task
+passed hidden verification:
+
+- **Risky changes (tier 2)**: cheaper than no process at all — 34% fewer
+  tokens than bare Claude Code, with the plan file and review gate included.
+- **Trivial changes (tier 0)**: about as fast as bare — fewer turns and
+  faster wall-clock; a small token overhead from the routing table shows only
+  on the very shortest tasks.
+- **Standard changes (tier 1)**: the safety net is visible in the bill.
+  Test-first plus full verification costs about 1.9× bare, which is still
+  roughly 38% cheaper than the process-heavy reference plugin.
+- **Every task, every run**: hidden tests passed 75 of 75 times. The
+  disciplines are insurance, and tempo publishes the bill so you can judge.
+
+Full tables and caveats: [Benchmarks](#benchmarks).
+
 ## Why
 
 Process-heavy plugins tax every task equally. A session-start lecture, a skill

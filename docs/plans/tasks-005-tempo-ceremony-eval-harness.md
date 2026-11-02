@@ -213,3 +213,56 @@ re-base the `bare` rows on the current CLI version so version drift drops out.
 Note: skills were renamed after this smoke (tier-0/1/2 → tier-0-trivial /
 tier-1-standard / tier-2-risky). Name strings and the routing-table text
 changed; the flows themselves are unchanged.
+
+## Release-gate reruns (n=3 per task, 2026-10-31, CLI 2.1.308)
+
+Both conditions rerun 3× via the zai shim, bare re-based on the current CLI so
+version drift drops out. 36 sessions: 36/36 hidden-test passes, one
+session-exit flake (tempo t0-pagesize, `completed: false`, verify passed —
+excluded from medians per protocol, leaving that cell n=2).
+
+Per-task medians (turns · tokens · wall):
+
+| Task | bare | tempo |
+|---|---|---|
+| t0-typo | 15 · 16.8k · 35s | 16 · 28.5k · 30s |
+| t0-pagesize | 18 · 15.6k · 38s | 12.5 · 14.1k · 32s |
+| t1-slugify | 15 · 8.1k · 68s | 29 · 30.8k · 114s |
+| t1-items-limit | 18 · 21.4k · 117s | 25 · 34.3k · 105s |
+| t2-dedupe | 43 · 65.2k · 352s | 33 · 40.3k · 314s |
+| t2-fetch-cache | 14 · 43.1k · 61s | 22 · 24.2k · 96s |
+
+Tier-pooled medians (n=6 per cell; tempo tier 0 n=5):
+
+| Tier | bare | tempo | ratio (tempo/bare) |
+|---|---|---|---|
+| **0** trivial | 16.5 turns · 16.2k · 37s | 16 turns · 24.8k · 30s | turns 0.97 · tokens 1.53 · wall 0.81 |
+| **1** standard | 17 turns · 16.6k · 81s | 25.5 turns · 31.6k · 106s | turns 1.5 · tokens 1.9 · wall 1.3 |
+| **2** risky | 24.5 turns · 44.1k · 196s | 25 turns · 29.1k · 189s | turns 1.02 · tokens 0.66 · wall 0.96 |
+
+Findings:
+
+1. **Tier 2 is the clean result**: 0.66× bare tokens with parity turns and
+   wall-clock — the plan file and review gate paid for themselves. prd-010's
+   ≤1.2× gate passes with room.
+2. **Tier 1 revised the smoke's story.** The n=1 smoke read "bare cost plus
+   safety net"; at n=3 tier 1 costs ~1.5× bare turns and ~1.9× bare tokens,
+   while sitting at ~62% of superpowers' recorded tokens (51k → 31.6k) and
+   88% of its turns. prd-010's ≤60%-of-superpowers gate is marginal at 62%.
+   Session forensics: the tier-1 flow loaded and was followed in all 6 runs
+   (8–11 references), triage content never loaded, hook injection is ~120
+   tokens — the cost is behavioral (test-first, plan note, full-suite verify
+   are what bare skips), not skill-content overhead. Same-task variance
+   remains large (bare t1-slugify tokens: 8.0k / 8.1k / 27.4k — medians of 3
+   are fragile when the distribution is bimodal).
+3. **Tier 0 holds the time floor, not the token floor**: turns 0.97× and wall
+   0.81× bare, tokens 1.53× bare — the fixed plugin overhead (hook table plus
+   four skill descriptions in the registry) is visible only on the shortest
+   tasks. prd-010's ≤1.5× gate is marginal at 1.53×.
+4. **Superpowers was not re-based**: its column is still the October CLI
+   2.1.292 baseline, so the 62% figure mixes CLI generations. A same-CLI
+   superpowers rerun would firm it up.
+5. **Follow-ups**: tier-1 flow cost investigation (is the full-suite rerun
+   proportionate for new-function-only tasks? is the plan note pulling its
+   weight?); skill-registry size trim; consider n=5 on tier 1 specifically
+   before treating the gate as passed or failed.

@@ -170,10 +170,12 @@ A lean leadership plugin for AI PMs, engineering managers, TPMs, and senior ICs 
 
 Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk: trivial changes load no skills at all, standard changes get test-first with a single agent, risky changes get a plan file and a review gate. A ~10-line routing table at session start, not a philosophy lecture. Fail-twice auto-promotion and a verify-before-done gate hold at every tier.
 
-**Measured** (one backend, hidden tests; full table in the [tempo README](plugins/tempo/README.md#benchmarks)):
+**Measured** (one backend, hidden tests, medians of 3 runs per task; full table in the [tempo README](plugins/tempo/README.md#benchmarks)):
 
 - 📊 **The process-flat tax is measurable**: a reference process-heavy plugin cost 1.2–2.7× tokens and 1.45–1.8× turns over bare Claude Code at identical correctness, on every tier
-- 🎯 **tempo**: tier 0 at or below the bare floor, tier 1 at bare cost plus the safety net (44% of superpowers' tokens), tier 2 at 0.67× bare tokens with the plan file and review gate included
+- 🎯 **tempo tier 2**: beat bare outright — 0.66× tokens with parity turns and wall-clock; the plan file and review gate paid for themselves
+- 🎯 **tempo tier 0**: turns and wall-clock at the bare floor; tokens ~1.5× bare from fixed plugin overhead, visible only on the shortest tasks
+- 🎯 **tempo tier 1**: between bare and superpowers — about 62% of superpowers' tokens with the safety net included, ~1.9× bare; the honest cost of test-first plus verification
 
 **Example Usage:**
 ```bash

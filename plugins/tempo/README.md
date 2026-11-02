@@ -79,29 +79,29 @@ usually loads nothing at all. To be explicit:
 One golden task set, one headless protocol, hidden tests only
 ([harness](../../evals/ceremony/README.md); protocol and full results in
 [tasks-005](../../docs/plans/tasks-005-tempo-ceremony-eval-harness.md)).
-Baseline numbers are medians over 4–7 runs per cell; tempo numbers are a first
-smoke with one run per task, so read them as directional.
+Current table: 3 runs per task per condition, medians, bare re-based on the
+same CLI as tempo. The superpowers column is the October baseline (older CLI);
+median-of-3 with high same-task variance, so read deltas, not decimals.
 
-| Tier | bare | superpowers | tempo (smoke) |
+| Tier | bare | superpowers | tempo |
 |---|---|---|---|
-| **0** trivial | 16 turns · 21.3k tok · 46s | 24 turns · 26.4k tok · 69s | 9–13 turns · 14.6–23.8k tok · 12–16s |
-| **1** standard | 16.5 turns · 19.1k tok · 82s | 29 turns · 51k tok · 199s | 18–22 turns · 21–23.8k tok · 42–44s |
-| **2** risky | 28 turns · 51.4k tok · 397s | 40.5 turns · 60.9k tok · 308s | 24–49 turns · 33.1–35.4k tok · 67–223s |
+| **0** trivial | 16.5 turns · 16.2k tok · 37s | 24 turns · 26.4k tok · 69s | 16 turns · 24.8k tok · 30s |
+| **1** standard | 17 turns · 16.6k tok · 81s | 29 turns · 51k tok · 199s | 25.5 turns · 31.6k tok · 106s |
+| **2** risky | 24.5 turns · 44.1k tok · 196s | 40.5 turns · 60.9k tok · 308s | 25 turns · 29.1k tok · 189s |
 
-Findings so far:
-
-- Hidden tests passed in all 39 runs (33 baseline, 6 tempo). On this task set
-  the extra process bought no measurable correctness; the disciplines tempo
-  keeps (TDD, systematic debugging, verify gate) are insurance, not a measured
-  defect-rate win.
-- The process-heavy baseline paid 1.2–2.7× tokens and 1.45–1.8× turns over
-  bare at every tier.
-- tempo landed at or under the bare floor on tier 0, at bare cost with the
-  safety net on tier 1 (44% of superpowers' tokens), and at 0.67× bare tokens
-  on tier 2 including the plan file and review gate. Turns rise where ceremony
-  pays (49 on the refactor task); tokens don't.
-- Caveats: one run per task for tempo, a CLI version change mid-comparison,
-  and high same-task variance on the test backend. Reruns with more samples
-  are needed before treating any of this as a release gate.
+- **Safety**: hidden tests passed in every run ever recorded (33 baseline,
+  6 smoke, 36 rerun = 75/75). The disciplines tempo keeps are insurance, not
+  a measured defect-rate win.
+- **Tier 2 is the clean result**: 0.66× bare tokens with parity turns and
+  wall-clock. The plan file and review gate paid for themselves.
+- **Tier 0 holds the floor on time**: turns and wall-clock at or under bare;
+  tokens run ~1.5× bare because the hook table plus skill registry are fixed
+  overhead, visible only on the shortest tasks.
+- **Tier 1 is the honest cost**: between bare and superpowers. About 62% of
+  superpowers' tokens, but ~1.9× bare's. Session forensics show the cost is
+  behavioral — the test-first, plan-note, and full-verify disciplines are what
+  bare skips — not skill-content overhead.
+- **Caveats**: n=3 per task, high same-task variance on this backend, and the
+  superpowers column predates the current CLI.
 
 License: Apache-2.0.

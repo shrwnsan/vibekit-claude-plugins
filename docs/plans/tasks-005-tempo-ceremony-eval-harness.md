@@ -1,6 +1,6 @@
 # tasks-005: Ceremony-cost eval harness for `tempo`
 
-**Status:** In progress (harness + golden set built; baseline runs pending)
+**Status:** Baselines complete; tempo MVP smoke recorded (2026-10-31); release-gate reruns (n≥3, re-based bare) pending
 **Date:** 2026-10-15
 **Parent:** [prd-010](prd-010-lean-sdlc-plugin.md) (success metrics, §6)
 

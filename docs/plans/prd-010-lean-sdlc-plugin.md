@@ -1,7 +1,7 @@
 # prd-010: Lean SDLC Plugin (`tempo`)
 
 **Tagline:** safety-proportional process for agentic SDLC
-**Status:** Draft
+**Status:** MVP implemented (PR #121) and smoke-measured — results in [tasks-005](tasks-005-tempo-ceremony-eval-harness.md)
 **Date:** 2026-10-15
 **Author:** shrwnsan, drafted with Claude Code (GLM)
 
@@ -143,6 +143,11 @@ Gate releases on measured numbers, not feel:
 Eval harness: golden task set across tiers (reuse handoff-context eval-asset pattern from
 base; routing-eval CI pattern from haku). Decision-model calls logged → weekly accuracy
 vs. cost curve per provider.
+
+> Measured 2026-10-16 (baselines) and 2026-10-31 (MVP smoke): baseline medians and the
+> tempo smoke table live in [tasks-005](tasks-005-tempo-ceremony-eval-harness.md). First
+> smoke: tier 0 at/below the bare floor, tier 1 at 44% of superpowers' tokens, tier 2 at
+> 0.67× bare tokens — n=1, directional; release gates still need n≥3 medians.
 
 ## 7. MVP scope
 

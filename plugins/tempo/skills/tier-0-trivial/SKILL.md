@@ -15,9 +15,9 @@ user-invocable: true
 Qualifies: typo fixes, copy tweaks, constant changes, log-message fixes, obvious
 one-line corrections.
 
-Does not qualify — go back to `tempo:triage`: anything touching auth, public
+Does not qualify — go back to `triage`: anything touching auth, public
 API, build config, or more than one file; anything where the fix isn't obvious
 before you start.
 
 Verification failed twice? The task was not tier 0. Promote to tier 1 and follow
-`tempo:tier-1-standard` from there.
+`tier-1-standard` from there.

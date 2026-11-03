@@ -101,6 +101,21 @@ specification](https://agentskills.io/). CI checks the two manifests stay in
 sync. The session-start hook is Claude Code-specific and intentionally not
 part of the portable package; portable clients get tempo as skills-only.
 
+## Other clients
+
+The four skills are plain Agent Skills, so clients that read that format can
+use them without tempo's Claude Code packaging:
+
+- **Pi**: copy or symlink the `skills/*` directories to `~/.agents/skills/`
+- **Amp**: `~/.config/agents/skills/` (user-level) or `.agents/skills/` in
+  the workspace
+
+In these clients the skills appear under their bare names (`triage`,
+`tier-1-standard`, ...), not `tempo:*`. Two things stay Claude Code-only: the
+session-start routing table (the automatic triage nudge) and the `/tempo:*`
+commands. Without the nudge, load `triage` when a task starts; the tier flows
+carry their own rules from there.
+
 ## Benchmarks
 
 One golden task set, one headless protocol, hidden tests only

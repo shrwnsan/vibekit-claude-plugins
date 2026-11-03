@@ -33,9 +33,9 @@ present — ask one question; headless, take tier 2.
 
 ## Route (one line each)
 
-- **Tier 0** → do the change now; rules in `tempo:tier-0-trivial` only if unsure it qualifies.
-- **Tier 1** → follow `tempo:tier-1-standard`.
-- **Tier 2** → follow `tempo:tier-2-risky`.
+- **Tier 0** → do the change now; rules in `tier-0-trivial` only if unsure it qualifies.
+- **Tier 1** → follow `tier-1-standard`.
+- **Tier 2** → follow `tier-2-risky`.
 
 ## Promotion (automatic, not a judgment call)
 

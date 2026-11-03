@@ -7,3 +7,11 @@
   routing table.
 - Fail-twice auto-promotion rule; verify-before-done hard gate at every tier.
 - No decision-model integration yet (prd-010 §3.3 is future work).
+
+## 0.1.1 (2026-11-03)
+
+- Skill cross-references are namespace-agnostic (`tier-1-standard`, not
+  `tempo:tier-1-standard`), so the skills resolve correctly in any Agent
+  Skills client (Pi, Amp, ...).
+- README: Other clients section with install paths for Pi and Amp, and the
+  honest list of what stays Claude Code-only (routing table, slash commands).

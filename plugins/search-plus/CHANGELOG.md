@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.5.2] - 2026-11-03
 
 ### Changed
-- Skills sync to the shrwnsan/agents hub is now gated on a per-plugin portability marker (`plugins/<name>/sync.json` with `"sync": true`; no marker = no sync). search-plus opts in — meta-search keeps syncing as before.
+- Skills sync to the shrwnsan/agents hub is now gated on a fail-closed portability allowlist (`.github/sync-skills.json`; no entry = no sync). search-plus opts in — meta-search keeps syncing as before.
 
 ## [3.5.1] - 2026-10-29
 

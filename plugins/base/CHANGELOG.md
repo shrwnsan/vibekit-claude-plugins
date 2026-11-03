@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.12.1] - 2026-11-03
 
 ### Changed
-- Skills sync to the shrwnsan/agents hub is now gated on a per-plugin portability marker (`plugins/<name>/sync.json` with `"sync": true`; no marker = no sync). base opts in — its four skills keep syncing as before.
+- Skills sync to the shrwnsan/agents hub is now gated on a fail-closed portability allowlist (`.github/sync-skills.json`; no entry = no sync). base opts in — its four skills keep syncing as before.
 
 ## [1.11.0] - 2026-02-11
 

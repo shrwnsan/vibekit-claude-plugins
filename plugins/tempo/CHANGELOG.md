@@ -19,5 +19,6 @@
 ## 0.1.2 (2026-11-03)
 
 - Tempo skills no longer sync to the shrwnsan/agents hub: sync is now gated on
-  a per-plugin portability marker (`sync.json`), and tempo stays opted out —
-  the tier skills are plugin-internal plumbing with portability unproven.
+  a fail-closed portability allowlist (`.github/sync-skills.json`), and tempo
+  stays unlisted — the tier skills are plugin-internal plumbing with
+  portability unproven.

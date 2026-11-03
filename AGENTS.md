@@ -41,13 +41,13 @@ Add plugin to `.claude-plugin/marketplace.json`:
 
 ### Skills sync to the agents hub
 
-`plugins/<name>/skills/` directories sync to the public [shrwnsan/agents](https://github.com/shrwnsan/agents) hub (Apache-2.0) on push to main via `.github/workflows/sync-skills.yml`. The gate is per-plugin and fail-closed:
+`plugins/<name>/skills/` directories sync to the public [shrwnsan/agents](https://github.com/shrwnsan/agents) hub (Apache-2.0) on push to main via `.github/workflows/sync-skills.yml`. The gate is fail-closed and lives in `.github/sync-skills.json` — repo-level CI config, deliberately not inside plugin dirs, where it would ship with plugin installs:
 
-- Skills sync only if `plugins/<name>/sync.json` contains `{"sync": true}`.
-- No marker = no sync (default for any new plugin).
-- Explicit exclusion: `{"sync": false, "reason": "..."}` — haku (CC BY-SA 4.0 licensing), tempo (internal plumbing, portability unproven).
+- A skill syncs only if its plugin (`"base"`) or the individual skill (`"tempo/triage"`) is listed under `"synced"`.
+- No entry = no sync (default for any new plugin).
+- `"excluded"` is an inert reason map for the sync log — haku (CC BY-SA 4.0 licensing), tempo (internal plumbing, portability unproven).
 
-To publish a plugin's skills to the hub, deliberately commit its `sync.json` with `"sync": true` after reviewing each skill for portability.
+To publish a plugin's skills to the hub, deliberately add it to `"synced"` in `.github/sync-skills.json` after reviewing each skill for portability.
 
 ## Code style
 

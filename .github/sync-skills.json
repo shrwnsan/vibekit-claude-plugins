@@ -1,0 +1,10 @@
+{
+  "synced": [
+    "base",
+    "search-plus"
+  ],
+  "excluded": {
+    "haku": "CC BY-SA 4.0 upstream (see plugins/haku/README.md) — syncing would mix licenses into the Apache-2.0 hub and strip required attribution",
+    "tempo": "tier skills are plugin-internal routing plumbing; portability outside the tempo plugin is not proven"
+  }
+}

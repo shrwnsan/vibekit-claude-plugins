@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (2026-10-25)
+## 0.1.0 (2026-10-31)
 
 - Initial MVP per prd-010 §7: triage skill (tier router), tier-0-trivial /
   tier-1-standard / tier-2-risky flow skills, ~10-line static SessionStart

@@ -1,6 +1,6 @@
 # tasks-005: Ceremony-cost eval harness for `tempo`
 
-**Status:** Baselines complete; tempo MVP smoke recorded (2026-10-31); release-gate reruns (n≥3, re-based bare) pending
+**Status:** Complete — baselines, MVP smoke, and release-gate reruns (n=3 per task, bare re-based) all recorded 2026-10-31; next: tier-1 cost investigation, superpowers same-CLI re-base
 **Date:** 2026-10-15
 **Parent:** [prd-010](prd-010-lean-sdlc-plugin.md) (success metrics, §6)
 

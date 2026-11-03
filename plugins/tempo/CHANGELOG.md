@@ -15,3 +15,10 @@
   Skills client (Pi, Amp, ...).
 - README: Other clients section with install paths for Pi and Amp, and the
   honest list of what stays Claude Code-only (routing table, slash commands).
+
+## 0.1.2 (2026-11-03)
+
+- Hook routing table: tier-0 line gains the config/auth/API carve-out
+  ("not config/auth/API") — found by the tier-routing golden set: the
+  table under-specified the tier-0 boundary, and a package.json script
+  edit was classified tier 0 from table examples alone.

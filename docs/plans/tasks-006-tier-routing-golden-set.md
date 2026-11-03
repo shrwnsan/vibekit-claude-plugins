@@ -26,13 +26,18 @@ with the same expectations on bare skill names.
    follow? State the tier, then stop."* This isolates the one variable
    under test: classification. Enacted-routing data on real work already
    exists separately via tasks-005 session forensics.
-2. **Deterministic scoring via session-log forensics — no LLM judge.** Skill
-   loads are counted by name references in the stream-json session log.
-   Calibration from recorded runs: a loaded flow shows ~8–12 references;
-   registry-only presence shows ~2–4. Threshold: **≥6 refs = loaded**. This
-   is free, objective, and reproducible; haku's judged variant
-   (run-routing + baseline.json) remains the reference if flakiness
-   demands it.
+2. **Scoring calibrated empirically (revised after first smoke).** The
+   initial design scored skill *loads* via substring thresholds; two
+   problems surfaced immediately: prose cross-references inside a loaded
+   skill's content inflated sibling counts (tier-1's promotion line
+   mentions tier-2), and Q&A sessions turn out to never load flow content
+   at all — they classify from the injected skill descriptions alone (2
+   assistant turns, zero tool calls). Final rubric for Q&A mode: (a)
+   stated tier matches (promotion mentions allowed), (b) the answer names
+   the expected flow skill. Tool-load detection (Read/Grep of
+   `skills/<name>/SKILL.md`, `Skill` invocations) is retained in the
+   runner as enacted-mode machinery for fixture tasks, where tasks-005
+   forensics show real loads (8–12 refs).
 3. **Namespace-agnostic cases (post PR #124).** Case text references bare
    skill names (`tier-1-standard`), never `tempo:*` — the eval must be
    client-neutral. The Claude Code hook keeps namespaced names; it runs
@@ -57,8 +62,9 @@ with the same expectations on bare skill names.
 ## Golden cases (12)
 
 Scoring rubric per case: **pass** = (a) stated tier matches, promotion
-mentions allowed, (b) every `expect_loaded` skill ≥6 refs, (c) no
-`expect_not_loaded` skill ≥6 refs.
+mentions allowed, (b) for tier ≥ 1 cases the answer names the expected flow
+skill. Tier-0 cases assert the stated tier only (their design is that no
+flow loads and none should be named).
 
 | id | Task text (inside the fixed Q&A frame) | Tier | expect_loaded | expect_not_loaded |
 |---|---|---|---|---|
@@ -77,21 +83,36 @@ mentions allowed, (b) every `expect_loaded` skill ≥6 refs, (c) no
 
 Boundary notes: r1-lint-script sits on the tier-0 "build config"
 not-qualify line from the exclude side (catches over-eager tier-0
-classification). r2-auth-line is the risk-over-size anchor. r1-ci-green
-is the restraint case — its `expect_not_loaded` assertion is the
-discriminating one.
+classification) — and its first run found a real gap: the hook table's
+tier-0 line did not carry the config boundary, so a package.json edit
+was classified tier 0 from table examples alone; the hook now says "not
+config/auth/API" (tempo 0.1.2). r2-auth-line is the risk-over-size
+anchor. r1-ci-green is the restraint case with a dual-valid twist: the
+case genuinely sits on the documented 1-vs-2 boundary, so it passes via
+tier-1 restraint **or** via the headless tie-break to tier 2 **with the
+conflict rule cited** — an unexplained escalation to tier 2 fails. First
+run: the model cited the conflict rule and routed to tier 2 (alt branch,
+correct per D-rules); the golden set immediately caught a hook-table
+description gap. That is the eval working as intended.
 
 ## Runner
 
 `run-routing.mjs` (this branch): per case, one headless session
-(`--condition tempo`, bounded turns, no fixture), score by the rubric
-above, write `test-results/routing-<ts>-<condition>-<case>.json`, print a
-table. Portability mode: place the four skills in the client's skill
-directory and run the same cases; identical expectations on bare names.
+(`--condition tempo`, max 8 turns, no fixture), score by the rubric above,
+write `test-results/routing-<ts>-<condition>-<case>.json`, print a table.
+Portability mode: place the four skills in the client's skill directory and
+run the same cases; identical expectations on bare names.
 
 ## Results
 
-Pending first full run.
+First full run (2026-11-03, GLM backend, n=1 per case, tempo 0.1.2):
+**12/12 PASS** — 4× tier-0 inline (no flow named, no skills loaded), 5×
+tier-1 routed to tier-1-standard, 3× tier-2 routed to tier-2-risky. The
+two boundary cases behaved per design after the fixes above: r1-lint-script
+routed tier 1 in one turn with the hook carve-out in place; r1-ci-green
+took the primary restraint branch (tier 1 named, no escalation). Sessions
+are short (1–4 turns, ~2 turns median) — the full set costs a fraction of
+one ceremony fixture task.
 
 ## Follow-ups
 

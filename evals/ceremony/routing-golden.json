@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "frame": "You've been asked to: {task} Per your process skills, which tier does this task get, and which skill flow should you follow? State the tier, then stop.",
+  "score": {
+    "loaded_threshold_refs": 6
+  },
+  "cases": [
+    {
+      "id": "r0-readme-typo",
+      "tier": 0,
+      "task": "Fix the typo in the README heading.",
+      "expect_flow": null
+    },
+    {
+      "id": "r0-port-constant",
+      "tier": 0,
+      "task": "Change the default port constant from 3000 to 8080 in the config file.",
+      "expect_flow": null
+    },
+    {
+      "id": "r0-var-rename",
+      "tier": 0,
+      "task": "Rename the local variable `idx` to `userIndex` for clarity.",
+      "expect_flow": null
+    },
+    {
+      "id": "r0-test-typo",
+      "tier": 0,
+      "task": "Fix the failing test: it expects \"Hello, Ada\" but the code returns \"Helo, Ada\".",
+      "expect_flow": null
+    },
+    {
+      "id": "r1-slugify",
+      "tier": 1,
+      "task": "Add a slugify(str) helper to the utils module, with tests.",
+      "expect_flow": "tier-1-standard"
+    },
+    {
+      "id": "r1-lint-script",
+      "tier": 1,
+      "task": "In package.json, replace the deprecated lint script with `eslint .`.",
+      "expect_flow": "tier-1-standard"
+    },
+    {
+      "id": "r1-env-var",
+      "tier": 1,
+      "task": "Add an env var for the database URL used by integration tests.",
+      "expect_flow": "tier-1-standard"
+    },
+    {
+      "id": "r2-auth-line",
+      "tier": 2,
+      "task": "Make a one-line change to the auth token check.",
+      "expect_flow": "tier-2-risky"
+    },
+    {
+      "id": "r1-ci-green",
+      "tier": 1,
+      "note": "restraint case (primary) OR documented headless tie-break to tier 2 with rule citation (alt) — genuine 1-vs-2 tension (tasks-006 D4)",
+      "task": "Tests pass locally but fail in CI — find out why and fix it.",
+      "expect_flow": "tier-1-standard",
+      "alt": {
+        "tier": 2,
+        "expect_flow": "tier-2-risky",
+        "require_citation": [
+          "conflict",
+          "headless",
+          "torn"
+        ]
+      }
+    },
+    {
+      "id": "r2-dedupe-refactor",
+      "tier": 2,
+      "task": "Refactor the CSV and TSV parsers to share their common code, preserving behavior exactly.",
+      "expect_flow": "tier-2-risky"
+    },
+    {
+      "id": "r2-sqlite-migration",
+      "tier": 2,
+      "task": "Migrate the storage layer from JSON files to SQLite.",
+      "expect_flow": "tier-2-risky"
+    },
+    {
+      "id": "r2-rate-limit",
+      "tier": 2,
+      "task": "Add rate limiting to the public API.",
+      "expect_flow": "tier-2-risky"
+    }
+  ]
+}

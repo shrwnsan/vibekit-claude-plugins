@@ -10,7 +10,7 @@ A curated collection of productivity-enhancing plugins for Claude Code, designed
 
 ## 🧭 The Idea Behind VibeKit
 
-Agentic development has four friction points, and each plugin targets one:
+Agentic development has five friction points, and each plugin targets one:
 
 | Friction point | Plugin | The fix |
 |---|---|---|
@@ -18,8 +18,9 @@ Agentic development has four friction points, and each plugin targets one:
 | **Judgment** — agents execute well but decide poorly | 📏 [haku](#-haku) | A decide → spec → evidence loop with gate agents for the human-machine decision points |
 | **Output** — vibes need hygiene | 🛠️ [base](#️-base) | Disciplined commits, quality gates, and worktree isolation before anything lands |
 | **Attention** — long agent runs pull you out of flow | 🔔 [ping](#-ping) | Sound notifications call you back exactly when it's your turn |
+| **Process** — every change pays the flat ceremony tax | ⏱️ [tempo](#️-tempo) | Risk-tiered loop: trivial changes skip ceremony, risky changes earn it |
 
-The through-line: **remove the human as the bottleneck** — either by making the agent self-sufficient (search fallback, quality gates) or by pacing your attention (notifications, decision logs). And it stays deliberately low-dependency: search-plus works without API keys, ping needs no services, haku is process rather than API.
+The through-line: **remove the human as the bottleneck** — either by making the agent self-sufficient (search fallback, quality gates), pacing your attention (notifications, decision logs), or pacing the agent's process to the task's risk (tempo). And it stays deliberately low-dependency: search-plus works without API keys, ping needs no services, haku is process rather than API, tempo is structure rather than infrastructure.
 
 ## 🚀 Quick Start
 
@@ -164,6 +165,28 @@ A lean leadership plugin for AI PMs, engineering managers, TPMs, and senior ICs 
 **License:** CC BY-SA 4.0 (the only non-Apache plugin here — vendored from its own upstream repo at tag `v0.5.0`)
 
 [→ Detailed Documentation](plugins/haku/README.md)
+
+### ⏱️ tempo
+
+Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk: trivial changes load no skills at all, standard changes get test-first with a single agent, risky changes get a plan file and a review gate. A ~10-line routing table at session start, not a philosophy lecture. Fail-twice auto-promotion and a verify-before-done gate hold at every tier.
+
+**Measured** (one backend, hidden tests, medians of 3 runs per task; full table in the [tempo README](plugins/tempo/README.md#benchmarks)):
+
+- 📊 **The process-flat tax is measurable**: a reference process-heavy plugin cost 1.2–2.7× tokens and 1.45–1.8× turns over bare Claude Code at identical correctness, on every tier
+- 🎯 **tempo tier 2**: beat bare outright — 0.66× tokens with parity turns and wall-clock; the plan file and review gate paid for themselves
+- 🎯 **tempo tier 0**: turns and wall-clock at the bare floor; tokens ~1.5× bare from fixed plugin overhead, visible only on the shortest tasks
+- 🎯 **tempo tier 1**: between bare and superpowers — about 62% of superpowers' tokens with the safety net included, ~1.9× bare; the honest cost of test-first plus verification
+
+**Example Usage:**
+```bash
+# Nothing to invoke for the common case — triage happens per task
+
+# When you want it explicit:
+/tempo:triage      # classify the current task
+/tempo:tier-2-risky  # force the risky flow
+```
+
+[→ Detailed Documentation](plugins/tempo/README.md)
 
 ## 🎯 What You Can Do
 

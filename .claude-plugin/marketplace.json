@@ -65,6 +65,20 @@
       "keywords": ["decision-making", "spec", "product-sense", "leadership", "lean", "lean product sense", "pm", "engineering-manager", "productivity"],
       "category": "productivity",
       "tags": ["decision-log", "spec-writing", "leadership", "pm", "product-management", "reflection", "wins-log", "evaluation"]
+    },
+    {
+      "name": "tempo",
+      "source": "./plugins/tempo",
+      "description": "Safety-proportional process for agentic SDLC: trivial changes skip ceremony, risky changes earn it. Risk-tiered loop with fail-twice auto-promotion and a verify-before-done hard gate.",
+      "version": "0.1.0",
+      "author": {
+        "name": "shrwnsan"
+      },
+      "homepage": "https://github.com/shrwnsan/tempo",
+      "license": "Apache-2.0",
+      "keywords": ["claude-code", "process", "sdlc", "risk-tiered", "triage", "tdd", "code-review", "workflow", "lean", "productivity"],
+      "category": "productivity",
+      "tags": ["risk-tiering", "triage", "tdd", "session-hook", "lean-process", "sdlc", "verification"]
     }
   ]
 }

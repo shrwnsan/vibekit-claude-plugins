@@ -104,7 +104,7 @@ function runSession(task, conditionName) {
   }
 
   const started = Date.now();
-  const r = spawnSync('claude', args, {
+  const r = spawnSync(BIN, args, {
     cwd: sandbox,
     encoding: 'utf8',
     timeout: task.timeout_ms ?? 900_000,
@@ -140,8 +140,10 @@ function runSession(task, conditionName) {
   // decide pass/fail: seeded tests can be stale by design (t0-pagesize: the
   // spec moved) or rewritten by the agent, so they are not ground truth.
   let verify = null;
-  const hidden = path.join(FIXTURES, task.fixture, 'verify', 'hidden');
-  if (task.fixture && task.verify !== false && existsSync(hidden)) {
+  const hidden = task.fixture
+    ? path.join(FIXTURES, task.fixture, 'verify', 'hidden')
+    : null;
+  if (hidden && task.verify !== false && existsSync(hidden)) {
     mkdirSync(path.join(sandbox, 'test', 'hidden'), { recursive: true });
     cpSync(hidden, path.join(sandbox, 'test', 'hidden'), { recursive: true });
     const v = spawnSync(process.execPath, ['--test', 'test/hidden/**/*.test.js'], {
@@ -169,6 +171,7 @@ function runSession(task, conditionName) {
     task_id: task.id,
     tier: task.tier ?? null,
     condition: conditionName,
+    bin: BIN,
     claude_version: CLAUDE_VERSION,
     model_env_set: Boolean(process.env.ANTHROPIC_MODEL),
     wall_ms,
@@ -193,12 +196,20 @@ function runSession(task, conditionName) {
   return row;
 }
 
-const CLAUDE_VERSION = spawnSync('claude', ['--version'], { encoding: 'utf8' }).stdout.trim();
-
 function pick(flag) {
   const i = process.argv.indexOf(flag);
   return i >= 0 ? process.argv[i + 1] : null;
 }
+
+// --bin: claude-compatible CLI that runs the sessions. Default `claude`;
+// pass a path for wrapper shims (e.g. bin/zai for the Z.AI provider env) —
+// relative paths resolve against this directory. The shim must accept the
+// claude CLI's flags verbatim.
+const binArg = pick('--bin');
+const BIN = binArg
+  ? binArg.includes('/') ? path.resolve(HERE, binArg) : binArg
+  : 'claude';
+const CLAUDE_VERSION = spawnSync(BIN, ['--version'], { encoding: 'utf8' }).stdout.trim() || 'unknown';
 
 const task = pick('--task');
 const tier = pick('--tier');
@@ -220,7 +231,7 @@ if (smoke) {
 }
 
 if (!condArg || !CONDITIONS[condArg]) {
-  console.error(`usage: run-eval.mjs --condition <${Object.keys(CONDITIONS).join('|')}> [--task ID] [--tier N] | --smoke | --list | (collect.mjs --summary)`);
+  console.error(`usage: run-eval.mjs --condition <${Object.keys(CONDITIONS).join('|')}> [--task ID] [--tier N] [--bin CMD] | --smoke | --list | (collect.mjs --summary)`);
   process.exit(1);
 }
 

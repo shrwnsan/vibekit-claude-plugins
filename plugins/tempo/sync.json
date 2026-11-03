@@ -1,0 +1,4 @@
+{
+  "sync": false,
+  "reason": "Tempo's tier skills (triage, tier-0/1/2) are plugin-internal routing plumbing; portability outside the tempo plugin is not proven. Flip to true only after a deliberate portability review of each skill."
+}

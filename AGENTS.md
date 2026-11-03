@@ -39,6 +39,16 @@ Add plugin to `.claude-plugin/marketplace.json`:
 }
 ```
 
+### Skills sync to the agents hub
+
+`plugins/<name>/skills/` directories sync to the public [shrwnsan/agents](https://github.com/shrwnsan/agents) hub (Apache-2.0) on push to main via `.github/workflows/sync-skills.yml`. The gate is per-plugin and fail-closed:
+
+- Skills sync only if `plugins/<name>/sync.json` contains `{"sync": true}`.
+- No marker = no sync (default for any new plugin).
+- Explicit exclusion: `{"sync": false, "reason": "..."}` — haku (CC BY-SA 4.0 licensing), tempo (internal plumbing, portability unproven).
+
+To publish a plugin's skills to the hub, deliberately commit its `sync.json` with `"sync": true` after reviewing each skill for portability.
+
 ## Code style
 
 - Use conventional commit format: `type(scope): description`

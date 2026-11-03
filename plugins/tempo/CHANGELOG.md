@@ -15,3 +15,9 @@
   Skills client (Pi, Amp, ...).
 - README: Other clients section with install paths for Pi and Amp, and the
   honest list of what stays Claude Code-only (routing table, slash commands).
+
+## 0.1.2 (2026-11-03)
+
+- Tempo skills no longer sync to the shrwnsan/agents hub: sync is now gated on
+  a per-plugin portability marker (`sync.json`), and tempo stays opted out —
+  the tier skills are plugin-internal plumbing with portability unproven.

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "search-plus",
+  "version": "3.5.1",
+  "description": "Enhanced web search with multi-service fallback (TinyFish, Tavily, Brave, Exa, Jina, plus keyless Firecrawl/Defuddle) — works without API keys",
+  "author": {
+    "name": "shrwnsan"
+  },
+  "repository": "https://github.com/shrwnsan/vibekit-claude-plugins",
+  "license": "Apache-2.0",
+  "keywords": ["search", "web", "multi-provider", "fallback", "url-extraction"]
+}

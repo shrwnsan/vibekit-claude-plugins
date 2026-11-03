@@ -1,0 +1,41 @@
+name: agent-plugins manifests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/tempo/**'
+      - 'plugins/base/**'
+      - 'plugins/search-plus/**'
+      - 'scripts/check-agent-plugin-manifests.mjs'
+      - '.github/workflows/agent-plugins-manifests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/tempo/**'
+      - 'plugins/base/**'
+      - 'plugins/search-plus/**'
+      - 'scripts/check-agent-plugin-manifests.mjs'
+      - '.github/workflows/agent-plugins-manifests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  manifests:
+    name: Manifest sync + Agent Plugins check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check manifest sync and Agent Plugins structure
+        run: node scripts/check-agent-plugin-manifests.mjs
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate Claude Code plugins
+        run: |
+          claude plugin validate plugins/tempo
+          claude plugin validate plugins/base
+          claude plugin validate plugins/search-plus

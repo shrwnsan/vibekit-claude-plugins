@@ -212,3 +212,10 @@ Apache License 2.0 - See main project [LICENSE](../../LICENSE) for details.
 ---
 
 **Stop fighting with search failures.** Install Search Plus and get reliable web research that just works.
+## Standards
+
+Ships with dual manifests: a Claude Code plugin (`.claude-plugin/plugin.json`)
+and an [Agent Plugins](https://agent-plugins.org/) v1.0.0 package (`plugin.json`).
+The skills conform to the [Agent Skills specification](https://agentskills.io/);
+CI checks the two manifests stay in sync. Commands, agents, and hooks are
+Claude Code-specific and not part of the portable package.

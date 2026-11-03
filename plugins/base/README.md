@@ -248,3 +248,10 @@ export VIBEKIT_BASE_QA_SCOPE=standard        # Quality assurance level: standard
 ---
 
 License: Apache 2.0 | Plugin Version: 1.12.0
+## Standards
+
+Ships with dual manifests: a Claude Code plugin (`.claude-plugin/plugin.json`)
+and an [Agent Plugins](https://agent-plugins.org/) v1.0.0 package (`plugin.json`).
+The skills conform to the [Agent Skills specification](https://agentskills.io/);
+CI checks the two manifests stay in sync. Commands, agents, and hooks are
+Claude Code-specific and not part of the portable package.

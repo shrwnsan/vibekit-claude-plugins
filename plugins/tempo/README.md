@@ -57,7 +57,7 @@ Three rules hold at every tier:
 
 | Skill | Loads when | Size |
 |---|---|---|
-| `tempo:triage` | a task's risk is unclear, or after a failed attempt | ~45 lines |
+| `tempo:risk-triage` | a task's risk is unclear, or after a failed attempt | ~45 lines |
 | `tempo:tier-0-trivial` | rarely; the routing table already covers tier 0 | ~25 lines |
 | `tempo:tier-1-standard` | standard changes | ~40 lines |
 | `tempo:tier-2-risky` | risky changes | ~50 lines |
@@ -82,7 +82,7 @@ prd-010 §3.3.
 The common case needs no invocation: triage happens per task, and tier 0
 usually loads nothing at all. To be explicit:
 
-- `/tempo:triage` classify the current task
+- `/tempo:risk-triage` classify the current task
 - `/tempo:tier-2-risky` force the risky flow
 
 ## Relationship to other plugins
@@ -110,10 +110,10 @@ use them without tempo's Claude Code packaging:
 - **Amp**: `~/.config/agents/skills/` (user-level) or `.agents/skills/` in
   the workspace
 
-In these clients the skills appear under their bare names (`triage`,
+In these clients the skills appear under their bare names (`risk-triage`,
 `tier-1-standard`, ...), not `tempo:*`. Two things stay Claude Code-only: the
 session-start routing table (the automatic triage nudge) and the `/tempo:*`
-commands. Without the nudge, load `triage` when a task starts; the tier flows
+commands. Without the nudge, load `risk-triage` when a task starts; the tier flows
 carry their own rules from there.
 
 Pi trust note: project-scoped skills (`.agents/skills/` in the workspace) are

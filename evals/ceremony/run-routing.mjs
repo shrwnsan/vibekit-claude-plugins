@@ -22,7 +22,7 @@ import path from 'node:path';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const GOLDEN = JSON.parse(readFileSync(path.join(HERE, 'routing-golden.json'), 'utf8'));
-const SKILLS = ['triage', 'tier-0-trivial', 'tier-1-standard', 'tier-2-risky'];
+const SKILLS = ['risk-triage', 'tier-0-trivial', 'tier-1-standard', 'tier-2-risky'];
 const RESULTS = path.resolve(HERE, '..', '..', 'test-results');
 
 function pick(flag) {

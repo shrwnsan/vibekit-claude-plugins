@@ -15,7 +15,7 @@ user-invocable: true
 Qualifies: typo fixes, copy tweaks, constant changes, log-message fixes, obvious
 one-line corrections.
 
-Does not qualify — go back to `triage`: anything touching auth, public
+Does not qualify — go back to `risk-triage`: anything touching auth, public
 API, build config, or more than one file; anything where the fix isn't obvious
 before you start.
 

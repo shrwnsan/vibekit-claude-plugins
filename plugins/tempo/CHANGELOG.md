@@ -18,6 +18,9 @@
 
 ## 0.1.2 (2026-11-03)
 
+- `triage` renamed to `risk-triage` — collision-safe in shared Agent Skills
+  directories (pi, Amp, agents hub); the tier names stay bare since the
+  taxonomy itself is distinctive.
 - Hook routing table: tier-0 line gains the config/auth/API carve-out
   ("not config/auth/API") — found by the tier-routing golden set: the
   table under-specified the tier-0 boundary, and a package.json script

@@ -1,11 +1,11 @@
 ---
-name: triage
+name: risk-triage
 description: Classify a coding task as risk tier 0, 1, or 2 before starting work, and route to the matching tier flow. Use at the start of any non-trivial task, whenever a task's risk is unclear, or after a second failed attempt on the same fix. Part of the tempo plugin.
 license: Apache-2.0
 user-invocable: true
 ---
 
-# Triage
+# Risk triage
 
 One decision: which tier is this task? Then follow that tier's flow. This skill
 is the only routing step — it does not contain the flows themselves.

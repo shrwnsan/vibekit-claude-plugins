@@ -116,6 +116,12 @@ session-start routing table (the automatic triage nudge) and the `/tempo:*`
 commands. Without the nudge, load `triage` when a task starts; the tier flows
 carry their own rules from there.
 
+Pi trust note: project-scoped skills (`.agents/skills/` in the workspace) are
+listed but their content will not load until you trust the folder; user-level
+placement (`~/.agents/skills/`) has no trust gate. Verified live: with
+user-level placement, pi routes a slugify task to `tier-1-standard` by
+description and applies triage content to rate an auth one-liner as tier 2.
+
 ## Benchmarks
 
 One golden task set, one headless protocol, hidden tests only

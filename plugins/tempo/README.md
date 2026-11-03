@@ -92,6 +92,15 @@ usually loads nothing at all. To be explicit:
 - **superpowers** (external) remains a fine choice for maximal process. tempo
   is a lean alternative, not a fork.
 
+## Standards
+
+Ships with dual manifests: a Claude Code plugin (`.claude-plugin/plugin.json`)
+and an [Agent Plugins](https://agent-plugins.org/) v1.0.0 package
+(`plugin.json`). The skills conform to the [Agent Skills
+specification](https://agentskills.io/). CI checks the two manifests stay in
+sync. The session-start hook is Claude Code-specific and intentionally not
+part of the portable package; portable clients get tempo as skills-only.
+
 ## Benchmarks
 
 One golden task set, one headless protocol, hidden tests only

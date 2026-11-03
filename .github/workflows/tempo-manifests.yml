@@ -1,0 +1,32 @@
+name: tempo manifests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/tempo/**'
+      - '.github/workflows/tempo-manifests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/tempo/**'
+      - '.github/workflows/tempo-manifests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  manifests:
+    name: Manifest sync + Agent Plugins check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check manifest sync and Agent Plugins structure
+        run: node scripts/check-tempo-manifests.mjs plugins/tempo
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate Claude Code plugin
+        run: claude plugin validate plugins/tempo

@@ -1,6 +1,6 @@
 ---
 name: tier-1-standard
-description: Tier-1 standard-change flow — one-line plan note, test-first, single agent, systematic debugging on failures. Use for normal feature work and bug fixes with clear requirements. Promote to the tier-2-risky flow if the same fix fails twice.
+description: Tier-1 standard-change flow — one-line plan note, test-first, single agent, systematic debugging on failures. Use for normal feature work and bug fixes with clear requirements. Promote to the tier-2-risky flow if the same fix fails twice. Part of the tempo plugin.
 license: Apache-2.0
 user-invocable: true
 ---

@@ -19,9 +19,32 @@
       },
       "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/base/README.md",
       "license": "Apache-2.0",
-      "keywords": ["claude-code", "git", "workflow", "productivity", "git-commit", "quality-assurance", "terminal", "development-tools", "workflow-automation", "debugging"],
+      "keywords": [
+        "claude-code",
+        "git",
+        "workflow",
+        "productivity",
+        "git-commit",
+        "quality-assurance",
+        "terminal",
+        "development-tools",
+        "workflow-automation",
+        "debugging"
+      ],
       "category": "productivity",
-      "tags": ["productivity", "git-workflow", "development-tools", "commit-crafting", "quality-gates", "parallel-development", "workflow-automation", "git-automation", "systematic-debugging", "branch-cleanup", "git-worktrees"]
+      "tags": [
+        "productivity",
+        "git-workflow",
+        "development-tools",
+        "commit-crafting",
+        "quality-gates",
+        "parallel-development",
+        "workflow-automation",
+        "git-automation",
+        "systematic-debugging",
+        "branch-cleanup",
+        "git-worktrees"
+      ]
     },
     {
       "name": "search-plus",
@@ -33,9 +56,24 @@
       },
       "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/search-plus/README.md",
       "license": "Apache-2.0",
-      "keywords": ["search", "web", "error-handling", "fallback", "schema-validation", "productivity", "url-extraction"],
+      "keywords": [
+        "search",
+        "web",
+        "error-handling",
+        "fallback",
+        "schema-validation",
+        "productivity",
+        "url-extraction"
+      ],
       "category": "productivity",
-      "tags": ["search", "web", "tavily", "multi-provider", "schema-validation", "url-extraction"]
+      "tags": [
+        "search",
+        "web",
+        "tavily",
+        "multi-provider",
+        "schema-validation",
+        "url-extraction"
+      ]
     },
     {
       "name": "ping",
@@ -47,9 +85,20 @@
       },
       "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/ping/README.md",
       "license": "Apache-2.0",
-      "keywords": ["notification", "audio", "alert", "productivity", "sound"],
+      "keywords": [
+        "notification",
+        "audio",
+        "alert",
+        "productivity",
+        "sound"
+      ],
       "category": "productivity",
-      "tags": ["notification", "audio-alert", "sound", "hooks"]
+      "tags": [
+        "notification",
+        "audio-alert",
+        "sound",
+        "hooks"
+      ]
     },
     {
       "name": "haku",
@@ -62,9 +111,28 @@
       "homepage": "https://github.com/shrwnsan/haku",
       "repository": "https://github.com/shrwnsan/haku",
       "license": "CC-BY-SA-4.0",
-      "keywords": ["decision-making", "spec", "product-sense", "leadership", "lean", "lean product sense", "pm", "engineering-manager", "productivity"],
+      "keywords": [
+        "decision-making",
+        "spec",
+        "product-sense",
+        "leadership",
+        "lean",
+        "lean product sense",
+        "pm",
+        "engineering-manager",
+        "productivity"
+      ],
       "category": "productivity",
-      "tags": ["decision-log", "spec-writing", "leadership", "pm", "product-management", "reflection", "wins-log", "evaluation"]
+      "tags": [
+        "decision-log",
+        "spec-writing",
+        "leadership",
+        "pm",
+        "product-management",
+        "reflection",
+        "wins-log",
+        "evaluation"
+      ]
     },
     {
       "name": "tempo",
@@ -76,9 +144,28 @@
       },
       "homepage": "https://github.com/shrwnsan/tempo",
       "license": "Apache-2.0",
-      "keywords": ["claude-code", "process", "sdlc", "risk-tiered", "triage", "tdd", "code-review", "workflow", "lean", "productivity"],
+      "keywords": [
+        "claude-code",
+        "process",
+        "sdlc",
+        "risk-tiered",
+        "triage",
+        "tdd",
+        "code-review",
+        "workflow",
+        "lean",
+        "productivity"
+      ],
       "category": "productivity",
-      "tags": ["risk-tiering", "triage", "tdd", "session-hook", "lean-process", "sdlc", "verification"]
+      "tags": [
+        "risk-tiering",
+        "triage",
+        "tdd",
+        "session-hook",
+        "lean-process",
+        "sdlc",
+        "verification"
+      ]
     }
   ]
 }

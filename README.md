@@ -182,7 +182,7 @@ Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk
 # Nothing to invoke for the common case — triage happens per task
 
 # When you want it explicit:
-/tempo:triage      # classify the current task
+/tempo:risk-triage      # classify the current task
 /tempo:tier-2-risky  # force the risky flow
 ```
 

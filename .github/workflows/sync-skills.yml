@@ -4,10 +4,13 @@ on:
   push:
     branches: [main]
     paths:
+      # Static optimization only — the authoritative gate is the
+      # portability allowlist (.github/sync-skills.json) checked in the
+      # run step; paths filters can't read file contents.
       - 'plugins/*/skills/**'
-      # Static optimization only — the authoritative exclusion is
-      # EXCLUDED_PLUGINS below (paths filters can't read files/env).
-      - '!plugins/haku/**'
+      # Re-run when the allowlist changes, even with no skill-file change
+      # in the same push.
+      - '.github/sync-skills.json'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -30,12 +33,6 @@ jobs:
           GH_TOKEN: ${{ secrets.AGENTS_HUB_PAT }}
           SOURCE_SHA: ${{ github.sha }}
           DRY_RUN: ${{ inputs.dry_run || false }}
-          # Authoritative list of plugins kept out of the Apache-2.0 hub
-          # (license or any other reason). Space-separated.
-          # haku: CC BY-SA-4.0 upstream (see plugins/haku/README.md) — copying
-          # its 52 skills would mix licenses and strip required attribution.
-          # Revisit only with a licensing decision.
-          EXCLUDED_PLUGINS: haku
           # Catalog "Category" column per source plugin. Unmapped plugins fall
           # back to Workflow and get flagged in the sync PR body.
           CATEGORY_BY_PLUGIN: "base=Development search-plus=Workflow"
@@ -60,19 +57,31 @@ jobs:
           # changed ones stay file-only (catalog prose is hand-curated).
           ls skills > /tmp/pre-sync-skills.txt
 
-          # Find and sync each skill directory.
+          # Find and sync each skill directory, gated on the portability
+          # allowlist. FAIL-CLOSED: a skill syncs ONLY when its plugin
+          # ("base") or the individual skill ("tempo/triage") is listed in
+          # .github/sync-skills.json. A new plugin with no entry does NOT
+          # sync — portability to the public Apache-2.0 hub must be proven
+          # by deliberately editing that file. "excluded" there is an inert
+          # reason map for the skip log (licensing, portability pending);
+          # it can't re-enable anything. This run-step check is the
+          # authoritative gate; the paths filter on the trigger can't read
+          # file contents and is only a static optimization. Membership
+          # goes through grep -F rather than word-splitting so the check
+          # doesn't depend on shell splitting behavior. The registry is
+          # read from the vibekit checkout, AFTER the cd below (the hub
+          # clone is the cwd before it).
           cd "$GITHUB_WORKSPACE"
+          REGISTRY=".github/sync-skills.json"
+          SYNCED=$(jq -r '.synced // [] | .[]' "$REGISTRY" 2>/dev/null)
           find plugins -path "*/skills/*/SKILL.md" | while read -r skill_file; do
             skill_dir=$(dirname "$skill_file")
             skill_name=$(basename "$skill_dir")
             plugin=$(echo "$skill_file" | cut -d/ -f2)
 
-            skip=""
-            for p in $EXCLUDED_PLUGINS; do
-              [ "$plugin" = "$p" ] && skip=1
-            done
-            if [ -n "$skip" ]; then
-              echo "Skipping (excluded): $skill_name ($plugin)"
+            if ! printf '%s\n' "$SYNCED" | grep -qxF -e "$plugin" -e "$plugin/$skill_name"; then
+              reason=$(jq -r --arg p "$plugin" '.excluded[$p] // "not listed in .github/sync-skills.json"' "$REGISTRY" 2>/dev/null) || reason="unreadable registry"
+              echo "Skipping (not portable): $skill_name ($plugin) — $reason"
               continue
             fi
 

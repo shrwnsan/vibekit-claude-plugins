@@ -22,3 +22,7 @@
   ("not config/auth/API") — found by the tier-routing golden set: the
   table under-specified the tier-0 boundary, and a package.json script
   edit was classified tier 0 from table examples alone.
+- Tempo skills no longer sync to the shrwnsan/agents hub: sync is now gated on
+  a fail-closed portability allowlist (`.github/sync-skills.json`), and tempo
+  stays unlisted — the tier skills are plugin-internal plumbing with
+  portability unproven.

@@ -1,6 +1,6 @@
 ---
 name: tier-2-risky
-description: Tier-2 risky-change flow — short plan file, deliberate build, review gate and verify gate before done. Use for architectural changes, public API changes, ambiguous requirements, security/auth/data work, or after a tier-1 task failed twice. Part of the tempo plugin.
+description: Tier-2 risky-change flow — short plan file, deliberate build, review gate and verify gate before done. Use for architectural changes, concurrency and rate-limiting work, public API changes, ambiguous requirements, security/auth/data work, or after a tier-1 task failed twice. Part of the tempo plugin.
 license: Apache-2.0
 user-invocable: true
 ---

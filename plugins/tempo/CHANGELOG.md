@@ -16,6 +16,13 @@
 - README: Other clients section with install paths for Pi and Amp, and the
   honest list of what stays Claude Code-only (routing table, slash commands).
 
+## 0.1.4 (2026-11-06)
+
+- Tier-0 description gains the docs-update example; tier-2 description gains
+  concurrency/rate-limiting signals — both found by the routing golden set
+  (r2-ratelimiter-line under-tiered; docs edits were not exemplified as
+  tier 0).
+
 ## 0.1.2 (2026-11-03)
 
 - `triage` renamed to `risk-triage` — collision-safe in shared Agent Skills
@@ -41,3 +48,7 @@
   (shrwnsan/agents#124).
 - tier-0-trivial description no longer references the Claude Code-only
   session routing table — the one portability flaw the review found.
+- Tier-1 flow: rerun discipline line — don't rerun the same test command
+  with different output slices; quote from the run you have (from the
+  tier-1 cost decomposition: 6 test runs vs bare's 2, several as
+  pipe-rerun view changes).

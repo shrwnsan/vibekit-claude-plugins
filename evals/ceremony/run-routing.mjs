@@ -105,12 +105,20 @@ function runCase(c) {
     try { const e = JSON.parse(line); if (e.type === 'result' && e.result) resultText = e.result; } catch {}
   }
   const stated = [...new Set((resultText.match(/tier\s*[0-2]/gi) ?? []).map((t) => Number(t.match(/[0-2]/)[0])))];
-  const stated_ok = stated.includes(c.tier);
+  // Primary classification = the FIRST tier the answer states. Later tier
+  // mentions are promotion/escalation discussion, not the classification:
+  // a tier-1 answer that says "escalate to tier 2 on repeat failure" is a
+  // correct tier-1 answer (the flows' own promotion rule).
+  const primaryMatch = resultText.match(/tier\s*([0-2])/i);
+  const primary = primaryMatch ? Number(primaryMatch[1]) : null;
+  const stated_ok = stated.includes(c.tier) && primary === c.tier;
   // Q&A sessions classify from injected descriptions; flow content is never
   // loaded here (calibrated 2026-11-03: zero tool_use in Q&A runs), so the
   // second signal is that the answer NAMES the expected flow. Tool-load
   // detection is retained as enacted-mode machinery (fixture tasks).
   const named_ok = c.expect_flow ? resultText.includes(c.expect_flow) : true;
+  // trap cases: the answer must NOT escalate to a forbidden flow
+  const not_flow_ok = (c.expect_not_flow ?? []).every((f) => !resultText.includes(f));
   // dual-valid cases (genuine 1-vs-2 tension): the documented headless
   // tie-break to the higher tier passes when the answer names the higher
   // flow AND cites the conflict rule — an unexplained escalation fails.
@@ -128,7 +136,7 @@ function runCase(c) {
     schema: 1, harness: 'tasks-006', ts, case_id: c.id, tier: c.tier,
     condition: condArg, bin: BIN, claude_version: CLAUDE_VERSION,
     stated_tiers: stated, stated_ok, named_ok, expect_flow: c.expect_flow,
-    alt_ok, tool_loads: loadedList, refs, pass, result_text: resultText.slice(-400), wall_ms, sandbox,
+    not_flow_ok, alt_ok, tool_loads: loadedList, refs, pass, result_text: resultText.slice(-400), wall_ms, sandbox,
   };
   mkdirSync(RESULTS, { recursive: true });
   writeFileSync(path.join(RESULTS, `routing-${ts}-${condArg}-${c.id}.json`), JSON.stringify(row, null, 2));

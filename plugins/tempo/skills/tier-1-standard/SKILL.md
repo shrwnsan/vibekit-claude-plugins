@@ -19,7 +19,9 @@ verified>." Can't state it in one line? The task is tier 2 — switch to
    it; watch it fail for the expected reason.
 2. Implement the minimal change that makes it pass.
 3. Run the full relevant test suite, not just the new test. All green before
-   claiming done.
+   claiming done. Rerun failing tests as you fix — but don't rerun the same
+   command just to view different output slices; quote what you need from
+   the run you have.
 
 ## When something fails (systematic debugging)
 

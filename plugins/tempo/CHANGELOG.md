@@ -29,3 +29,15 @@
   a fail-closed portability allowlist (`.github/sync-skills.json`), and tempo
   stays unlisted — the tier skills are plugin-internal plumbing with
   portability unproven.
+
+## 0.1.3 (2026-11-07)
+
+- Skills published to the shrwnsan/agents hub: portability review passed —
+  the set is client-agnostic (no Claude Code-only machinery in any skill
+  body; cross-references are bare names that travel with the set; Apache-2.0).
+  `tempo` moves from the allowlist's excluded map to `synced` (whole plugin —
+  the router and flows only work as a unit). The four leaked pre-gate copies
+  (`triage`, old tier names) are being removed from the hub separately
+  (shrwnsan/agents#124).
+- tier-0-trivial description no longer references the Claude Code-only
+  session routing table — the one portability flaw the review found.

@@ -43,9 +43,9 @@ Add plugin to `.claude-plugin/marketplace.json`:
 
 `plugins/<name>/skills/` directories sync to the public [shrwnsan/agents](https://github.com/shrwnsan/agents) hub (Apache-2.0) on push to main via `.github/workflows/sync-skills.yml`. The gate is fail-closed and lives in `.github/sync-skills.json` — repo-level CI config, deliberately not inside plugin dirs, where it would ship with plugin installs:
 
-- A skill syncs only if its plugin (`"base"`) or the individual skill (`"tempo/triage"`) is listed under `"synced"`.
+- A skill syncs only if its plugin (`"base"`) or the individual skill (`"tempo/risk-triage"`) is listed under `"synced"`.
 - No entry = no sync (default for any new plugin).
-- `"excluded"` is an inert reason map for the sync log — haku (CC BY-SA 4.0 licensing), tempo (internal plumbing, portability unproven).
+- `"excluded"` is an inert reason map for the sync log — haku (CC BY-SA 4.0 licensing).
 
 To publish a plugin's skills to the hub, deliberately add it to `"synced"` in `.github/sync-skills.json` after reviewing each skill for portability.
 

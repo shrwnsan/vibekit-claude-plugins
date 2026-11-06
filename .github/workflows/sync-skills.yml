@@ -35,7 +35,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run || false }}
           # Catalog "Category" column per source plugin. Unmapped plugins fall
           # back to Workflow and get flagged in the sync PR body.
-          CATEGORY_BY_PLUGIN: "base=Development search-plus=Workflow"
+          CATEGORY_BY_PLUGIN: "base=Development search-plus=Workflow tempo=Workflow"
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::AGENTS_HUB_PAT secret is not configured"

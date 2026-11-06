@@ -1,6 +1,6 @@
 ---
 name: tier-0-trivial
-description: Tier-0 trivial-change rules (typo, copy tweak, one-line fix). Rarely needs loading — the tempo session routing table already defines tier 0; load only when unsure a change qualifies as trivial.
+description: Tier-0 trivial-change rules (typo, copy tweak, one-line fix). Rarely needs loading — the rules below are the whole flow; consult only when unsure a change qualifies as trivial.
 license: Apache-2.0
 user-invocable: true
 ---

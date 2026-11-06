@@ -175,7 +175,7 @@ Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk
 - 📊 **The process-flat tax is measurable**: a reference process-heavy plugin cost 1.2–2.7× tokens and 1.45–1.8× turns over bare Claude Code at identical correctness, on every tier
 - 🎯 **tempo tier 2**: beat bare outright — 0.66× tokens with parity turns and wall-clock; the plan file and review gate paid for themselves
 - 🎯 **tempo tier 0**: turns and wall-clock at the bare floor; tokens ~1.5× bare from fixed plugin overhead, visible only on the shortest tasks
-- 🎯 **tempo tier 1**: between bare and superpowers — about 62% of superpowers' tokens with the safety net included, ~1.9× bare; the honest cost of test-first plus verification
+- 🎯 **tempo tier 1**: on the re-based same-CLI comparison, near parity with the process-heavy reference — 0.79× its tokens, 0.91× its turns — while keeping test-first, the plan note, and full verification, and the fastest wall-clock of the three
 
 **Example Usage:**
 ```bash

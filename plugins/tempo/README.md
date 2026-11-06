@@ -134,8 +134,12 @@ median-of-3 with high same-task variance, so read deltas, not decimals.
 | Tier | bare | superpowers | tempo |
 |---|---|---|---|
 | **0** trivial | 16.5 turns · 16.2k tok · 37s | 24 turns · 26.4k tok · 69s | 16 turns · 24.8k tok · 30s |
-| **1** standard | 17 turns · 16.6k tok · 81s | 29 turns · 51k tok · 199s | 25.5 turns · 31.6k tok · 106s |
+| **1** standard | 17 turns · 16.6k tok · 81s | 28.5 turns · 38.8k tok · 90s | 26 turns · 30.8k tok · 73s |
 | **2** risky | 24.5 turns · 44.1k tok · 196s | 40.5 turns · 60.9k tok · 308s | 25 turns · 29.1k tok · 189s |
+
+Tier-1 is the re-based row: bare, superpowers, and tempo all measured on the
+current CLI (superpowers n=6; its tier-0/tier-2 rows remain the October
+baseline, older CLI, as flagged).
 
 - **Safety**: hidden tests passed in every run ever recorded (33 baseline,
   6 smoke, 36 rerun = 75/75). The disciplines tempo keeps are insurance, not
@@ -145,11 +149,17 @@ median-of-3 with high same-task variance, so read deltas, not decimals.
 - **Tier 0 holds the floor on time**: turns and wall-clock at or under bare;
   tokens run ~1.5× bare because the hook table plus skill registry are fixed
   overhead, visible only on the shortest tasks.
-- **Tier 1 is the honest cost**: between bare and superpowers. About 62% of
-  superpowers' tokens, but ~1.9× bare's. Session forensics show the cost is
-  behavioral — the test-first, plan-note, and full-verify disciplines are what
-  bare skips — not skill-content overhead.
-- **Caveats**: n=3 per task, high same-task variance on this backend, and the
-  superpowers column predates the current CLI.
+- **Tier 1, re-based on the same CLI**: near parity with the process-heavy
+  reference — 0.79× its tokens, 0.91× its turns — while keeping test-first,
+  the plan note, and full verification, and the fastest wall-clock of the
+  three (73s vs 81s bare, 90s sp). Against bare it is the honest cost:
+  ~1.5× turns, ~1.9× tokens. Session forensics show the cost is behavioral —
+  the disciplines are what bare skips — not skill-content overhead. Whether
+  part is tunable (full-suite proportionality for new-function-only tasks,
+  plan-note weight) is the open investigation; the n=10 re-measure matched
+  the n=3 estimate (26 vs 25.5 turns, 30.8k vs 31.6k), so the gap is stable,
+  not noise.
+- **Caveats**: tempo n=5 per tier-1 task and n=3 elsewhere; tier-0/tier-2
+  superpowers rows are October-CLI; high same-task variance on this backend.
 
 License: Apache-2.0.

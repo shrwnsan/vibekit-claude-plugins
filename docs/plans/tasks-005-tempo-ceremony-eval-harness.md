@@ -266,3 +266,32 @@ Findings:
    proportionate for new-function-only tasks? is the plan note pulling its
    weight?); skill-registry size trim; consider n=5 on tier 1 specifically
    before treating the gate as passed or failed.
+
+## Tier-1 same-CLI re-measure (2026-11-04 batch, n=10 tempo / n=6 sp)
+
+Executed the tier-1 follow-up above: tempo tier-1 at n=5 per task and a
+same-CLI superpowers tier-1 re-base at n=3 per task, same backend, 16/16
+sessions completed and verified. Pooled medians:
+
+| Condition | n | Turns | Tokens | Wall |
+|---|---|---|---|---|
+| bare | 6 | 17 | 16.6k | 81s |
+| superpowers | 6 | 28.5 | 38.8k | 90s |
+| tempo | 10 | 26 | 30.8k | 73s |
+
+Findings:
+
+1. **The tier-1 gap is stable, not noise.** tempo at n=10 (26 turns /
+   30.8k) matches the n=3 estimate (25.5 / 31.6k) almost exactly. The
+   1.5×/1.9×-bare cost is real and reproducible.
+2. **Same-CLI superpowers tier-1 is cheaper than its October numbers**
+   (38.8k vs 51k tokens; 90s vs 199s wall) — the new CLI generation is
+   faster across the board. Same-CLI ratio: tempo at **0.79× sp tokens /
+   0.91× sp turns** — near parity, slightly under — superseding the
+   mixed-CLI 62% figure recorded earlier.
+3. **Wall-clock: tempo fastest of the three** (73s vs 81s bare, 90s sp).
+4. **Item-1 scope narrows but stays open**: the gap vs bare is behavioral
+   (test-first, plan note, full-suite verify — forensics-confirmed), so the
+   investigation question is now specifically whether any part is tunable
+   (full-suite proportionality for new-function-only tasks, plan-note
+   weight) rather than whether the gap is real.

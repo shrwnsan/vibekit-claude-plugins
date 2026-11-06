@@ -114,6 +114,22 @@ took the primary restraint branch (tier 1 named, no escalation). Sessions
 are short (1–4 turns, ~2 turns median) — the full set costs a fraction of
 one ceremony fixture task.
 
+## Tier-1 same-CLI re-measure (2026-11-04 batch, tasks-005 companion)
+
+Ran alongside the routing set: tempo tier-1 at n=5 per task (n=10 pooled)
+and a same-CLI superpowers tier-1 re-base at n=3 per task (n=6 pooled).
+All 16 sessions completed and verified. Findings, folded into tasks-005
+and the plugin README:
+
+- tempo tier-1 at n=10 pooled: **26 turns · 30.8k tokens · 73s** — matches
+  the n=3 estimate (25.5 / 31.6k) almost exactly; the 1.5×/1.9×-bare gap is
+  stable, not noise.
+- Same-CLI superpowers tier-1 is cheaper than its October numbers
+  (38.8k vs 51k tokens; 90s vs 199s wall) — the whole comparison table got
+  faster on the new CLI generation. Same-CLI ratio: tempo at 0.79× sp
+  tokens, 0.91× turns (near parity, slightly under) — superseding the
+  mixed-CLI 62% figure.
+
 ## Follow-ups
 
 - r2b generalization variant (non-echoing risk case) as v1.1 case

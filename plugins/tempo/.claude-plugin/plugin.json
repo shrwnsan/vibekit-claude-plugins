@@ -1,7 +1,7 @@
 {
   "name": "tempo",
   "description": "Safety-proportional process for agentic SDLC: trivial changes skip ceremony, risky changes earn it. Risk-tiered loop with fail-twice auto-promotion and a verify-before-done hard gate.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "license": "Apache-2.0",
   "author": {
     "name": "shrwnsan"

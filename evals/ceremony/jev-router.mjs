@@ -16,7 +16,7 @@
 // local OneCLI gateway at the proxy boundary.
 //
 // Usage: node jev-router.mjs [--set routing-golden.json] [--skills plugins/tempo/skills]
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const arg = (name, dflt) => {
@@ -34,7 +34,7 @@ for (const name of ['tier-0-trivial', 'tier-1-standard', 'tier-2-risky']) {
 }
 
 const JEV_API = 'https://api.typesafe.ai/v1/systemone';
-const JEV_MODEL = 'jev-1.13.0'; // pinned served version, not the floating alias
+const JEV_MODEL = process.env.JEV_MODEL_PIN ?? 'jev-1.14.0'; // pin per run (D4/D6); bump 1.13.0 -> 1.14.0 per the tasks-006 version comparison (89% vs 82% on the 28-case set)
 const NONE = 'none';
 const FLOW_FOR = { 'tier-0-trivial': 0, 'tier-1-standard': 1, 'tier-2-risky': 2 };
 
@@ -78,6 +78,8 @@ async function askJev(userMessage) {
     if (!res.ok) throw new Error(`jev HTTP ${res.status}: ${JSON.stringify(json).slice(0, 120)}`);
     const a = json.answers?.tier;
     if (!a || typeof a.choice !== 'string') throw new Error('jev returned no choice answer');
+    const served = json.model ?? JEV_MODEL;
+    if (served !== JEV_MODEL) throw new Error(`jev served ${served} but pin is ${JEV_MODEL} — aborting (pin discipline)`);
     return { choice: a.choice, confidence: a.confidence };
   }
 }
@@ -104,3 +106,11 @@ console.log(`\njev (${JEV_MODEL}) accuracy: ${pass}/${rows.length} (${Math.round
 for (const t of Object.keys(byTier).sort()) console.log(`  tier ${t}: ${byTier[t].ok}/${byTier[t].n}`);
 const misses = rows.filter((r) => !r.ok).map((r) => r.id);
 if (misses.length) console.log(`misses: ${misses.join(', ')}`);
+
+// persist per-case rows (with confidences) for version comparisons and
+// confidence-deferral analysis
+const RESULTS = path.resolve(process.cwd(), '..', '..', 'test-results');
+const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+mkdirSync(RESULTS, { recursive: true });
+writeFileSync(path.join(RESULTS, `routing-jev-${ts}-${JEV_MODEL}.json`), JSON.stringify({ schema: 1, harness: 'tasks-006-jev', model: JEV_MODEL, cases: rows }, null, 2));
+console.log(`rows: routing-jev-${ts}-${JEV_MODEL}.json`);

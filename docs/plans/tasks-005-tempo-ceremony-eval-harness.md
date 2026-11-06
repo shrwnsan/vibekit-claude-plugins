@@ -262,10 +262,24 @@ Findings:
 4. **Superpowers was not re-based**: its column is still the October CLI
    2.1.292 baseline, so the 62% figure mixes CLI generations. A same-CLI
    superpowers rerun would firm it up.
-5. **Follow-ups**: tier-1 flow cost investigation (is the full-suite rerun
-   proportionate for new-function-only tasks? is the plan note pulling its
-   weight?); skill-registry size trim; consider n=5 on tier 1 specifically
-   before treating the gate as passed or failed.
+- **Tier-1 same-CLI re-measure (2026-11-04 batch, n=10 tempo / n=6 sp)**
+  — see the section below.
+- **Tier-1 cost decomposition (structural forensics, fresh sessions
+  2026-11-06)**: event-stream analysis of fresh t1-slugify/t1-items-limit
+  sessions vs bare. The tier-1 delta decomposes into (a) the Skill-tool
+  load + routing turn, (b) test-first ordering — tempo writes tests before
+  source (bare writes source first), costing extra edit cycles, (c)
+  test-run cadence — tempo ran the test file/suite 6× vs bare's 2×, several
+  with output-pipe decorations (`| tail`, `| grep`) as reruns to view
+  different output slices. The net is the designed discipline; the one
+  clearly tunable fraction was the pipe-rerun pattern, addressed by a
+  tier-1 flow line (don't rerun the same command for different output
+  slices; quote from the run you have — tempo 0.1.4). Per-phase token
+  attribution is unavailable on this backend (proxy omits per-message
+  usage), so the decomposition is structural, not token-exact.
+6. **Remaining follow-ups**: skill-registry size trim (tier-0 tokens 1.53×
+   bare, from fixed overhead visible on short tasks); re-run tier 0/2
+   golden cases after the 0.1.4 description changes.
 
 ## Tier-1 same-CLI re-measure (2026-11-04 batch, n=10 tempo / n=6 sp)
 

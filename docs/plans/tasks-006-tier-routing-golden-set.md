@@ -106,13 +106,34 @@ run the same cases; identical expectations on bare names.
 ## Results
 
 First full run (2026-11-03, GLM backend, n=1 per case, tempo 0.1.2):
-**12/12 PASS** — 4× tier-0 inline (no flow named, no skills loaded), 5×
-tier-1 routed to tier-1-standard, 3× tier-2 routed to tier-2-risky. The
-two boundary cases behaved per design after the fixes above: r1-lint-script
-routed tier 1 in one turn with the hook carve-out in place; r1-ci-green
-took the primary restraint branch (tier 1 named, no escalation). Sessions
-are short (1–4 turns, ~2 turns median) — the full set costs a fraction of
-one ceremony fixture task.
+**12/12 PASS**. Expanded to 28 cases (16 new incl. the non-echoing risk
+variant, config-boundary cases, and two keyword traps); re-run with the
+calibrated scorer (tempo 0.1.4):
+**26/28 = 93% (model)** vs **heuristic floor 27/28 = 96%** vs
+**Jev jev-1.13.0 23/28 = 82%**.
+
+Findings from the expansion:
+
+1. **Description-coverage gaps found and fixed (tempo 0.1.4)**:
+   tier-2-risky's description never signaled concurrency/rate-limiting —
+   "one-line change to the rate limiter's window calculation" routed tier 1
+   (model) and tier-0-trivial (Jev, 0.77 conf) before the fix; tier-0's
+   description lacked "docs update" as an example. Both descriptions
+   extended; affected cases re-run green.
+2. **Label dispute flagged for owner arbitration**: r1-retry-logic ("add
+   retry logic with backoff to the HTTP client wrapper") classified tier 2
+   by the model in 3/3 runs with substantive reasoning (cross-cutting
+   wrapper change; ambiguous retry requirements). Owner review held tier 1;
+   the dispute is recorded, not silently absorbed. Jev also missed it.
+3. **The traps work**: trap-auth-docs (docs task mentioning "auth")
+   initially escalated to tier 2 via keyword matching; with the prompt
+   tightened to remove genuine ambiguity, the model still routed tier 1 —
+   a tier-0/tier-1 boundary miss on docs edits (tier-0 example added per
+   finding 1 may close it; re-check on next run).
+4. **Jev's misses track description quality** (criteria = descriptions),
+   and its low-confidence misses (0.35–0.47) are exactly where
+   confidence-threshold deferral to the main model would help — the
+   idiomatic Jev pattern, worth adopting if Jev is ever wired for real.
 
 ## Tier-1 same-CLI re-measure (2026-11-04 batch, tasks-005 companion)
 

@@ -86,6 +86,154 @@
       "tier": 2,
       "task": "Add rate limiting to the public API.",
       "expect_flow": "tier-2-risky"
+    },
+    {
+      "id": "r0-docs-link",
+      "tier": 0,
+      "task": "Fix the broken markdown link in the contributing guide.",
+      "expect_flow": null,
+      "expect_not_flow": [
+        "tier-1-standard",
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r0-version-string",
+      "tier": 0,
+      "task": "Bump the version string in package.json from 2.3.1 to 2.4.0 for the release.",
+      "expect_flow": null,
+      "expect_not_flow": [
+        "tier-1-standard",
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r0-log-typo",
+      "tier": 0,
+      "task": "Fix the misspelled word in the error log message.",
+      "expect_flow": null,
+      "expect_not_flow": [
+        "tier-1-standard",
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r0-stale-comment",
+      "tier": 0,
+      "task": "Update a stale comment that still references the old function name.",
+      "expect_flow": null,
+      "expect_not_flow": [
+        "tier-1-standard",
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r1-form-validation",
+      "tier": 1,
+      "task": "Add input validation to the signup form fields (email format, required fields).",
+      "expect_flow": "tier-1-standard",
+      "expect_not_flow": [
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r1-off-by-one",
+      "tier": 1,
+      "task": "Fix the off-by-one error in the pagination logic.",
+      "expect_flow": "tier-1-standard",
+      "expect_not_flow": [
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r1-retry-logic",
+      "tier": 1,
+      "task": "Add retry logic with backoff to the HTTP client wrapper.",
+      "expect_flow": "tier-1-standard",
+      "expect_not_flow": [
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r1-deprecated-call",
+      "tier": 1,
+      "task": "Replace the deprecated date-library call with the modern equivalent.",
+      "expect_flow": "tier-1-standard",
+      "expect_not_flow": [
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r1-export-button",
+      "tier": 1,
+      "task": "Wire up the settings export button that currently does nothing.",
+      "expect_flow": "tier-1-standard",
+      "expect_not_flow": [
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "r2-ratelimiter-line",
+      "tier": 2,
+      "task": "Make a one-line change to the rate limiter's window calculation.",
+      "expect_flow": "tier-2-risky",
+      "expect_not_flow": [
+        "tier-1-standard"
+      ]
+    },
+    {
+      "id": "r2-key-rotation",
+      "tier": 2,
+      "task": "Rotate the API signing key format from HMAC-SHA1 to HMAC-SHA256.",
+      "expect_flow": "tier-2-risky",
+      "expect_not_flow": [
+        "tier-1-standard"
+      ]
+    },
+    {
+      "id": "r2-multitenant",
+      "tier": 2,
+      "task": "Add multi-tenant isolation to the query layer.",
+      "expect_flow": "tier-2-risky",
+      "expect_not_flow": [
+        "tier-1-standard"
+      ]
+    },
+    {
+      "id": "r2-password-hash",
+      "tier": 2,
+      "task": "Change the password hashing algorithm to argon2id.",
+      "expect_flow": "tier-2-risky",
+      "expect_not_flow": [
+        "tier-1-standard"
+      ]
+    },
+    {
+      "id": "r2-entry-split",
+      "tier": 2,
+      "task": "Split the monolithic server entry point into separate modules.",
+      "expect_flow": "tier-2-risky",
+      "expect_not_flow": [
+        "tier-1-standard"
+      ]
+    },
+    {
+      "id": "trap-auth-docs",
+      "tier": 0,
+      "task": "Update the contributor docs to document the API-key requirement in the existing Authentication section.",
+      "expect_flow": null,
+      "expect_not_flow": [
+        "tier-2-risky"
+      ]
+    },
+    {
+      "id": "trap-ratelimit-comment",
+      "tier": 0,
+      "task": "Add a code comment explaining how the rate limiter's window algorithm works.",
+      "expect_flow": null,
+      "expect_not_flow": [
+        "tier-2-risky"
+      ]
     }
   ]
 }

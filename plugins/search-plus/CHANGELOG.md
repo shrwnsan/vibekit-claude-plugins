@@ -158,3 +158,9 @@ _Previous versions were not tracked in a CHANGELOG._
 [3.0.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v2.11.0...v3.0.0
 [2.11.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v2.10.1...v2.11.0
 [2.10.1]: https://github.com/shrwnsan/vibekit-claude-plugins/releases/tag/v2.10.1
+
+## 3.5.3 (2026-11-03)
+
+- Quote `${CLAUDE_PLUGIN_ROOT}` in the PostToolUse / PostToolUseFailure hook
+  commands — path-safe against spaces in install locations (plugin validate
+  warning fix).

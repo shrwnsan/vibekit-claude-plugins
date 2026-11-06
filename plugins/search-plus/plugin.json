@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "search-plus",
-  "version": "3.5.2",
+  "version": "3.5.3",
   "description": "Enhanced web search with multi-service fallback (TinyFish, Tavily, Brave, Exa, Jina, plus keyless Firecrawl/Defuddle) — works without API keys",
   "author": {
     "name": "shrwnsan"

@@ -203,3 +203,8 @@ P1/P2 improvements from eval-021 analysis:
 [1.6.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.3.0...v1.5.0
 [1.3.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.2.0...v1.3.0
+
+## 1.12.2 (2026-11-03)
+
+- Quote `${CLAUDE_PLUGIN_ROOT}` in the PreToolUse hook command — path-safe
+  against spaces in install locations (plugin validate warning fix).

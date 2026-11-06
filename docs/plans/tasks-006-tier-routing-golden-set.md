@@ -135,6 +135,33 @@ Findings from the expansion:
    confidence-threshold deferral to the main model would help — the
    idiomatic Jev pattern, worth adopting if Jev is ever wired for real.
 
+## Jev version comparison (2026-11-06, 28-case set, same elicitation)
+
+Clean A/B: same cases, same choice-question format, only the model pin
+differs (pin discipline held; the endpoint's served-version check passed
+on every call).
+
+| Version | Accuracy | tier 0 | tier 1 | tier 2 | Misses |
+|---|---|---|---|---|---|
+| jev-1.13.0 | 23/28 = 82% | 10/10 | 6/9 | 9/9 | lint-script, env-var, dedupe-refactor, deprecated-call, ratelimiter-line |
+| **jev-1.14.0** | **25/28 = 89%** | 10/10 | 6/9 | **9/9** | lint-script (0.68), env-var (0.39), deprecated-call (0.27) |
+| heuristic floor | 27/28 = 96% | 9/10 | 9/9 | 9/9 | test-typo |
+
+- **1.14.0 gains exactly the two risk cases 1.13.0 missed** — including the
+  non-echoing r2-ratelimiter-line that 1.13.0 mis-read at 0.77 confidence.
+  Same elicitation, same cases → the delta is attributable to the model
+  weights, cleanly (no D10 ablation caveat applies within this comparison).
+- **Confidence-deferral closes the floor gap**: all three 1.14.0 misses sit
+  below 0.7 confidence (0.27–0.68); the model's own triage answered both
+  deferred-tier-1 cases correctly. Deferring cases below t≈0.7 to the main
+  model lifts jev-1.14.0 to 27/28 = **96% — parity with the heuristic
+  floor**, with Jev handling the 25 high-confidence cases at near-zero
+  marginal cost.
+- **Pin bumped** to jev-1.14.0 (this comparison is the decision-citing
+  run). Still eval-only: the floor is a keyword heuristic, and beats-Jev
+  does not mean beats-enacted — real-task load detection (tasks-006 D2
+  enacted mode) remains the adoption gate.
+
 ## Tier-1 same-CLI re-measure (2026-11-04 batch, tasks-005 companion)
 
 Ran alongside the routing set: tempo tier-1 at n=5 per task (n=10 pooled)

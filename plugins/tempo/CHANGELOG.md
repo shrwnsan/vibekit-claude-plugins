@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5 (2026-11-07)
+
+- README Install section uses the one-step marketplace install line
+  (`/plugin install tempo --marketplace shrwnsan/vibekit-claude-plugins`),
+  clearing the plugin-validate README warning.
+
 ## 0.1.0 (2026-10-31)
 
 - Initial MVP per prd-010 §7: triage skill (tier router), tier-0-trivial /
@@ -23,20 +29,6 @@
   (r2-ratelimiter-line under-tiered; docs edits were not exemplified as
   tier 0).
 
-## 0.1.2 (2026-11-03)
-
-- `triage` renamed to `risk-triage` — collision-safe in shared Agent Skills
-  directories (pi, Amp, agents hub); the tier names stay bare since the
-  taxonomy itself is distinctive.
-- Hook routing table: tier-0 line gains the config/auth/API carve-out
-  ("not config/auth/API") — found by the tier-routing golden set: the
-  table under-specified the tier-0 boundary, and a package.json script
-  edit was classified tier 0 from table examples alone.
-- Tempo skills no longer sync to the shrwnsan/agents hub: sync is now gated on
-  a fail-closed portability allowlist (`.github/sync-skills.json`), and tempo
-  stays unlisted — the tier skills are plugin-internal plumbing with
-  portability unproven.
-
 ## 0.1.3 (2026-11-07)
 
 - Skills published to the shrwnsan/agents hub: portability review passed —
@@ -52,3 +44,17 @@
   with different output slices; quote from the run you have (from the
   tier-1 cost decomposition: 6 test runs vs bare's 2, several as
   pipe-rerun view changes).
+
+## 0.1.2 (2026-11-03)
+
+- `triage` renamed to `risk-triage` — collision-safe in shared Agent Skills
+  directories (pi, Amp, agents hub); the tier names stay bare since the
+  taxonomy itself is distinctive.
+- Hook routing table: tier-0 line gains the config/auth/API carve-out
+  ("not config/auth/API") — found by the tier-routing golden set: the
+  table under-specified the tier-0 boundary, and a package.json script
+  edit was classified tier 0 from table examples alone.
+- Tempo skills no longer sync to the shrwnsan/agents hub: sync is now gated on
+  a fail-closed portability allowlist (`.github/sync-skills.json`), and tempo
+  stays unlisted — the tier skills are plugin-internal plumbing with
+  portability unproven.

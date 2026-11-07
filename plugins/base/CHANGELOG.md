@@ -7,13 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Nothing pending.
+
+## [1.12.3] - 2026-11-07
+
+### Changed
+- README Quick Start uses the one-step marketplace install line
+  (`/plugin install base --marketplace shrwnsan/vibekit-claude-plugins`),
+  clearing the plugin-validate README warning.
+
+## [1.12.2] - 2026-11-03
+
+### Fixed
+- Quote `${CLAUDE_PLUGIN_ROOT}` in the PreToolUse hook command — path-safe
+  against spaces in install locations (plugin validate warning fix).
+
+## [1.12.1] - 2026-11-03
+
 ### Added
 - branch-hygiene skill: squash-merge-aware branch and worktree cleanup classifier
   - Detects content-level merges that `git branch --merged` cannot see (subject/PR matching, file presence, feature diffs)
   - Verdicts: merged-ancestry, merged-content, remote-gone, stale-base, superseded, unmerged, active, worktree-prunable/clean-merged/dirty, orphan-dir
   - Classifier script is strictly read-only; tiered action policy (auto local delete / confirm worktree+remote removal / never touch dirty or unmerged)
-
-## [1.12.1] - 2026-11-03
 
 ### Changed
 - Skills sync to the shrwnsan/agents hub is now gated on a fail-closed portability allowlist (`.github/sync-skills.json`; no entry = no sync). base opts in — its four skills keep syncing as before.
@@ -203,8 +218,3 @@ P1/P2 improvements from eval-021 analysis:
 [1.6.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.3.0...v1.5.0
 [1.3.0]: https://github.com/shrwnsan/vibekit-claude-plugins/compare/v1.2.0...v1.3.0
-
-## 1.12.2 (2026-11-03)
-
-- Quote `${CLAUDE_PLUGIN_ROOT}` in the PreToolUse hook command — path-safe
-  against spaces in install locations (plugin validate warning fix).

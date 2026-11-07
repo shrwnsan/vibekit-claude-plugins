@@ -184,3 +184,11 @@ and the plugin README:
 - Enacted-routing scoring: reuse tasks-005 session forensics over real
   fixture tasks (already recorded for the n=3 rerun)
 - pi Amp-side runs once Amp is installed locally
+
+### N=2 reproducibility (2026-11-07, from main)
+
+Second full jev-1.14.0 run from the merged state: **25/28 = 89%**, identical
+per-tier breakdown and identical misses (r1-lint-script, r1-env-var,
+r1-deprecated-call). Miss confidences stable across runs (0.69/0.37/0.25 vs
+0.68/0.39/0.27) — the t≈0.7 confidence-deferral threshold holds
+reproducibly. N=2 aggregate: both runs agree on all 28 cases.

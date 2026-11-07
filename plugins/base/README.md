@@ -15,7 +15,7 @@ A Claude Code plugin providing foundational workflow automation tools for produc
 
 ```bash
 # Install from VibeKit marketplace
-claude plugin install base
+/plugin install base --marketplace shrwnsan/vibekit-claude-plugins
 
 # Quick commit with intelligent message drafting
 /commit

@@ -70,7 +70,7 @@ tail, so the prompt prefix remains cache-stable.
 ## Install
 
 ```bash
-claude plugin install https://github.com/shrwnsan/vibekit-claude-plugins
+/plugin install tempo --marketplace shrwnsan/vibekit-claude-plugins
 ```
 
 No configuration, no API keys. A decision-model triage layer (calibrated tier

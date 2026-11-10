@@ -30,18 +30,19 @@
  * sets for the measurement harness accumulate from real traffic.
  *
  * Config: environment variables only — never config files, never key values.
- *   REFLEX_PROVIDERS      csv cycle order            (default "liquid,typesafe")
+ *   REFLEX_PROVIDERS      csv cycle order            (default "typesafe,liquid")
  *   REFLEX_SPEC_<N>_JSON  per-provider spec override (merged over presets)
  *   REFLEX_THRESHOLD_DENY max-risk p ≥ this → deny   (default 0.85)
  *   REFLEX_THRESHOLD_ASK  max-risk p ≥ this → ask    (default 0.55)
  *   REFLEX_TIMEOUT_MS     per-provider timeout       (default 3000)
- *   REFLEX_MAX_FAILURES   consecutive fails → disable provider for the day
- *                                                    (default 3)
+ *   REFLEX_MAX_FAILURES   consecutive fails → disable provider until the
+ *                         recovery cooldown elapses (default 3)
+ *   REFLEX_RECOVERY_MS    provider recovery cooldown (default 1800000)
  *   REFLEX_LOG            verdict log path
  *   REFLEX_DISABLED       "1" → exit 0 immediately (kill switch)
  *
  * Provider presets (active = keyless or env var set):
- *   liquid   systemone  api.liquid.ai/decisions/v1/systemone   d1:free      LIQUID_API_KEY
+ *   liquid   systemone  api.liquid.ai/decisions/v1/systemone   d1.1         LIQUID_API_KEY
  *   typesafe systemone  api.typesafe.ai/v1/systemone           jev-latest   TYPESAFE_API_KEY
  *   Custom specs merge over presets per-field, pi-agent style.
  *
@@ -60,7 +61,7 @@ import { join, dirname } from "node:path";
 // -- Config -----------------------------------------------------------------
 
 const PRESETS = {
-	liquid: { type: "systemone", url: "https://api.liquid.ai/decisions/v1/systemone", model: "d1:free", apiKeyEnv: "LIQUID_API_KEY" },
+	liquid: { type: "systemone", url: "https://api.liquid.ai/decisions/v1/systemone", model: "d1.1", apiKeyEnv: "LIQUID_API_KEY" },
 	typesafe: { type: "systemone", url: "https://api.typesafe.ai/v1/systemone", model: "jev-latest", apiKeyEnv: "TYPESAFE_API_KEY" },
 };
 
@@ -75,7 +76,7 @@ function resolveConfig(env = process.env) {
 			} catch { /* invalid override: keep preset */ }
 		}
 	}
-	const providers = (env.REFLEX_PROVIDERS ?? "liquid,typesafe")
+	const providers = (env.REFLEX_PROVIDERS ?? "typesafe,liquid")
 		.split(",").map((s) => s.trim()).filter((n) => specs[n]);
 	return {
 		providers,
@@ -84,6 +85,7 @@ function resolveConfig(env = process.env) {
 		askP: clamp(Number(env.REFLEX_THRESHOLD_ASK ?? 0.55), 0.3, Number(env.REFLEX_THRESHOLD_DENY ?? 0.85)),
 		timeoutMs: Number(env.REFLEX_TIMEOUT_MS ?? 3000),
 		maxFailures: Number(env.REFLEX_MAX_FAILURES ?? 3),
+		recoveryMs: Number(env.REFLEX_RECOVERY_MS ?? 30 * 60 * 1000),
 		log: env.REFLEX_LOG ?? join(homedir(), ".local", "share", "reflex", "verdicts.jsonl"),
 		stateFile: env.REFLEX_STATE_FILE ?? join(homedir(), ".local", "share", "reflex", "failstate.json"),
 		disabled: env.REFLEX_DISABLED === "1",
@@ -102,23 +104,44 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : 
 const RO_PATTERNS = [
 	// intrinsically read-only programs, any flags/args to end of segment
 	/^(?:ls|pwd|cat|head|tail|wc|file|stat|du|df|tree|which|type|date|uname|hostname|id|whoami|groups|tty|printenv|locale|jq|yq|md5sum|sha1sum|sha256sum|cksum|diff|comm|cut)(?:\s+(?:-{1,2}[\w][\w-]*|"[^"\n]*"|'[^'\n]*'|[^\s"'|;&`\\]+))*$/,
+	// more read-only programs, with write-mode exclusions where one exists
+	/^grep\b/,
+	/^sort\s+(?!(?:\S+\s+)*-o(?:\s|$))/,
+	/^uniq\b|^column\b|^basename\b|^dirname\b|^realpath\b|^readlink\b/,
+	/^find\b(?!.*\s(?:-{1,2}[\w-]*\s+)?-(?:delete|exec|execdir|ok|okdir|fprint\w*)\b)/,
+	// sed in pure line-print mode: -n flag first, script only addresses/p/d —
+	// anything else (s///, w file, GNU e) falls through to the model
+	/^sed\s+-{1,2}[A-Za-z]*n[A-Za-z]*\s+['"]?[0-9$,dp\s]*['"]?(?:\s|$)/,
+	// parse-only interpreter modes (no execution)
+	/^(?:ba|z|k)?sh\s+-n\b|^node\s+--check\b/,
+	// trivial no-op / timing segments
+	/^(?:echo|printf|true|false|sleep)(?:\s.*)?$/,
+	// cd to any target cannot write anything
+	/^cd\b/,
 	// read-only git subcommands
-	/^git (?:status|log|diff|show|blame|rev-parse|describe)(?:\s+\S.*)?$/,
+	/^git (?:status|log|diff|show|blame|rev-parse|describe|check-ignore|ls-files|cat-file|rev-list)(?:\s+\S.*)?$/,
 	/^git (?:branch|tag)(?: (?:--list|-l|-a|-r|-v|-vv|--all|--remotes))?$/,
 	/^git remote -v$/,
+	// read-only gh subcommands
+	/^gh (?:pr|issue|repo) (?:view|list|checks|diff)\b/,
 	// package and toolchain version/read queries
 	/^(?:npm|pnpm) (?:ls|list|outdated|view)\b.*$|^yarn (?:info|list)\b.*$/,
 	/^(?:node|python3?|cargo|rustc|gcc|g\+\+|make) (?:--version|-v)$|^go version$/,
 	// process/system reads
 	/^(?:ps|pgrep|lscpu|lsblk)\b|^lsof -i\b|^ss -l\b|^netstat -l\b|^free$|^uptime$|^nproc$/,
 	/^systemctl (?:status|list-|is-active|is-enabled)\b/,
-	// read-only network probes (HEAD / spider only)
-	/^curl\s+(?:-\w+\s+)*-I\b.*$|^wget\s+(?:-\w+\s+)*--spider\b.*$/,
+	// read-only network probes (HEAD / spider only — plain GETs still go to
+	// the model: a literal secret in a URL must never be silently allowed).
+	// Bundled short flags allowed unless the bundle contains a request-body
+	// or method flag (d/D/f/F/T/X).
+	/^curl\s+-(?![A-Za-z]*[dDfFTX])[A-Za-z]*I[A-Za-z]*(?:\s.*)?$|^curl\s+(?:-\w+\s+)*-I\b.*$|^curl\s+--head\b.*$|^wget\s+(?:-\w+\s+)*--spider\b.*$/,
 ];
 
 function splitSegments(cmd) {
-	const stripped = cmd.replace(/(?:\d)?\s*&?\s*\/dev\/null/g, " ");
-	// any redirection other than /dev/null → not fast-path (writes somewhere)
+	const stripped = cmd
+		.replace(/(?:\d)?\s*&>?\/dev\/null/g, " ") // to /dev/null: harmless
+		.replace(/(?:\d)?\s*>&\s*\d+/g, " "); // fd duplication (2>&1): harmless
+	// any redirection other than the above → not fast-path (writes somewhere)
 	if (/(?:\d)?[<>]{1,2}\s*\S+/.test(stripped)) return null;
 	return stripped.split(/\||&&|\|\||;|\$\(|`|\n/g).map((s) => s.trim()).filter(Boolean);
 }
@@ -185,16 +208,28 @@ async function systemOneCall(spec, apiKey, state, timeoutMs) {
 }
 
 async function runChain(cfg, env, state, failState) {
+	const now = Date.now();
 	for (const name of cfg.providers) {
 		const spec = cfg.specs[name];
 		if (!spec || !providerActive(spec, env)) continue;
-		if ((failState[name] ?? 0) >= cfg.maxFailures) continue;
+		// circuit breaker: skip a provider while it has maxFailures AND the
+		// recovery cooldown hasn't elapsed — after the cooldown it gets one
+		// half-open retry (success clears the entry, failure re-opens it)
+		const entry = failState[name];
+		const disabled = typeof entry?.count === "number" && typeof entry?.since === "number"
+			? entry.count >= cfg.maxFailures && now - entry.since < cfg.recoveryMs
+			: false; // legacy bare-number entries: treated as expired
+		if (disabled) continue;
 		try {
 			const ps = await systemOneCall(spec, env[spec.apiKeyEnv ?? ""] ?? undefined, state, spec.timeoutMs ?? cfg.timeoutMs);
 			delete failState[name];
 			return { provider: name, ps };
 		} catch (err) {
-			failState[name] = (failState[name] ?? 0) + 1;
+			const prev = failState[name];
+			const count = (typeof prev?.count === "number" ? prev.count : (typeof prev === "number" ? prev : 0)) + 1;
+			// stamp since on every failure: the cooldown restarts from the
+			// latest failure, including a failed half-open retry
+			failState[name] = { count, since: now };
 			logLine(cfg, { ts: new Date().toISOString(), kind: "provider-error", provider: name, error: String(err?.message || err).slice(0, 60) });
 		}
 	}

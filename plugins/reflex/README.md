@@ -39,12 +39,12 @@ decision, never loosen one:
 Same specs/cycle/failover registry shape as the session-summary gate: presets
 merge per-field with `REFLEX_SPEC_<NAME>_JSON` overrides; providers are tried
 in `REFLEX_PROVIDERS` order; a provider is *active* when keyless or its env
-var is set; 3 consecutive failures disable it (default) until the state file
-is cleared.
+var is set; 3 consecutive failures disable it (default) until the recovery
+cooldown (`REFLEX_RECOVERY_MS`) elapses, then one retry decides again.
 
 | Name | Endpoint | Model | Key env var |
 |------|----------|-------|-------------|
-| `liquid` | `api.liquid.ai/decisions/v1/systemone` | `d1:free` | `LIQUID_API_KEY` |
+| `liquid` | `api.liquid.ai/decisions/v1/systemone` | `d1.1` | `LIQUID_API_KEY` |
 | `typesafe` | `api.typesafe.ai/v1/systemone` | `jev-latest` | `TYPESAFE_API_KEY` |
 
 Any System One-compatible endpoint works as a custom spec — e.g. Vercel AI
@@ -79,12 +79,13 @@ tail -f ~/.local/share/reflex/verdicts.jsonl
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `REFLEX_PROVIDERS` | `liquid,typesafe` | Provider cycle order |
+| `REFLEX_PROVIDERS` | `typesafe,liquid` | Provider cycle order |
 | `REFLEX_SPEC_<N>_JSON` | – | Per-provider spec override (merged over preset) |
 | `REFLEX_THRESHOLD_DENY` | `0.85` | Max risk p ≥ → deny |
 | `REFLEX_THRESHOLD_ASK` | `0.55` | Max risk p ≥ → ask; all p ≤ 1−ask → allow |
 | `REFLEX_TIMEOUT_MS` | `3000` | Per-provider timeout (kept tight: hooks stall tool calls) |
 | `REFLEX_MAX_FAILURES` | `3` | Consecutive failures → provider disabled |
+| `REFLEX_RECOVERY_MS` | `1800000` | Disabled-provider cooldown before a retry (30 min) |
 | `REFLEX_LOG` | `~/.local/share/reflex/verdicts.jsonl` | Verdict log (one JSON per line) |
 | `REFLEX_DISABLED` | – | `1` = kill switch (silent exit) |
 

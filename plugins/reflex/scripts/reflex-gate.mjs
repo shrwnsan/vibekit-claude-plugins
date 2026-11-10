@@ -83,9 +83,9 @@ function resolveConfig(env = process.env) {
 		specs,
 		denyP: clamp(Number(env.REFLEX_THRESHOLD_DENY ?? 0.85), 0.5, 0.99),
 		askP: clamp(Number(env.REFLEX_THRESHOLD_ASK ?? 0.55), 0.3, Number(env.REFLEX_THRESHOLD_DENY ?? 0.85)),
-		timeoutMs: Number(env.REFLEX_TIMEOUT_MS ?? 3000),
-		maxFailures: Number(env.REFLEX_MAX_FAILURES ?? 3),
-		recoveryMs: Number(env.REFLEX_RECOVERY_MS ?? 30 * 60 * 1000),
+		timeoutMs: num(env.REFLEX_TIMEOUT_MS, 3000),
+		maxFailures: num(env.REFLEX_MAX_FAILURES, 3),
+		recoveryMs: num(env.REFLEX_RECOVERY_MS, 30 * 60 * 1000),
 		log: env.REFLEX_LOG ?? join(homedir(), ".local", "share", "reflex", "verdicts.jsonl"),
 		stateFile: env.REFLEX_STATE_FILE ?? join(homedir(), ".local", "share", "reflex", "failstate.json"),
 		disabled: env.REFLEX_DISABLED === "1",
@@ -93,6 +93,12 @@ function resolveConfig(env = process.env) {
 }
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : lo));
+// env number with default: unset/empty/non-numeric → default (a NaN here would
+// silently disable the failure breaker: NaN comparisons are always false)
+const num = (v, d) => {
+	const n = Number(v);
+	return v === undefined || v === "" || !Number.isFinite(n) ? d : n;
+};
 
 // -- Fast paths (local, no network) ------------------------------------------
 // SECURITY NOTE: every pattern is anchored over the WHOLE segment (^…$). A
@@ -101,25 +107,49 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : 
 // sed (-i), sort (-o), tee, git branch/tag with args, gh api (can POST) —
 // anything with a write mode goes to the model or the classifier instead.
 
+// curl HEAD-only probe, token-based so flag position can't dodge the check
+// (the regex form only inspected the first flag bundle): an -I/--head flag
+// must be present AND no token may carry a body, method override, upload,
+// or a response/header/config file write — short bundles containing
+// d D F O o T X K, long --data* --form* --upload* --request* --dump*
+// --output --remote-name* --trace* --libcurl --config.
+const curlHeadOnly = (seg) => {
+	if (!/^curl\s/.test(seg)) return false;
+	const tokens = seg.split(/\s+/).slice(1);
+	const head = tokens.some((t) => t === "--head" || (/^-[A-Za-z]+$/.test(t) && t.includes("I")));
+	return head && !tokens.some((t) =>
+		/^-[A-Za-z]*[dDFOoTXK]/.test(t) || /^--(data|form|upload|request|dump|output|remote|trace|libcurl|config)/.test(t));
+};
+
 const RO_PATTERNS = [
 	// intrinsically read-only programs, any flags/args to end of segment
 	/^(?:ls|pwd|cat|head|tail|wc|file|stat|du|df|tree|which|type|date|uname|hostname|id|whoami|groups|tty|printenv|locale|jq|yq|md5sum|sha1sum|sha256sum|cksum|diff|comm|cut)(?:\s+(?:-{1,2}[\w][\w-]*|"[^"\n]*"|'[^'\n]*'|[^\s"'|;&`\\]+))*$/,
 	// more read-only programs, with write-mode exclusions where one exists
 	/^grep\b/,
-	/^sort\s+(?!(?:\S+\s+)*-o(?:\s|$))/,
+	// sort without an output flag — \S* also catches attached (-oFILE) values
+	/^sort\b(?!(?:.*\s)?(?:-o\S*|--output\S*))(?:\s.*)?$/,
 	/^uniq\b|^column\b|^basename\b|^dirname\b|^realpath\b|^readlink\b/,
-	/^find\b(?!.*\s(?:-{1,2}[\w-]*\s+)?-(?:delete|exec|execdir|ok|okdir|fprint\w*)\b)/,
-	// sed in pure line-print mode: -n flag first, script only addresses/p/d —
-	// anything else (s///, w file, GNU e) falls through to the model
-	/^sed\s+-{1,2}[A-Za-z]*n[A-Za-z]*\s+['"]?[0-9$,dp\s]*['"]?(?:\s|$)/,
+	// find without write/exec actions — --? covers single AND double dash
+	// (--delete), \w* covers -execdir/-okdir; -executable is over-blocked,
+	// deliberately conservative
+	/^find\b(?!.*\s--?(?:delete|exec\w*|ok\w*|fls|fprint\w*)\b)/,
+	// sed in pure line-print mode, whole-segment anchored: flags are one
+	// -n-containing bundle (or --quiet/--silent) with no i (in-place) or
+	// f (script file) in it; the script is a single quoted-or-bare token of
+	// only addresses/p (no s/w/e/d-with-s — w and GNU e can write/execute);
+	// any later token must not start with "-" (no trailing -e/-f/-i)
+	/^sed\s+(?:--(?:quiet|silent)|-(?![A-Za-z]*[if])[A-Za-z]*n[A-Za-z]*)\s+(['"]?)[0-9$,p]*\1(?:\s+[^-\s]\S*)*$/,
 	// parse-only interpreter modes (no execution)
 	/^(?:ba|z|k)?sh\s+-n\b|^node\s+--check\b/,
 	// trivial no-op / timing segments
 	/^(?:echo|printf|true|false|sleep)(?:\s.*)?$/,
 	// cd to any target cannot write anything
 	/^cd\b/,
-	// read-only git subcommands
-	/^git (?:status|log|diff|show|blame|rev-parse|describe|check-ignore|ls-files|cat-file|rev-list)(?:\s+\S.*)?$/,
+	// command -v: the only safe slice of `command` — bare `command rm …`
+	// would execute its argument, so no broader form
+	/^command (?:-v|-V|--version)\s+\S+(?:\s+\S+)*$/,
+	// read-only git subcommands — --output (git diff --output=FILE) writes
+	/^git (?:status|log|diff|show|blame|rev-parse|describe|check-ignore|ls-files|cat-file|rev-list)\b(?!(?:.*\s)?--output(?:\s|=))(?:\s+\S.*)?$/,
 	/^git (?:branch|tag)(?: (?:--list|-l|-a|-r|-v|-vv|--all|--remotes))?$/,
 	/^git remote -v$/,
 	// read-only gh subcommands
@@ -132,23 +162,26 @@ const RO_PATTERNS = [
 	/^systemctl (?:status|list-|is-active|is-enabled)\b/,
 	// read-only network probes (HEAD / spider only — plain GETs still go to
 	// the model: a literal secret in a URL must never be silently allowed).
-	// Bundled short flags allowed unless the bundle contains a request-body
-	// or method flag (d/D/f/F/T/X).
-	/^curl\s+-(?![A-Za-z]*[dDfFTX])[A-Za-z]*I[A-Za-z]*(?:\s.*)?$|^curl\s+(?:-\w+\s+)*-I\b.*$|^curl\s+--head\b.*$|^wget\s+(?:-\w+\s+)*--spider\b.*$/,
+	curlHeadOnly, /^wget\s+(?:-\w+\s+)*--spider\b.*$/,
 ];
 
 function splitSegments(cmd) {
 	const stripped = cmd
-		.replace(/(?:\d)?\s*&>?\/dev\/null/g, " ") // to /dev/null: harmless
+		// to /dev/null: harmless — covers >, >>, N>, N>>, &>, &>> (the
+		// &>? form only matched &>-variants and killed the fast path for
+		// plain >/dev/null and 2>/dev/null)
+		.replace(/(?:\d)?\s*&?>{1,2}\s*\/dev\/null/g, " ")
 		.replace(/(?:\d)?\s*>&\s*\d+/g, " "); // fd duplication (2>&1): harmless
 	// any redirection other than the above → not fast-path (writes somewhere)
 	if (/(?:\d)?[<>]{1,2}\s*\S+/.test(stripped)) return null;
-	return stripped.split(/\||&&|\|\||;|\$\(|`|\n/g).map((s) => s.trim()).filter(Boolean);
+	// (?<!\\)\| — an escaped pipe (grep 'a\|b' BRE alternation) is a literal
+	// argument, not a pipe operator; splitting on it broke whole compounds
+	return stripped.split(/\|\||&&|(?<!\\)\||;|\$\(|`|\n/g).map((s) => s.trim()).filter(Boolean);
 }
 
 function fastPathAllow(cmd) {
 	const segs = splitSegments(cmd);
-	return segs !== null && segs.length > 0 && segs.every((s) => RO_PATTERNS.some((re) => re.test(s)));
+	return segs !== null && segs.length > 0 && segs.every((s) => RO_PATTERNS.some((p) => (typeof p === "function" ? p(s) : p.test(s))));
 }
 
 // Unambiguous destruction — deny without a model call.

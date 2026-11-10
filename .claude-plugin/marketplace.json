@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
-    "version": "1.8.0"
+    "version": "1.9.0"
   },
   "plugins": [
     {
@@ -165,6 +165,41 @@
         "lean-process",
         "sdlc",
         "verification"
+      ]
+    },
+    {
+      "name": "reflex",
+      "source": "./plugins/reflex",
+      "description": "Pre-classifier permission gate for auto mode: System One decision models (TypeSafe Jev, Liquid d1, compatible endpoints) as typed allow/ask/deny PreToolUse decisions. Fails safe — errors hand back to Claude Code's own classifier.",
+      "version": "0.1.0",
+      "author": {
+        "name": "shrwnsan"
+      },
+      "homepage": "https://github.com/shrwnsan/vibekit-claude-plugins/tree/main/plugins/reflex/README.md",
+      "license": "Apache-2.0",
+      "keywords": [
+        "claude-code",
+        "auto-mode",
+        "permissions",
+        "classifier",
+        "hooks",
+        "pretooluse",
+        "decision-models",
+        "jev",
+        "typesafe",
+        "liquid-d1",
+        "risk",
+        "security"
+      ],
+      "category": "productivity",
+      "tags": [
+        "auto-mode",
+        "permission-gate",
+        "decision-models",
+        "pretooluse",
+        "risk-triage",
+        "hooks",
+        "safety"
       ]
     }
   ]

@@ -171,7 +171,7 @@
       "name": "reflex",
       "source": "./plugins/reflex",
       "description": "Pre-classifier permission gate for auto mode: System One decision models (TypeSafe Jev, Liquid d1, compatible endpoints) as typed allow/ask/deny PreToolUse decisions. Fails safe — errors hand back to Claude Code's own classifier.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "shrwnsan"
       },

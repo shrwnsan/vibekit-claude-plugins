@@ -30,18 +30,19 @@
  * sets for the measurement harness accumulate from real traffic.
  *
  * Config: environment variables only — never config files, never key values.
- *   REFLEX_PROVIDERS      csv cycle order            (default "liquid,typesafe")
+ *   REFLEX_PROVIDERS      csv cycle order            (default "typesafe,liquid")
  *   REFLEX_SPEC_<N>_JSON  per-provider spec override (merged over presets)
  *   REFLEX_THRESHOLD_DENY max-risk p ≥ this → deny   (default 0.85)
  *   REFLEX_THRESHOLD_ASK  max-risk p ≥ this → ask    (default 0.55)
  *   REFLEX_TIMEOUT_MS     per-provider timeout       (default 3000)
- *   REFLEX_MAX_FAILURES   consecutive fails → disable provider for the day
- *                                                    (default 3)
+ *   REFLEX_MAX_FAILURES   consecutive fails → disable provider until the
+ *                         recovery cooldown elapses (default 3)
+ *   REFLEX_RECOVERY_MS    provider recovery cooldown (default 1800000)
  *   REFLEX_LOG            verdict log path
  *   REFLEX_DISABLED       "1" → exit 0 immediately (kill switch)
  *
  * Provider presets (active = keyless or env var set):
- *   liquid   systemone  api.liquid.ai/decisions/v1/systemone   d1:free      LIQUID_API_KEY
+ *   liquid   systemone  api.liquid.ai/decisions/v1/systemone   d1.1         LIQUID_API_KEY
  *   typesafe systemone  api.typesafe.ai/v1/systemone           jev-latest   TYPESAFE_API_KEY
  *   Custom specs merge over presets per-field, pi-agent style.
  *
@@ -60,7 +61,7 @@ import { join, dirname } from "node:path";
 // -- Config -----------------------------------------------------------------
 
 const PRESETS = {
-	liquid: { type: "systemone", url: "https://api.liquid.ai/decisions/v1/systemone", model: "d1:free", apiKeyEnv: "LIQUID_API_KEY" },
+	liquid: { type: "systemone", url: "https://api.liquid.ai/decisions/v1/systemone", model: "d1.1", apiKeyEnv: "LIQUID_API_KEY" },
 	typesafe: { type: "systemone", url: "https://api.typesafe.ai/v1/systemone", model: "jev-latest", apiKeyEnv: "TYPESAFE_API_KEY" },
 };
 
@@ -75,15 +76,16 @@ function resolveConfig(env = process.env) {
 			} catch { /* invalid override: keep preset */ }
 		}
 	}
-	const providers = (env.REFLEX_PROVIDERS ?? "liquid,typesafe")
+	const providers = (env.REFLEX_PROVIDERS ?? "typesafe,liquid")
 		.split(",").map((s) => s.trim()).filter((n) => specs[n]);
 	return {
 		providers,
 		specs,
 		denyP: clamp(Number(env.REFLEX_THRESHOLD_DENY ?? 0.85), 0.5, 0.99),
 		askP: clamp(Number(env.REFLEX_THRESHOLD_ASK ?? 0.55), 0.3, Number(env.REFLEX_THRESHOLD_DENY ?? 0.85)),
-		timeoutMs: Number(env.REFLEX_TIMEOUT_MS ?? 3000),
-		maxFailures: Number(env.REFLEX_MAX_FAILURES ?? 3),
+		timeoutMs: num(env.REFLEX_TIMEOUT_MS, 3000),
+		maxFailures: num(env.REFLEX_MAX_FAILURES, 3),
+		recoveryMs: num(env.REFLEX_RECOVERY_MS, 30 * 60 * 1000),
 		log: env.REFLEX_LOG ?? join(homedir(), ".local", "share", "reflex", "verdicts.jsonl"),
 		stateFile: env.REFLEX_STATE_FILE ?? join(homedir(), ".local", "share", "reflex", "failstate.json"),
 		disabled: env.REFLEX_DISABLED === "1",
@@ -91,6 +93,12 @@ function resolveConfig(env = process.env) {
 }
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : lo));
+// env number with default: unset/empty/non-numeric → default (a NaN here would
+// silently disable the failure breaker: NaN comparisons are always false)
+const num = (v, d) => {
+	const n = Number(v);
+	return v === undefined || v === "" || !Number.isFinite(n) ? d : n;
+};
 
 // -- Fast paths (local, no network) ------------------------------------------
 // SECURITY NOTE: every pattern is anchored over the WHOLE segment (^…$). A
@@ -99,33 +107,81 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : 
 // sed (-i), sort (-o), tee, git branch/tag with args, gh api (can POST) —
 // anything with a write mode goes to the model or the classifier instead.
 
+// curl HEAD-only probe, token-based so flag position can't dodge the check
+// (the regex form only inspected the first flag bundle): an -I/--head flag
+// must be present AND no token may carry a body, method override, upload,
+// or a response/header/config file write — short bundles containing
+// d D F O o T X K, long --data* --form* --upload* --request* --dump*
+// --output --remote-name* --trace* --libcurl --config.
+const curlHeadOnly = (seg) => {
+	if (!/^curl\s/.test(seg)) return false;
+	const tokens = seg.split(/\s+/).slice(1);
+	const head = tokens.some((t) => t === "--head" || (/^-[A-Za-z]+$/.test(t) && t.includes("I")));
+	return head && !tokens.some((t) =>
+		/^-[A-Za-z]*[dDFOoTXK]/.test(t) || /^--(data|form|upload|request|dump|output|remote|trace|libcurl|config)/.test(t));
+};
+
 const RO_PATTERNS = [
 	// intrinsically read-only programs, any flags/args to end of segment
 	/^(?:ls|pwd|cat|head|tail|wc|file|stat|du|df|tree|which|type|date|uname|hostname|id|whoami|groups|tty|printenv|locale|jq|yq|md5sum|sha1sum|sha256sum|cksum|diff|comm|cut)(?:\s+(?:-{1,2}[\w][\w-]*|"[^"\n]*"|'[^'\n]*'|[^\s"'|;&`\\]+))*$/,
-	// read-only git subcommands
-	/^git (?:status|log|diff|show|blame|rev-parse|describe)(?:\s+\S.*)?$/,
+	// more read-only programs, with write-mode exclusions where one exists
+	/^grep\b/,
+	// sort without an output flag — \S* also catches attached (-oFILE) values
+	/^sort\b(?!(?:.*\s)?(?:-o\S*|--output\S*))(?:\s.*)?$/,
+	/^uniq\b|^column\b|^basename\b|^dirname\b|^realpath\b|^readlink\b/,
+	// find without write/exec actions — --? covers single AND double dash
+	// (--delete), \w* covers -execdir/-okdir; -executable is over-blocked,
+	// deliberately conservative
+	/^find\b(?!.*\s--?(?:delete|exec\w*|ok\w*|fls|fprint\w*)\b)/,
+	// sed in pure line-print mode, whole-segment anchored: flags are one
+	// -n-containing bundle (or --quiet/--silent) with no i (in-place) or
+	// f (script file) in it; the script is a single quoted-or-bare token of
+	// only addresses/p (no s/w/e/d-with-s — w and GNU e can write/execute);
+	// any later token must not start with "-" (no trailing -e/-f/-i)
+	/^sed\s+(?:--(?:quiet|silent)|-(?![A-Za-z]*[if])[A-Za-z]*n[A-Za-z]*)\s+(['"]?)[0-9$,p]*\1(?:\s+[^-\s]\S*)*$/,
+	// parse-only interpreter modes (no execution)
+	/^(?:ba|z|k)?sh\s+-n\b|^node\s+--check\b/,
+	// trivial no-op / timing segments
+	/^(?:echo|printf|true|false|sleep)(?:\s.*)?$/,
+	// cd to any target cannot write anything
+	/^cd\b/,
+	// command -v: the only safe slice of `command` — bare `command rm …`
+	// would execute its argument, so no broader form
+	/^command (?:-v|-V|--version)\s+\S+(?:\s+\S+)*$/,
+	// read-only git subcommands — --output (git diff --output=FILE) writes
+	/^git (?:status|log|diff|show|blame|rev-parse|describe|check-ignore|ls-files|cat-file|rev-list)\b(?!(?:.*\s)?--output(?:\s|=))(?:\s+\S.*)?$/,
 	/^git (?:branch|tag)(?: (?:--list|-l|-a|-r|-v|-vv|--all|--remotes))?$/,
 	/^git remote -v$/,
+	// read-only gh subcommands
+	/^gh (?:pr|issue|repo) (?:view|list|checks|diff)\b/,
 	// package and toolchain version/read queries
 	/^(?:npm|pnpm) (?:ls|list|outdated|view)\b.*$|^yarn (?:info|list)\b.*$/,
 	/^(?:node|python3?|cargo|rustc|gcc|g\+\+|make) (?:--version|-v)$|^go version$/,
 	// process/system reads
 	/^(?:ps|pgrep|lscpu|lsblk)\b|^lsof -i\b|^ss -l\b|^netstat -l\b|^free$|^uptime$|^nproc$/,
 	/^systemctl (?:status|list-|is-active|is-enabled)\b/,
-	// read-only network probes (HEAD / spider only)
-	/^curl\s+(?:-\w+\s+)*-I\b.*$|^wget\s+(?:-\w+\s+)*--spider\b.*$/,
+	// read-only network probes (HEAD / spider only — plain GETs still go to
+	// the model: a literal secret in a URL must never be silently allowed).
+	curlHeadOnly, /^wget\s+(?:-\w+\s+)*--spider\b.*$/,
 ];
 
 function splitSegments(cmd) {
-	const stripped = cmd.replace(/(?:\d)?\s*&?\s*\/dev\/null/g, " ");
-	// any redirection other than /dev/null → not fast-path (writes somewhere)
+	const stripped = cmd
+		// to /dev/null: harmless — covers >, >>, N>, N>>, &>, &>> (the
+		// &>? form only matched &>-variants and killed the fast path for
+		// plain >/dev/null and 2>/dev/null)
+		.replace(/(?:\d)?\s*&?>{1,2}\s*\/dev\/null/g, " ")
+		.replace(/(?:\d)?\s*>&\s*\d+/g, " "); // fd duplication (2>&1): harmless
+	// any redirection other than the above → not fast-path (writes somewhere)
 	if (/(?:\d)?[<>]{1,2}\s*\S+/.test(stripped)) return null;
-	return stripped.split(/\||&&|\|\||;|\$\(|`|\n/g).map((s) => s.trim()).filter(Boolean);
+	// (?<!\\)\| — an escaped pipe (grep 'a\|b' BRE alternation) is a literal
+	// argument, not a pipe operator; splitting on it broke whole compounds
+	return stripped.split(/\|\||&&|(?<!\\)\||;|\$\(|`|\n/g).map((s) => s.trim()).filter(Boolean);
 }
 
 function fastPathAllow(cmd) {
 	const segs = splitSegments(cmd);
-	return segs !== null && segs.length > 0 && segs.every((s) => RO_PATTERNS.some((re) => re.test(s)));
+	return segs !== null && segs.length > 0 && segs.every((s) => RO_PATTERNS.some((p) => (typeof p === "function" ? p(s) : p.test(s))));
 }
 
 // Unambiguous destruction — deny without a model call.
@@ -185,16 +241,28 @@ async function systemOneCall(spec, apiKey, state, timeoutMs) {
 }
 
 async function runChain(cfg, env, state, failState) {
+	const now = Date.now();
 	for (const name of cfg.providers) {
 		const spec = cfg.specs[name];
 		if (!spec || !providerActive(spec, env)) continue;
-		if ((failState[name] ?? 0) >= cfg.maxFailures) continue;
+		// circuit breaker: skip a provider while it has maxFailures AND the
+		// recovery cooldown hasn't elapsed — after the cooldown it gets one
+		// half-open retry (success clears the entry, failure re-opens it)
+		const entry = failState[name];
+		const disabled = typeof entry?.count === "number" && typeof entry?.since === "number"
+			? entry.count >= cfg.maxFailures && now - entry.since < cfg.recoveryMs
+			: false; // legacy bare-number entries: treated as expired
+		if (disabled) continue;
 		try {
 			const ps = await systemOneCall(spec, env[spec.apiKeyEnv ?? ""] ?? undefined, state, spec.timeoutMs ?? cfg.timeoutMs);
 			delete failState[name];
 			return { provider: name, ps };
 		} catch (err) {
-			failState[name] = (failState[name] ?? 0) + 1;
+			const prev = failState[name];
+			const count = (typeof prev?.count === "number" ? prev.count : (typeof prev === "number" ? prev : 0)) + 1;
+			// stamp since on every failure: the cooldown restarts from the
+			// latest failure, including a failed half-open retry
+			failState[name] = { count, since: now };
 			logLine(cfg, { ts: new Date().toISOString(), kind: "provider-error", provider: name, error: String(err?.message || err).slice(0, 60) });
 		}
 	}

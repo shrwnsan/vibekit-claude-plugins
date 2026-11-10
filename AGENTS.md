@@ -215,6 +215,17 @@ Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps rid
 - 8-skill core + 5 gate agents + 8 opt-in role packs
 - License: CC BY-SA 4.0 (only non-Apache plugin)
 
+### tempo (`plugins/tempo/`)
+- Safety-proportional process: risk-triage router + tier-0/1/2 flow skills + SessionStart routing table
+- Measured against bare Claude Code and a process-heavy reference (tasks-005); skills hub-published to shrwnsan/agents
+- Skills sync allowlisted in `.github/sync-skills.json`; routing golden set in `evals/ceremony/`
+
+### Reflex (`plugins/reflex/`)
+- Pre-classifier permission gate for auto mode: typed allow/ask/deny PreToolUse decisions from System One decision models (TypeSafe Jev, Liquid d1, compatible endpoints)
+- Local regex fast paths (allow read-only, deny unambiguous destruction); decision-model chain only for risky-but-contextual commands
+- Fails safe: provider error or uncertainty hands the call back to Claude Code's own classifier; `REFLEX_DISABLED=1` kill switch; every verdict logged as JSONL
+- v0.1.0: thresholds uncalibrated by design — verdict log + `evals/reflex/` harness accumulate labels for tuning
+
 ## PR guidelines
 
 - Update marketplace.json version for new plugins

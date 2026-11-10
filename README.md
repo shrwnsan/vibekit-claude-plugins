@@ -10,7 +10,7 @@ A curated collection of productivity-enhancing plugins for Claude Code, designed
 
 ## 🧭 The Idea Behind VibeKit
 
-Agentic development has five friction points, and each plugin targets one:
+Agentic development has six friction points, and each plugin targets one:
 
 | Friction point | Plugin | The fix |
 |---|---|---|
@@ -19,8 +19,9 @@ Agentic development has five friction points, and each plugin targets one:
 | **Output** — vibes need hygiene | 🛠️ [base](#️-base) | Disciplined commits, quality gates, and worktree isolation before anything lands |
 | **Attention** — long agent runs pull you out of flow | 🔔 [ping](#-ping) | Sound notifications call you back exactly when it's your turn |
 | **Process** — every change pays the flat ceremony tax | ⏱️ [tempo](#️-tempo) | Risk-tiered loop: trivial changes skip ceremony, risky changes earn it |
+| **Safety** — auto mode fires shell commands without a second look | 🛡️ [reflex](#️-reflex) | Typed allow/ask/deny gate decides before execution; uncertainty or failure hands the call back untouched |
 
-The through-line: **remove the human as the bottleneck** — either by making the agent self-sufficient (search fallback, quality gates), pacing your attention (notifications, decision logs), or pacing the agent's process to the task's risk (tempo). And it stays deliberately low-dependency: search-plus works without API keys, ping needs no services, haku is process rather than API, tempo is structure rather than infrastructure.
+The through-line: **remove the human as the bottleneck** — either by making the agent self-sufficient (search fallback, quality gates), pacing your attention (notifications, decision logs), pacing the agent's process to the task's risk (tempo), or spending the human's attention only where a calibrated gate says it's actually needed (reflex). And it stays deliberately low-dependency: search-plus works without API keys, ping needs no services, haku is process rather than API, tempo is structure rather than infrastructure, and reflex's local regex fast paths are keyless — without a provider key it simply steps aside.
 
 ## 🚀 Quick Start
 
@@ -188,10 +189,37 @@ Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk
 
 [→ Detailed Documentation](plugins/tempo/README.md)
 
+### 🛡️ Reflex
+
+A permission gate for Claude Code's auto mode. Before the built-in auto-mode classifier sees a shell command, reflex screens it: local regex rules instantly allow read-only commands and deny unambiguous destruction, while risky-but-contextual commands go to a System One decision model (TypeSafe Jev, Liquid d1, or any compatible endpoint) that returns typed risk probabilities — allow / ask a human / deny.
+
+**Key Features:**
+- 🎯 **Typed decisions, not prose**: allow/ask/deny from calibrated probabilities across destructive, exfiltration, and prod/shared-infra dimensions — not a chat model's gut feel
+- ⚡ **Local fast paths**: read-only commands pass with zero latency; unambiguous destruction is denied without any model call
+- 🪂 **Fails safe by construction**: provider error, timeout, or mid-band uncertainty hands the call back to Claude Code's own classifier untouched — reflex can only sharpen a decision, never loosen one
+- 🔁 **Provider cycle with failover**: Liquid and TypeSafe presets, custom specs for Vercel AI Gateway / OpenRouter / any System One-compatible endpoint; three consecutive failures bench a provider
+- 🚨 **Kill switch**: `REFLEX_DISABLED=1` steps the whole gate aside
+- 📊 **Every verdict logged**: one JSON line per decision in `~/.local/share/reflex/verdicts.jsonl`, model calls and errors included
+
+**Main use case:** running Claude Code in auto-accept mode without blanket trust — especially in prod-adjacent or shared-infrastructure repos, where you want a machine-speed second opinion on shell commands and a hard stop on the obviously destructive.
+
+**Enable it:**
+```bash
+/plugin install reflex@vibekit
+export TYPESAFE_API_KEY=...  # or LIQUID_API_KEY — or point a spec at a localhost System One endpoint for zero egress
+# start a new session, then watch decisions land:
+tail -f ~/.local/share/reflex/verdicts.jsonl
+```
+
+**Metrics:** none published yet, deliberately. The deny/ask thresholds (0.85 / 0.55) are starting points, not truths — the verdict log accumulates labeled real traffic and the eval harness in [evals/reflex/](evals/reflex/) consumes the same format, so thresholds get tuned against your own usage rather than guessed. Numbers land in this section once real traffic has accumulated.
+
+[→ Detailed Documentation](plugins/reflex/README.md)
+
 ## 🎯 What You Can Do
 
 Our plugins help developers:
 
+- **Gate Auto Mode**: Screen shell commands through a permission gate that fails safe before execution
 - **Automate Git Workflows**: Create intelligent commits with proper formatting
 - **Research Reliably**: Search the web without hitting rate limits or errors
 - **Extract Web Content**: Pull information from documentation and tutorials

@@ -1,0 +1,17 @@
+{
+  "description": "Pre-classifier risk gate: fast-path read-only allows and deterministic denies locally; ambiguous shell commands go to a decision-model provider chain. Fails silent (classifier hand-off) on any gate error.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/reflex-gate.mjs",
+            "timeout": 12
+          }
+        ]
+      }
+    ]
+  }
+}

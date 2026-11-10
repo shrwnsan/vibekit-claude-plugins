@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/reflex-gate.mjs",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/reflex-gate.mjs\"",
             "timeout": 12
           }
         ]

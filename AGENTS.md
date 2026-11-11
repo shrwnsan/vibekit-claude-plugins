@@ -226,6 +226,7 @@ Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps rid
 - Fails safe: provider error or uncertainty hands the call back to Claude Code's own classifier; `REFLEX_DISABLED=1` kill switch; every verdict logged as JSONL
 - v0.1.0: thresholds uncalibrated by design — verdict log + `evals/reflex/` harness accumulate labels for tuning
 - v0.1.3: auto-mode-only scope (hook reads `permission_mode`; `REFLEX_ALL_MODES=1` extends ask/deny, never allows outside auto), secrets fast-path ask, labeled fast-path reasons (label + matched snippet), verdict log carries full command + `mode`/`ms`/`callMs`/`pattern`
+- v0.1.4: verdict log and failstate created 0600/0700 (the log stores verbatim command text); inline credential literals (Authorization/Bearer headers, `sk-`/GitHub/AWS/Slack tokens, PEM blocks) fire the step-0 secrets ask before the provider chain, so a literal credential reaches a human and never egresses to a decision-model provider
 
 ## PR guidelines
 

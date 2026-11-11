@@ -197,10 +197,10 @@ A permission gate for Claude Code's auto mode. Before the built-in auto-mode cla
 - 🎯 **Typed decisions, not prose**: allow/ask/deny from calibrated probabilities across destructive, exfiltration, and prod/shared-infra dimensions — not a chat model's gut feel
 - ⚡ **Local fast paths**: read-only commands pass with zero latency; unambiguous destruction is denied without any model call
 - 🪂 **Fails safe by construction**: provider error, timeout, or mid-band uncertainty hands the call back to Claude Code's own classifier untouched — reflex can only sharpen a decision, never loosen one
-- 🔒 **Mode-scoped, secrets-aware**: gates in auto mode only (`REFLEX_ALL_MODES=1` opts into ask/deny elsewhere, `bypassPermissions` always excluded); a command naming `.env`/`.pem`/`id_rsa`-class material asks before the read-only fast path can allow it
+- 🔒 **Mode-scoped, secrets-aware**: gates in auto mode only (`REFLEX_ALL_MODES=1` opts into ask/deny elsewhere, `bypassPermissions` always excluded); a command naming `.env`/`.pem`/`id_rsa`-class material asks before the read-only fast path can allow it, and a command carrying an inline credential literal (Authorization/Bearer header, `sk-`/GitHub/AWS/Slack-class token, PEM key block) asks before any provider call, so the secret never reaches the decision model
 - 🔁 **Provider cycle with failover**: Liquid and TypeSafe presets, custom specs for Vercel AI Gateway / OpenRouter / any System One-compatible endpoint; three consecutive failures bench a provider
 - 🚨 **Kill switch**: `REFLEX_DISABLED=1` steps the whole gate aside
-- 📊 **Every verdict logged**: one JSON line per decision in `~/.local/share/reflex/verdicts.jsonl`, model calls and errors included
+- 📊 **Every verdict logged**: one JSON line per decision in `~/.local/share/reflex/verdicts.jsonl`, model calls and errors included. The log stores your commands verbatim, so it and the failstate file are created user-private (0600, directories 0700); existing files from older versions need a one-time `chmod 600`
 
 **Main use case:** running Claude Code in auto-accept mode without blanket trust — especially in prod-adjacent or shared-infrastructure repos, where you want a machine-speed second opinion on shell commands and a hard stop on the obviously destructive.
 

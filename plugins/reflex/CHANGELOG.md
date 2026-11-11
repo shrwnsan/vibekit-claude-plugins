@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.4 (2026-11-12)
+
+- Fixed: the verdict log and failstate files were world-readable (0644)
+  while the log stores verbatim command text — anything typed, including
+  inline credentials. Fresh files are now 0600 and directories 0700;
+  existing files need a one-time `chmod 600` (done on the reference
+  install).
+- Fixed: a command carrying an inline credential literal (Authorization/
+  Bearer headers, OpenAI-style `sk-` keys, GitHub tokens, AWS access key
+  ids, Slack tokens, PEM private key blocks) went to the decision-model
+  provider chain — egressing the secret to a third-party API before any
+  verdict. Inline literals now fire the same step-0 secrets ask as
+  secrets-file names, BEFORE the chain: a command carrying a literal
+  credential reaches a human, never a provider. Raises the bar, not a
+  guarantee — providers only ever receive commands these regexes miss.
+
 ## 0.1.3 (2026-11-12)
 
 - Fixed: the gate was blind to the session's permission mode and ran on

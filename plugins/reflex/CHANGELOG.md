@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.1.3 (2026-11-12)
+
+- Fixed: the gate was blind to the session's permission mode and ran on
+  every Bash call. In manual modes a reflex `allow` bypassed the human
+  prompt and a reflex `deny` took the decision from the human — both
+  violations of "can only sharpen, never loosen". The gate now reads
+  `permission_mode` from the hook input and silently exits unless it is
+  `auto`, restoring the untouched default flow everywhere else.
+- Fixed: the read-only fast path could auto-allow reads of secrets files
+  (`cat .env`, `head ~/.aws/credentials`) ahead of the auto-mode
+  classifier's own secrets review — read-only is not safe. A new local
+  fast path asks a human whenever a command names secrets/key material
+  (`.env`, `.pem`, `.key`, `.p12`, `.pfx`, `id_rsa`, `id_ed25519`,
+  `id_ecdsa`, `credentials.json`, `.aws/credentials`, `.netrc`).
+- Improved: fast-path hook reasons now name what fired — the matched
+  pattern's label and the matched snippet (≤60 chars), e.g.
+  `risky pattern — force push: "git push --force" (human decides)`
+  instead of `risky pattern needs human eyes (local regex)`. Deny/ask/
+  secrets regexes became labeled pattern lists; the verdict log gains a
+  `pattern` field.
+
+- Added: `REFLEX_ALL_MODES=1` extends gating to non-auto modes, ask/deny
+  only — reflex never allows outside auto mode in any configuration, and
+  `bypassPermissions` is always excluded (with no prompts beneath the
+  gate, a deny there would make reflex the sole authority). Default
+  scope is unchanged: auto mode only.
+- Improved: verdict log carries the same 2,000-char command the gate
+  decided on (the old 200-char prefix silently mislabeled eval-harness
+  replays of long compound commands), plus `mode`, `ms` (end-to-end hook
+  latency) and `callMs` (provider round-trip) on verdicts, and
+  command/cwd on `provider-error` lines so an outage can be correlated
+  with the calls it affected. All additive keys; the existing harness
+  keeps working.
+
 ## 0.1.2 (2026-11-10)
 
 - Changed: default provider cycle order is now `typesafe,liquid` — Jev

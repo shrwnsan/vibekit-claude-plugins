@@ -1,7 +1,7 @@
 {
   "name": "reflex",
   "description": "Pre-classifier permission gate for Claude Code auto mode: System One decision models (TypeSafe Jev, Liquid d1, any compatible endpoint) return typed allow/ask/deny PreToolUse decisions. Fails safe: on error, silence hands the call back to Claude Code's own classifier.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "author": {
     "name": "shrwnsan"
   },

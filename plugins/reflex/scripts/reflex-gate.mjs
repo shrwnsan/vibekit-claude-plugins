@@ -2,8 +2,13 @@
 /**
  * reflex-gate — PreToolUse decision gate for Claude Code auto mode.
  *
- * Sits BETWEEN Claude Code's allow rules and its auto-mode classifier:
+ * Sits BETWEEN Claude Code's allow rules and its auto-mode classifier, in
+ * AUTO MODE ONLY (any other permission mode → silent exit: an allow here
+ * would bypass the human prompt, a loosening the posture below forbids):
  *
+ *   0. SECRETS ASK — a command naming secrets/key material (.env, *.pem,
+ *      id_rsa, …) asks a human before the read-only fast path can allow it:
+ *      read-only ≠ safe.
  *   1. FAST-PATH ALLOW — read-only shell commands, decided locally by regex,
  *      zero latency, no network. Only whole-command matches: every pipe/chain
  *      segment must be read-only, redirections only to /dev/null.
@@ -39,6 +44,8 @@
  *                         recovery cooldown elapses (default 3)
  *   REFLEX_RECOVERY_MS    provider recovery cooldown (default 1800000)
  *   REFLEX_LOG            verdict log path
+ *   REFLEX_ALL_MODES      "1" → also gate non-auto modes (ask/deny only;
+ *                                                    bypassPermissions never)
  *   REFLEX_DISABLED       "1" → exit 0 immediately (kill switch)
  *
  * Provider presets (active = keyless or env var set):
@@ -89,6 +96,7 @@ function resolveConfig(env = process.env) {
 		log: env.REFLEX_LOG ?? join(homedir(), ".local", "share", "reflex", "verdicts.jsonl"),
 		stateFile: env.REFLEX_STATE_FILE ?? join(homedir(), ".local", "share", "reflex", "failstate.json"),
 		disabled: env.REFLEX_DISABLED === "1",
+		allModes: env.REFLEX_ALL_MODES === "1",
 	};
 }
 
@@ -184,20 +192,51 @@ function fastPathAllow(cmd) {
 	return segs !== null && segs.length > 0 && segs.every((s) => RO_PATTERNS.some((p) => (typeof p === "function" ? p(s) : p.test(s))));
 }
 
-// Unambiguous destruction — deny without a model call.
-const DENY_RE = new RegExp([
-	// rm with -r and/or -f flags targeting home, an absolute path, or an ALL-CAPS shell var
-	"rm\\s+(?:-[a-zA-Z]*[rf][a-zA-Z]*\\s+)+(?:~|\\$HOME|/[^\"\\s]*|\"\\$?[A-Z_]{2,}\")",
-	// raw device writes and filesystem creation
-	"dd\\s+[^\\n]*of=/dev/(?:sd|nvme|vd)",
-	">\\s*/dev/(?:sd|nvme|vd)",
-	"mkfs(?:\\.\\w+)?\\s",
-	// classic fork bomb
-	":\\(\\)\\s*\\{\\s*:\\|:&\\s*\\};:",
-].join("|"));
+// Unambiguous destruction — deny without a model call. Labeled so the
+// hook reason tells the human WHAT was matched, not just that something was.
+const DENY_PATTERNS = [
+	["recursive rm of home/absolute path", /rm\s+(?:-[a-zA-Z]*[rf][a-zA-Z]*\s+)+(?:~|\$HOME|\/[^"\s]*|"\$?[A-Z_]{2,}")/],
+	["raw device write (dd of=)", /dd\s+[^\n]*of=\/dev\/(?:sd|nvme|vd)/],
+	["raw device write (redirect)", />\s*\/dev\/(?:sd|nvme|vd)/],
+	["filesystem creation (mkfs)", /mkfs(?:\.\w+)?\s/],
+	["fork bomb", /:\(\)\s*\{\s*:\|:&\s*\};:/],
+];
 
 // Risky-but-context-dependent — a human should see these regardless of model.
-const ASK_RE = /git\s+push\s+(--force|-f\b)|git\s+reset\s+--hard|git\s+clean\s+-[a-zA-Z]*f|git\s+checkout\s+--\s+\.\s*$|git\s+restore\s+\.\s*$|DROP\s+(TABLE|DATABASE)|terraform\s+destroy|kubectl\s+delete\s+(ns|namespace)|chmod\s+-R\s+777\s+\/(?!tmp|home\/\w+\/\.cache)/i;
+const ASK_PATTERNS = [
+	["force push", /git\s+push\s+(--force|-f\b)/],
+	["git reset --hard (discards uncommitted work)", /git\s+reset\s+--hard/],
+	["git clean -f (deletes untracked files)", /git\s+clean\s+-[a-zA-Z]*f/],
+	["discard all local changes (git checkout -- .)", /git\s+checkout\s+--\s+\.\s*$/],
+	["discard all local changes (git restore .)", /git\s+restore\s+\.\s*$/],
+	["SQL DROP TABLE/DATABASE", /DROP\s+(TABLE|DATABASE)/],
+	["terraform destroy", /terraform\s+destroy/],
+	["kubectl delete namespace", /kubectl\s+delete\s+(ns|namespace)/],
+	["chmod -R 777 on /", /chmod\s+-R\s+777\s+\/(?!tmp|home\/\w+\/\.cache)/],
+];
+
+// Secrets-file exposure — a command naming credential/key material must reach
+// a human: read-only ≠ safe, and a read-only fast-path allow would preempt the
+// auto-mode classifier's own secrets block lists (cat .env, head ~/.aws/
+// credentials). Conservative by design: writing or generating a key also asks.
+const SECRETS_PATTERNS = [
+	[".env file", /\.env\b/],
+	["certificate/key file (.pem/.key/.p12/.pfx)", /\.(?:pem|key|p12|pfx)\b/],
+	["SSH private key (id_rsa/id_ed25519/id_ecdsa)", /id_(?:rsa|ed25519|ecdsa)\b/],
+	["credentials file", /credentials\.json\b|\.aws\/credentials/],
+	[".netrc (stored credentials)", /\.netrc\b/],
+];
+
+// First labeled pattern matching the command: {label, snippet} | null. The
+// snippet (≤60 chars) is the matched text itself — shown to the human so the
+// hook reason names WHAT fired, not just that something did.
+function firstMatch(patterns, cmd) {
+	for (const [label, re] of patterns) {
+		const m = cmd.match(re);
+		if (m) return { label, snippet: m[0].slice(0, 60) };
+	}
+	return null;
+}
 
 // -- Decision-model chain -----------------------------------------------------
 
@@ -240,7 +279,7 @@ async function systemOneCall(spec, apiKey, state, timeoutMs) {
 	return ps;
 }
 
-async function runChain(cfg, env, state, failState) {
+async function runChain(cfg, env, state, failState, logCtx = {}) {
 	const now = Date.now();
 	for (const name of cfg.providers) {
 		const spec = cfg.specs[name];
@@ -254,16 +293,19 @@ async function runChain(cfg, env, state, failState) {
 			: false; // legacy bare-number entries: treated as expired
 		if (disabled) continue;
 		try {
+			const callT0 = Date.now();
 			const ps = await systemOneCall(spec, env[spec.apiKeyEnv ?? ""] ?? undefined, state, spec.timeoutMs ?? cfg.timeoutMs);
 			delete failState[name];
-			return { provider: name, ps };
+			return { provider: name, ps, callMs: Date.now() - callT0 };
 		} catch (err) {
 			const prev = failState[name];
 			const count = (typeof prev?.count === "number" ? prev.count : (typeof prev === "number" ? prev : 0)) + 1;
 			// stamp since on every failure: the cooldown restarts from the
 			// latest failure, including a failed half-open retry
 			failState[name] = { count, since: now };
-			logLine(cfg, { ts: new Date().toISOString(), kind: "provider-error", provider: name, error: String(err?.message || err).slice(0, 60) });
+			// command/cwd included so an outage can be correlated with the
+			// calls it affected (what fell through to the classifier, and when)
+			logLine(cfg, { ts: new Date().toISOString(), kind: "provider-error", provider: name, error: String(err?.message || err).slice(0, 60), ...logCtx });
 		}
 	}
 	return null;
@@ -304,6 +346,7 @@ function decide(cfg, decision, reason, extra = {}) {
 // -- Main ------------------------------------------------------------------------
 
 async function main() {
+	const t0 = Date.now();
 	const env = process.env;
 	const cfg = resolveConfig(env);
 	if (cfg.disabled || cfg.providers.length === 0) return; // silent: classifier hand-off
@@ -315,26 +358,56 @@ async function main() {
 	const cmd = String(input?.tool_input?.command ?? "").slice(0, 2000);
 	if (!cmd.trim()) return;
 
-	const logCommon = { command: cmd.slice(0, 200), cwd: process.cwd() };
+	// Mode gate. INVARIANT: reflex never allows outside auto mode, in any
+	// configuration — a reflex "allow" there would bypass the human prompt
+	// (a loosening the failure posture forbids). Default scope is auto only;
+	// REFLEX_ALL_MODES=1 extends ask/deny gating to other modes. In
+	// bypassPermissions there are no prompts beneath the gate, so a deny
+	// would make reflex the sole authority — that mode is always excluded
+	// (an unrecognized mode string simply never matches: silent exit).
+	const mode = input?.permission_mode ?? input?.permissionMode;
+	const gated = mode === "auto"
+		|| (cfg.allModes && mode !== "bypassPermissions");
+	if (!gated) return; // silent: untouched default flow
+
+	const logCommon = {
+		// same 2,000-char string the gate decided on — the eval harness replays
+		// from this log, so a truncated prefix would silently mislabel replays
+		command: cmd,
+		cwd: process.cwd(),
+		mode, // the gate only acts in auto; recording it makes every line auditable
+		ms: Date.now() - t0, // end-to-end hook cost: the "fast, cheap" claim, measured
+	};
+
+	// No-allow invariant: outside auto mode an "allow" becomes a silent exit —
+	// the default flow (the human prompt) handles the call instead.
+	const emit = (_cfg, decision, reason, extra) =>
+		decision === "allow" && mode !== "auto" ? undefined : decide(cfg, decision, reason, extra);
+
+	// 0. Secrets exposure — before the read-only fast path, so cat .env asks.
+	const secret = firstMatch(SECRETS_PATTERNS, cmd);
+	if (secret) return emit(cfg, "ask", `names secrets material — ${secret.label}: "${secret.snippet}"`, { ...logCommon, fastpath: "secrets", pattern: secret.label });
 
 	// 1-3. Local fast paths — decided without the network.
-	if (fastPathAllow(cmd)) return decide(cfg, "allow", "read-only fast path", { ...logCommon, fastpath: "allow" });
-	if (DENY_RE.test(cmd)) return decide(cfg, "deny", "unambiguous destructive pattern (local regex)", { ...logCommon, fastpath: "deny" });
-	if (ASK_RE.test(cmd)) return decide(cfg, "ask", "risky pattern needs human eyes (local regex)", { ...logCommon, fastpath: "ask" });
+	if (fastPathAllow(cmd)) return emit(cfg, "allow", "read-only fast path", { ...logCommon, fastpath: "allow" });
+	const denyHit = firstMatch(DENY_PATTERNS, cmd);
+	if (denyHit) return emit(cfg, "deny", `unambiguous destruction — ${denyHit.label}: "${denyHit.snippet}"`, { ...logCommon, fastpath: "deny", pattern: denyHit.label });
+	const askHit = firstMatch(ASK_PATTERNS, cmd);
+	if (askHit) return emit(cfg, "ask", `risky pattern — ${askHit.label}: "${askHit.snippet}" (human decides)`, { ...logCommon, fastpath: "ask", pattern: askHit.label });
 
 	// 4. Decision-model chain.
 	const failState = loadFailState(cfg);
 	const state = `Shell command proposed for execution.\nWorking directory: ${process.cwd()}\nCommand: ${cmd}`;
-	const result = await runChain(cfg, env, state, failState);
+	const result = await runChain(cfg, env, state, failState, logCommon);
 	saveFailState(cfg, failState);
 	if (!result) return; // silent: classifier hand-off — never allow on gate failure
 
 	const riskP = Math.max(...result.ps);
 	const worst = ["destructive", "exfiltration", "prod_infra"][result.ps.indexOf(riskP)];
-	if (riskP >= cfg.denyP) return decide(cfg, "deny", `${result.provider} ${worst}=p${riskP.toFixed(2)} ≥ deny ${cfg.denyP}`, { ...logCommon, provider: result.provider, riskP, worst });
-	if (riskP >= cfg.askP) return decide(cfg, "ask", `${result.provider} ${worst}=p${riskP.toFixed(2)} — uncertain, human decides`, { ...logCommon, provider: result.provider, riskP, worst });
-	if (result.ps.every((p) => p <= 1 - cfg.askP)) return decide(cfg, "allow", `${result.provider} max-risk=p${riskP.toFixed(2)} — confidently safe`, { ...logCommon, provider: result.provider, riskP, worst });
-	return decide(cfg, "ask", `${result.provider} probabilities straddle thresholds — human decides`, { ...logCommon, provider: result.provider, riskP, worst });
+	if (riskP >= cfg.denyP) return emit(cfg, "deny", `${result.provider} ${worst}=p${riskP.toFixed(2)} ≥ deny ${cfg.denyP}`, { ...logCommon, provider: result.provider, riskP, worst, callMs: result.callMs });
+	if (riskP >= cfg.askP) return emit(cfg, "ask", `${result.provider} ${worst}=p${riskP.toFixed(2)} — uncertain, human decides`, { ...logCommon, provider: result.provider, riskP, worst, callMs: result.callMs });
+	if (result.ps.every((p) => p <= 1 - cfg.askP)) return emit(cfg, "allow", `${result.provider} max-risk=p${riskP.toFixed(2)} — confidently safe`, { ...logCommon, provider: result.provider, riskP, worst, callMs: result.callMs });
+	return emit(cfg, "ask", `${result.provider} probabilities straddle thresholds — human decides`, { ...logCommon, provider: result.provider, riskP, worst, callMs: result.callMs });
 }
 
 main().catch(() => process.exit(0)); // any gate bug must never block or allow

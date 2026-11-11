@@ -10,6 +10,7 @@ key for.
 
 ```
 Bash call → reflex
+  ├─ names secrets/key material → ASK    (local regex — read-only ≠ safe)
   ├─ read-only regex          → ALLOW            (local, zero latency)
   ├─ unambiguous destruction  → DENY             (local regex — "places a regex beats the model")
   ├─ risky-but-contextual     → ASK              (local regex)
@@ -29,10 +30,18 @@ which "can only save a call, never block one". Reflex can only *sharpen* a
 decision, never loosen one:
 
 - **Uncertain probabilities** → `ask` (a human), never silent-allow.
+- **Any permission mode other than auto mode** → **silent exit**. In manual
+  modes a reflex `allow` would bypass the human prompt and a reflex `deny`
+  would take the decision from the human — both loosen the default flow,
+  so reflex gates nothing there.
+- **A command naming secrets or key material** (`.env`, `*.pem`, `id_rsa`,
+  …) → `ask` before the read-only fast path: a read-only allow must never
+  preempt the classifier's secrets review.
 - **Provider error, timeout, malformed response, chain exhausted** → **silent
   exit**: no hook output means Claude Code's normal flow — allow rules, then
   the auto-mode classifier — handles the call untouched.
 - **Plugin disabled or kill-switched** (`REFLEX_DISABLED=1`) → same silent exit.
+- **Hard rule, any configuration: reflex never allows outside auto mode.** `REFLEX_ALL_MODES=1` extends ask/deny gating to other modes; `bypassPermissions` is always excluded — with no prompts beneath the gate, a deny there would make reflex the sole authority.
 
 ## Providers
 
@@ -87,6 +96,7 @@ tail -f ~/.local/share/reflex/verdicts.jsonl
 | `REFLEX_MAX_FAILURES` | `3` | Consecutive failures → provider disabled |
 | `REFLEX_RECOVERY_MS` | `1800000` | Disabled-provider cooldown before a retry (30 min) |
 | `REFLEX_LOG` | `~/.local/share/reflex/verdicts.jsonl` | Verdict log (one JSON per line) |
+| `REFLEX_ALL_MODES` | – | `1` = also gate non-auto modes (ask/deny only — reflex never allows outside auto; `bypassPermissions` always excluded) |
 | `REFLEX_DISABLED` | – | `1` = kill switch (silent exit) |
 
 ## What the model sees (injection discipline)

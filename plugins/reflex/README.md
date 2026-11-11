@@ -118,10 +118,27 @@ rules.
 ## Measurement
 
 Every verdict — fast-path and model, provider errors included — is one JSON
-line in `REFLEX_LOG`. The eval harness (`evals/reflex/` in the vibekit repo)
-consumes the same format, so labelled sets for threshold tuning accumulate
-from real traffic instead of from guesses. Ship the harness, not just the
-gate (XavierJev's lesson: the wiring is the easy part).
+line in `REFLEX_LOG`. Since 0.1.5 each verdict also carries the hook's
+`tool_use_id`/`session_id`/`transcript_path`, which is what makes outcome
+labeling possible: the post-hoc correlator
+(`evals/reflex/correlate-outcomes.mjs` in the vibekit repo) joins verdicts
+to session transcripts and appends `kind:"outcome"` lines — `agreed`
+(the tool's fate matched the verdict), `overridden` (reality contradicted
+it), `no-match` (no transcript answer, ESC interrupt, ambiguous duplicate).
+It is idempotent, read-only over transcripts, and deliberately outside the
+gate process (zero hot-path latency, no new failure mode):
+
+```bash
+node evals/reflex/correlate-outcomes.mjs            # label + summarize
+node evals/reflex/correlate-outcomes.mjs --dry-run  # summary only
+```
+
+Its summary prints the override rate per decision and per pattern class —
+if humans approve most asks, ask patterns are over-fitted and train
+habituation; that number is the input to threshold tuning. Outcome labels
+accumulate only while 0.1.5+ is running (pre-0.1.5 verdict lines carry no
+ids and are skipped). Ship the harness, not just the gate (XavierJev's
+lesson: the wiring is the easy part).
 
 ## Thresholds are defaults, not truths
 

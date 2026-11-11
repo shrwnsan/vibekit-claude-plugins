@@ -191,12 +191,13 @@ Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk
 
 ### 🛡️ Reflex
 
-A permission gate for Claude Code's auto mode. Before the built-in auto-mode classifier sees a shell command, reflex screens it: local regex rules instantly allow read-only commands and deny unambiguous destruction, while risky-but-contextual commands go to a System One decision model (TypeSafe Jev, Liquid d1, or any compatible endpoint) that returns typed risk probabilities — allow / ask a human / deny.
+A permission gate for Claude Code's auto mode. Before the built-in auto-mode classifier sees a shell command, reflex screens it: local regex rules instantly allow read-only commands, ask on secrets/key material, and deny unambiguous destruction, while risky-but-contextual commands go to a System One decision model (TypeSafe Jev, Liquid d1, or any compatible endpoint) that returns typed risk probabilities — allow / ask a human / deny. Hard invariant: reflex never allows outside auto mode; `REFLEX_ALL_MODES=1` extends ask/deny gating to other modes.
 
 **Key Features:**
 - 🎯 **Typed decisions, not prose**: allow/ask/deny from calibrated probabilities across destructive, exfiltration, and prod/shared-infra dimensions — not a chat model's gut feel
 - ⚡ **Local fast paths**: read-only commands pass with zero latency; unambiguous destruction is denied without any model call
 - 🪂 **Fails safe by construction**: provider error, timeout, or mid-band uncertainty hands the call back to Claude Code's own classifier untouched — reflex can only sharpen a decision, never loosen one
+- 🔒 **Mode-scoped, secrets-aware**: gates in auto mode only (`REFLEX_ALL_MODES=1` opts into ask/deny elsewhere, `bypassPermissions` always excluded); a command naming `.env`/`.pem`/`id_rsa`-class material asks before the read-only fast path can allow it
 - 🔁 **Provider cycle with failover**: Liquid and TypeSafe presets, custom specs for Vercel AI Gateway / OpenRouter / any System One-compatible endpoint; three consecutive failures bench a provider
 - 🚨 **Kill switch**: `REFLEX_DISABLED=1` steps the whole gate aside
 - 📊 **Every verdict logged**: one JSON line per decision in `~/.local/share/reflex/verdicts.jsonl`, model calls and errors included

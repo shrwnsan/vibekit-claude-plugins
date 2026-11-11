@@ -1,8 +1,7 @@
 {
   "synced": [
     "base",
-    "search-plus",
-    "tempo"
+    "search-plus"
   ],
   "excluded": {
     "haku": "CC BY-SA 4.0 upstream (see plugins/haku/README.md) — syncing would mix licenses into the Apache-2.0 hub and strip required attribution"

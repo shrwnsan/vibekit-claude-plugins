@@ -225,6 +225,17 @@ const SECRETS_PATTERNS = [
 	["SSH private key (id_rsa/id_ed25519/id_ecdsa)", /id_(?:rsa|ed25519|ecdsa)\b/],
 	["credentials file", /credentials\.json\b|\.aws\/credentials/],
 	[".netrc (stored credentials)", /\.netrc\b/],
+	// Inline credential literals — checked in the SAME step-0 gate, BEFORE the
+	// decision-model chain: a command carrying a literal credential must ask a
+	// human rather than send the secret to a third-party provider. Raises the
+	// bar, not a guarantee (heuristics have false negatives) — the structural
+	// bound is that providers only ever receive commands these regexes miss.
+	["inline credential (Authorization/Bearer header)", /(?:Authorization[:"']?\s*[Bb]earer?\s|Bearer\s+[A-Za-z0-9._~+/=-]{8,})/],
+	["inline credential (OpenAI-style sk- key)", /sk-[A-Za-z0-9]{16,}/],
+	["inline credential (GitHub token)", /gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}/],
+	["inline credential (AWS access key id)", /AKIA[0-9A-Z]{16}/],
+	["inline credential (Slack token)", /xox[baprs]-[A-Za-z0-9-]{10,}/],
+	["inline credential (PEM private key block)", /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
 ];
 
 // First labeled pattern matching the command: {label, snippet} | null. The
@@ -315,8 +326,10 @@ async function runChain(cfg, env, state, failState, logCtx = {}) {
 
 function logLine(cfg, obj) {
 	try {
-		mkdirSync(dirname(cfg.log), { recursive: true });
-		appendFileSync(cfg.log, JSON.stringify(obj) + "\n");
+		// 0700/0600: the log stores verbatim command text — anything typed,
+		// including inline credentials — so it is user-private by construction
+		mkdirSync(dirname(cfg.log), { recursive: true, mode: 0o700 });
+		appendFileSync(cfg.log, JSON.stringify(obj) + "\n", { mode: 0o600 });
 	} catch { /* logging must never break gating */ }
 }
 
@@ -325,8 +338,8 @@ function loadFailState(cfg) {
 }
 function saveFailState(cfg, s) {
 	try {
-		mkdirSync(dirname(cfg.stateFile), { recursive: true });
-		writeFileSync(cfg.stateFile, JSON.stringify(s));
+		mkdirSync(dirname(cfg.stateFile), { recursive: true, mode: 0o700 });
+		writeFileSync(cfg.stateFile, JSON.stringify(s), { mode: 0o600 });
 	} catch { /* ignore */ }
 }
 
@@ -384,9 +397,10 @@ async function main() {
 	const emit = (_cfg, decision, reason, extra) =>
 		decision === "allow" && mode !== "auto" ? undefined : decide(cfg, decision, reason, extra);
 
-	// 0. Secrets exposure — before the read-only fast path, so cat .env asks.
+	// 0. Secrets exposure — before the read-only fast path, so cat .env asks;
+	// before the model chain, so inline credentials never reach a provider.
 	const secret = firstMatch(SECRETS_PATTERNS, cmd);
-	if (secret) return emit(cfg, "ask", `names secrets material — ${secret.label}: "${secret.snippet}"`, { ...logCommon, fastpath: "secrets", pattern: secret.label });
+	if (secret) return emit(cfg, "ask", `carries secrets material — ${secret.label}: "${secret.snippet}"`, { ...logCommon, fastpath: "secrets", pattern: secret.label });
 
 	// 1-3. Local fast paths — decided without the network.
 	if (fastPathAllow(cmd)) return emit(cfg, "allow", "read-only fast path", { ...logCommon, fastpath: "allow" });

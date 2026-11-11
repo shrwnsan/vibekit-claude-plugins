@@ -37,6 +37,14 @@ decision, never loosen one:
 - **A command naming secrets or key material** (`.env`, `*.pem`, `id_rsa`,
   …) → `ask` before the read-only fast path: a read-only allow must never
   preempt the classifier's secrets review.
+- **A command carrying an inline credential literal** (Authorization/
+  Bearer headers, `sk-`/`ghp_`/`AKIA…`-class tokens, PEM key blocks) → the
+  same `ask`, BEFORE the decision-model chain: a literal secret reaches a
+  human, never a provider.
+- **The verdict log stores verbatim command text** — including anything
+  typed. Files are user-private by construction (0600, dirs 0700); no
+  content redaction, deliberately: masking heuristics give false comfort,
+  and the ask above keeps literal secrets out of provider egress.
 - **Provider error, timeout, malformed response, chain exhausted** → **silent
   exit**: no hook output means Claude Code's normal flow — allow rules, then
   the auto-mode classifier — handles the call untouched.

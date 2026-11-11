@@ -86,8 +86,16 @@ jobs:
             fi
 
             echo "Syncing: $skill_name"
+            # Hub-local `metadata:` (package version, upstream pins, hardening)
+            # survives the wholesale replace: snapshot before, re-apply after.
+            # Text-level no-ops on new skills; failures degrade to unsynced
+            # metadata rather than failing the sync (gate catches drift later).
+            python3 scripts/sync-preserve-metadata.py snapshot \
+              "/tmp/agents/skills/$skill_name" "/tmp/meta-$skill_name.yaml" || true
             rm -rf "/tmp/agents/skills/$skill_name"
             cp -r "$skill_dir" "/tmp/agents/skills/$skill_name"
+            python3 scripts/sync-preserve-metadata.py restore \
+              "/tmp/agents/skills/$skill_name" "/tmp/meta-$skill_name.yaml" || true
 
             if ! grep -qxF "$skill_name" /tmp/pre-sync-skills.txt; then
               echo "$skill_name $plugin" >> /tmp/new-skills.txt

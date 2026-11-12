@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.6 (2026-11-12)
+
+- Changed: paths reflex itself authors — the verdict log's `cwd` field and
+  the working directory in the decision-model prompt — abbreviate `$HOME`
+  to `~`, consistent with how reflex names its own paths
+  (`~/.local/share/reflex/…`). The username no longer appears in log lines
+  shared for debugging or in provider payloads. Both spellings of home are
+  matched (`$HOME` and its realpath) because `process.cwd()` returns the
+  symlink-resolved path while `$HOME` may contain a symlink component
+  (macOS: `/var` → `/private/var`). Verbatim fields are untouched:
+  `command` replays and the correlator's `transcript_path` join need them
+  byte-for-byte.
+
 ## 0.1.5 (2026-11-12)
 
 - Added: verdict lines carry the hook-correlation ids Claude Code provides on

@@ -61,9 +61,34 @@
  * decision-gate.ts (MIT, Copyright (c) 2026 shrwnsan). This file is
  * Apache-2.0 as part of vibekit.
  */
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, realpathSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, sep } from "node:path";
+
+// Home-relative abbreviation for the paths reflex itself authors: the logged
+// `cwd` and the working directory in the provider state prompt. Consistent
+// with how reflex names its own paths (~/.local/share/reflex/…), and it
+// keeps the username out of everything that leaves the machine. Verbatim
+// fields are never tildified — command replays and the correlator's
+// transcript_path join need them byte-for-byte.
+//
+// process.cwd() (getcwd) returns the symlink-resolved path while $HOME may
+// contain a symlink component (macOS: /var → /private/var), so both spellings
+// of home are matched — otherwise tildify silently no-ops there.
+const tildify = (p) => {
+	for (const home of homeCandidates) {
+		if (p === home) return "~";
+		if (p.startsWith(home + sep)) return "~" + p.slice(home.length);
+	}
+	return p;
+};
+const homeCandidates = (() => {
+	const h = homedir();
+	try {
+		const r = realpathSync(h);
+		return r === h ? [h] : [h, r];
+	} catch { return [h]; }
+})();
 
 // -- Config -----------------------------------------------------------------
 
@@ -387,7 +412,7 @@ async function main() {
 		// same 2,000-char string the gate decided on — the eval harness replays
 		// from this log, so a truncated prefix would silently mislabel replays
 		command: cmd,
-		cwd: process.cwd(),
+		cwd: tildify(process.cwd()),
 		mode, // the gate only acts in auto; recording it makes every line auditable
 		ms: Date.now() - t0, // end-to-end hook cost: the "fast, cheap" claim, measured
 		// Hook-correlation ids (documented PreToolUse input fields): they let
@@ -418,7 +443,7 @@ async function main() {
 
 	// 4. Decision-model chain.
 	const failState = loadFailState(cfg);
-	const state = `Shell command proposed for execution.\nWorking directory: ${process.cwd()}\nCommand: ${cmd}`;
+	const state = `Shell command proposed for execution.\nWorking directory: ${tildify(process.cwd())}\nCommand: ${cmd}`;
 	const result = await runChain(cfg, env, state, failState, logCommon);
 	saveFailState(cfg, failState);
 	if (!result) return; // silent: classifier hand-off — never allow on gate failure

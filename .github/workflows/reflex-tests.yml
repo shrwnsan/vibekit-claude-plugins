@@ -1,0 +1,41 @@
+name: reflex tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/reflex/**'
+      - 'evals/reflex/**'
+      - '.claude-plugin/marketplace.json'
+      - '.github/workflows/reflex-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/reflex/**'
+      - 'evals/reflex/**'
+      - '.claude-plugin/marketplace.json'
+      - '.github/workflows/reflex-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Gate matrix + correlator suite (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      # No network, no keys: the decision-model provider is an in-process mock
+      # server and the correlator suite runs on synthetic fixtures. The glob is
+      # required; `node --test dir/` fails on Node 22.
+      - name: Eval matrix (mock provider chain)
+        run: node evals/reflex/run.mjs
+      - name: Correlator tests
+        run: node --test evals/reflex/tests/*.test.mjs

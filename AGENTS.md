@@ -60,7 +60,7 @@ To publish a plugin's skills to the hub, deliberately add it to `"synced"` in `.
 
 - Validate marketplace: `claude plugin validate .`
 - search-plus offline suite: `cd plugins/search-plus/skills/meta-search/scripts && node --test tests/*.test.mjs` (runs in CI via `.github/workflows/search-plus-tests.yml`)
-- reflex offline suites: `node evals/reflex/run.mjs` (mock-provider gate matrix) and `node --test evals/reflex/tests/*.test.mjs` (outcome correlator; not yet wired to CI)
+- reflex offline suites: `node evals/reflex/run.mjs` (mock-provider gate matrix) and `node --test evals/reflex/tests/*.test.mjs` (outcome correlator; run in CI via `.github/workflows/reflex-tests.yml`)
 - Test plugin installation locally before submitting
 - Check all required fields in plugin.json
 - Verify plugin documentation is complete

@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.1.5 (2026-11-12)
+
+- Added: verdict lines carry the hook-correlation ids Claude Code provides on
+  every PreToolUse call (documented input fields) — `tool_use_id`,
+  `session_id`, `transcript_path`. Purely additive: absent fields stay
+  absent, and the ids let verdicts be joined to the exact transcript record
+  of what happened next instead of guessed from command text (ambiguous with
+  repeated commands).
+- Added: `evals/reflex/correlate-outcomes.mjs` — a post-hoc sidecar that
+  joins the verdict log against session transcripts on `tool_use_id` and
+  appends one `kind:"outcome"` line per correlated verdict:
+  `agreed` (ask/deny blocked, or allow ran), `overridden` (ask/deny ran, or
+  allow was refused downstream), `no-match` (no transcript answer, ESC
+  interrupt, or ambiguous duplicate id). Idempotent (rerun-safe), `--dry-run`
+  supported, read-only over transcripts, and writes only to the verdict log
+  itself (same 0600/0700 privacy as the gate). Deliberately outside the gate
+  process: zero hot-path latency, no new failure mode in the hook. Its
+  summary reports the override rate per decision and per pattern class — the
+  ground truth for threshold tuning (if humans approve most asks, ask
+  patterns are over-fitted and train habituation). Outcome labels start
+  accumulating once 0.1.5 is running; pre-0.1.5 verdict lines have no ids
+  and are skipped.
+- Fixed: the eval matrix (`evals/reflex/run.mjs`) was silently red since
+  0.1.3 — the harness sent no `permission_mode`, so the mode gate silently
+  exited every case. It now sends `permission_mode: "auto"` like the real
+  hook input; also fixed a stale 0.1.1-era failstate assertion (0.1.2 moved
+  entries to `{count, since}`) and a case whose `echo` command was
+  fast-path-allowed before ever reaching the provider chain it tests. Full
+  matrix: 23 checks green.
+
 ## 0.1.4 (2026-11-12)
 
 - Fixed: the verdict log and failstate files were world-readable (0644)

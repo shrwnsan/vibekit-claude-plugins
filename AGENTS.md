@@ -60,6 +60,7 @@ To publish a plugin's skills to the hub, deliberately add it to `"synced"` in `.
 
 - Validate marketplace: `claude plugin validate .`
 - search-plus offline suite: `cd plugins/search-plus/skills/meta-search/scripts && node --test tests/*.test.mjs` (runs in CI via `.github/workflows/search-plus-tests.yml`)
+- reflex offline suites: `node evals/reflex/run.mjs` (mock-provider gate matrix) and `node --test evals/reflex/tests/*.test.mjs` (outcome correlator; not yet wired to CI)
 - Test plugin installation locally before submitting
 - Check all required fields in plugin.json
 - Verify plugin documentation is complete
@@ -227,6 +228,7 @@ Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps rid
 - v0.1.0: thresholds uncalibrated by design — verdict log + `evals/reflex/` harness accumulate labels for tuning
 - v0.1.3: auto-mode-only scope (hook reads `permission_mode`; `REFLEX_ALL_MODES=1` extends ask/deny, never allows outside auto), secrets fast-path ask, labeled fast-path reasons (label + matched snippet), verdict log carries full command + `mode`/`ms`/`callMs`/`pattern`
 - v0.1.4: verdict log and failstate created 0600/0700 (the log stores verbatim command text); inline credential literals (Authorization/Bearer headers, `sk-`/GitHub/AWS/Slack tokens, PEM blocks) fire the step-0 secrets ask before the provider chain, so a literal credential reaches a human and never egresses to a decision-model provider
+- v0.1.5: verdict lines carry hook-correlation ids (`tool_use_id`/`session_id`/`transcript_path`); post-hoc `evals/reflex/correlate-outcomes.mjs` joins verdicts to session transcripts and appends `kind:"outcome"` labels (agreed/overridden/no-match) with an override-rate-per-pattern-class summary — threshold-tuning ground truth, kept out of the gate process; eval matrix fixed (silently red since 0.1.3: harness sent no `permission_mode`)
 
 ## PR guidelines
 

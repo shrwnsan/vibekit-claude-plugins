@@ -390,6 +390,13 @@ async function main() {
 		cwd: process.cwd(),
 		mode, // the gate only acts in auto; recording it makes every line auditable
 		ms: Date.now() - t0, // end-to-end hook cost: the "fast, cheap" claim, measured
+		// Hook-correlation ids (documented PreToolUse input fields): they let
+		// the post-hoc outcome correlator join a verdict line to the exact
+		// transcript tool_use record — the human's actual decision. Absent
+		// fields stay absent: JSON.stringify drops undefined.
+		tool_use_id: input?.tool_use_id,
+		session_id: input?.session_id,
+		transcript_path: input?.transcript_path,
 	};
 
 	// No-allow invariant: outside auto mode an "allow" becomes a silent exit —

@@ -212,7 +212,7 @@ export TYPESAFE_API_KEY=...  # or LIQUID_API_KEY — or point a spec at a localh
 tail -f ~/.local/share/reflex/verdicts.jsonl
 ```
 
-**Metrics:** none published yet, deliberately. The deny/ask thresholds (0.85 / 0.55) are starting points, not truths — the verdict log accumulates labeled real traffic and the eval harness in [evals/reflex/](evals/reflex/) consumes the same format, so thresholds get tuned against your own usage rather than guessed. Numbers land in this section once real traffic has accumulated.
+**Metrics:** none published yet, deliberately. The deny/ask thresholds (0.85 / 0.55) are starting points, not truths — the verdict log accumulates labeled real traffic (each verdict carries the hook's `tool_use_id`, so `evals/reflex/correlate-outcomes.mjs` can join verdicts to session transcripts and label outcomes: agreed / overridden / no-match, summarized as an override rate per pattern class). Thresholds get tuned against your own usage rather than guessed. Numbers land in this section once real traffic has accumulated.
 
 [→ Detailed Documentation](plugins/reflex/README.md)
 

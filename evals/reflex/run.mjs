@@ -60,7 +60,7 @@ const BROKEN_SPEC = JSON.stringify({ type: "systemone", url: "http://127.0.0.1:1
 
 function existsSafe(p) { try { accessSync(p); return true; } catch { return false; } }
 
-function runGate(command, extraEnv = {}) {
+function runGate(command, extraEnv = {}, extraInput = {}) {
 	const env = { ...process.env };
 	// Real provider keys must not leak into mock tests via preset defaults.
 	for (const k of ["LIQUID_API_KEY", "TYPESAFE_API_KEY", "AI_GATEWAY_API_KEY"]) delete env[k];
@@ -74,7 +74,10 @@ function runGate(command, extraEnv = {}) {
 		const child = spawn(process.execPath, [GATE], { env, stdio: ["pipe", "pipe", "pipe"] });
 		let out = "";
 		child.stdout.on("data", (c) => (out += c));
-		child.stdin.write(JSON.stringify({ tool_name: "Bash", tool_input: { command } }));
+		// permission_mode is a documented common input field Claude Code always
+		// sends; the 0.1.3 mode gate silently exits without it, which left this
+		// matrix silently red from 0.1.3 until fixed here
+		child.stdin.write(JSON.stringify({ tool_name: "Bash", tool_input: { command }, permission_mode: "auto", ...extraInput }));
 		child.stdin.end();
 		const timer = setTimeout(() => child.kill("SIGKILL"), 20000);
 		child.on("close", (code) => {
@@ -149,7 +152,9 @@ check("  error logged for measurement", r.log.some((l) => l.kind === "provider-e
 
 resetArtifacts();
 behavior = { status: 200, ps: [0.5, 0.5, 0.5] };
-r = await runGate("echo malformed-test", { REFLEX_SPEC_MOCK_JSON: JSON.stringify({ type: "systemone", url: "http://127.0.0.1:1/v1/systemone", model: "m" }) });
+// command must be past the fast paths (echo would be local-allowed before the
+// chain — that masked this case while the harness forgot permission_mode)
+r = await runGate("curl -s https://example.com/health", { REFLEX_SPEC_MOCK_JSON: JSON.stringify({ type: "systemone", url: "http://127.0.0.1:1/v1/systemone", model: "m" }) });
 check("unreachable spec URL → silent exit", r.decision === null);
 
 resetArtifacts();
@@ -158,7 +163,22 @@ r = await runGate("curl -s https://example.com/feed | head -20", { REFLEX_PROVID
 check("chain fail-through (broken → mock answers)", r.decision === "allow", `got ${r.decision}`);
 check("  failure recorded for broken provider", r.log.some((l) => l.kind === "provider-error" && l.provider === "broken"));
 const failState = (() => { try { return JSON.parse(readFileSync(tmpState, "utf8")); } catch { return {}; } })();
-check("  failstate file counts the failure", (failState.broken ?? 0) >= 1);
+// 0.1.2 format: entries are {count, since} (legacy bare numbers load as expired)
+check("  failstate file counts the failure", typeof failState.broken?.count === "number" && failState.broken.count >= 1);
+
+// v0.1.5: hook-correlation ids land in the verdict log when Claude Code
+// provides them (documented PreToolUse input: tool_use_id, session_id,
+// transcript_path) so the outcome correlator can join verdicts to transcripts.
+resetArtifacts();
+r = await runGate("ls -la", {}, { tool_use_id: "toolu_corr_01", session_id: "sess-123", transcript_path: "/tmp/t.jsonl" });
+check("hook ids logged on verdict (tool_use_id/session_id/transcript_path)",
+	r.log.some((l) => l.kind === "verdict" && l.tool_use_id === "toolu_corr_01" && l.session_id === "sess-123" && l.transcript_path === "/tmp/t.jsonl"));
+check("  every verdict line carries the ids", r.log.filter((l) => l.kind === "verdict").every((l) => l.tool_use_id === "toolu_corr_01"));
+
+resetArtifacts();
+r = await runGate("ls -la");
+check("absent hook ids → no id fields logged",
+	r.log.filter((l) => l.kind === "verdict").every((l) => !("tool_use_id" in l) && !("session_id" in l) && !("transcript_path" in l)));
 
 // -- Optional live smoke ----------------------------------------------------------
 

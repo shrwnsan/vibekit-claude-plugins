@@ -229,6 +229,7 @@ Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps rid
 - v0.1.3: auto-mode-only scope (hook reads `permission_mode`; `REFLEX_ALL_MODES=1` extends ask/deny, never allows outside auto), secrets fast-path ask, labeled fast-path reasons (label + matched snippet), verdict log carries full command + `mode`/`ms`/`callMs`/`pattern`
 - v0.1.4: verdict log and failstate created 0600/0700 (the log stores verbatim command text); inline credential literals (Authorization/Bearer headers, `sk-`/GitHub/AWS/Slack tokens, PEM blocks) fire the step-0 secrets ask before the provider chain, so a literal credential reaches a human and never egresses to a decision-model provider
 - v0.1.5: verdict lines carry hook-correlation ids (`tool_use_id`/`session_id`/`transcript_path`); post-hoc `evals/reflex/correlate-outcomes.mjs` joins verdicts to session transcripts and appends `kind:"outcome"` labels (agreed/overridden/no-match) with an override-rate-per-pattern-class summary — threshold-tuning ground truth, kept out of the gate process; eval matrix fixed (silently red since 0.1.3: harness sent no `permission_mode`)
+- v0.1.6: reflex-authored paths home-abbreviated (`$HOME` → `~`) in the verdict log's `cwd` and the provider prompt — no username in shared logs or provider payloads; `command`/`transcript_path` stay verbatim (replay + transcript join)
 
 ## PR guidelines
 

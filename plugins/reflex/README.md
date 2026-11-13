@@ -110,6 +110,8 @@ tail -f ~/.local/share/reflex/verdicts.jsonl
 ## What the model sees (injection discipline)
 
 The command text (≤2,000 chars) and the working directory — nothing else.
+(The working directory is home-abbreviated: `$HOME` → `~`, so the username
+never egresses to the provider.)
 No tool output, no assistant prose, no file contents: hostile content in a
 tool result cannot reach the decision model through reflex, mirroring Claude
 Code's own classifier-request hygiene and the session-summary gate's digest
@@ -126,7 +128,11 @@ to session transcripts and appends `kind:"outcome"` lines — `agreed`
 (the tool's fate matched the verdict), `overridden` (reality contradicted
 it), `no-match` (no transcript answer, ESC interrupt, ambiguous duplicate).
 It is idempotent, read-only over transcripts, and deliberately outside the
-gate process (zero hot-path latency, no new failure mode):
+gate process (zero hot-path latency, no new failure mode). The log's `cwd`
+field is home-abbreviated like the provider prompt (`$HOME` → `~`), so
+shared logs carry no username; verbatim fields (`command`,
+`transcript_path`) are exact by design — replay and the transcript join
+need them byte-for-byte:
 
 ```bash
 node evals/reflex/correlate-outcomes.mjs            # label + summarize

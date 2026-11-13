@@ -14,7 +14,7 @@
  */
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { accessSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { accessSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -60,7 +60,7 @@ const BROKEN_SPEC = JSON.stringify({ type: "systemone", url: "http://127.0.0.1:1
 
 function existsSafe(p) { try { accessSync(p); return true; } catch { return false; } }
 
-function runGate(command, extraEnv = {}, extraInput = {}) {
+function runGate(command, extraEnv = {}, extraInput = {}, opts = {}) {
 	const env = { ...process.env };
 	// Real provider keys must not leak into mock tests via preset defaults.
 	for (const k of ["LIQUID_API_KEY", "TYPESAFE_API_KEY", "AI_GATEWAY_API_KEY"]) delete env[k];
@@ -71,7 +71,7 @@ function runGate(command, extraEnv = {}, extraInput = {}) {
 		REFLEX_STATE_FILE: tmpState,
 	}, extraEnv);
 	return new Promise((resolve) => {
-		const child = spawn(process.execPath, [GATE], { env, stdio: ["pipe", "pipe", "pipe"] });
+		const child = spawn(process.execPath, [GATE], { env, cwd: opts.cwd, stdio: ["pipe", "pipe", "pipe"] });
 		let out = "";
 		child.stdout.on("data", (c) => (out += c));
 		// permission_mode is a documented common input field Claude Code always
@@ -179,6 +179,22 @@ resetArtifacts();
 r = await runGate("ls -la");
 check("absent hook ids → no id fields logged",
 	r.log.filter((l) => l.kind === "verdict").every((l) => !("tool_use_id" in l) && !("session_id" in l) && !("transcript_path" in l)));
+
+// v0.1.6: paths reflex itself authors — the logged cwd and the working
+// directory in the provider state prompt — abbreviate $HOME to `~`,
+// consistent with how reflex names its own paths (~/.local/share/reflex/…).
+// HOME + cwd pinned to the harness tmpdir so homedir() resolves there on
+// every platform. Verbatim fields (command, transcript_path) stay exact:
+// replay and the correlator's transcript join need them byte-for-byte.
+resetArtifacts();
+r = await runGate("ls -la", { HOME: tmp }, {}, { cwd: tmp });
+check("logged cwd home-abbreviated (cwd = $HOME → ~)",
+	r.log.some((l) => l.kind === "verdict" && l.cwd === "~"));
+resetArtifacts();
+mkdirSync(join(tmp, "sub"));
+r = await runGate("ls -la", { HOME: tmp }, {}, { cwd: join(tmp, "sub") });
+check("logged cwd home-abbreviated (cwd under $HOME → ~/sub)",
+	r.log.some((l) => l.kind === "verdict" && l.cwd === "~/sub"));
 
 // -- Optional live smoke ----------------------------------------------------------
 

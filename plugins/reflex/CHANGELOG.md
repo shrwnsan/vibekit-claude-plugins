@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.0 (2026-11-13)
+
+- Added: `/reflex:status` — a paste-safe health and metrics report backed by
+  `scripts/reflex-status.mjs` (read-only sidecar, always exits 0). Health:
+  kill switch, provider failstate with cooldowns, log existence, size, and
+  permissions (wider than 0600/0700 is flagged). Metrics over a window
+  (`--since DAYS|all`, default 7): decision counts, ask rate, fast-path vs
+  model split, hook `ms` and provider `callMs` percentiles, top pattern
+  labels. Outcome labels (`kind:"outcome"` lines written by the repo-side
+  correlator) tallied with the ask override rate — the habituation signal.
+  Version drift: the running gate's vintage is inferred from the newest
+  verdict line's field shape (`mode` since 0.1.3, `~`-cwd since 0.1.6) and
+  compared against the installed manifest — hooks pin at session start, so
+  a lagging gate is visible instead of guessed at. The report carries
+  counts and generic labels only, never command text, reasons, or
+  snippets, and paths are `~`-abbreviated.
+- Changed: `transcript_path` joins `cwd` in being home-abbreviated
+  (`$HOME` → `~`) in the verdict log — the last logged field that carried
+  `/Users/<name>` or `/home/<name>`. The outcome correlator expands `~`
+  before exact matching and keeps the basename fallback, so pre-0.2.0
+  absolute lines and 0.2.0 `~` lines both route. `command` remains
+  verbatim by design: eval replay needs the exact text the gate decided
+  on. Completes the 0.1.6 goal of a username-free log (up to verbatim
+  command text the model itself typed).
+
 ## 0.1.6 (2026-11-12)
 
 - Changed: paths reflex itself authors — the verdict log's `cwd` field and

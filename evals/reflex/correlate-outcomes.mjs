@@ -13,8 +13,11 @@
  *    "class":"fastpath:ask:force push"}
  *
  * Join key: the verdict's tool_use_id (logged by the gate since 0.1.5 from
- * the documented PreToolUse input). The transcript's answer for that id is a
- * user-side tool_result block whose record carries toolDenialKind:
+ * the documented PreToolUse input); transcript_path (home-abbreviated by the
+ * gate since 0.2.0, absolute before) routes ambiguous duplicate ids, with
+ * `~` expanded back and basename as last fallback. The transcript's answer
+ * for that id is a user-side tool_result block whose record carries
+ * toolDenialKind:
  *
  *   user-rejected / permission-rule (hook deny) / automode-blocked /
  *   automode-unavailable / interrupted — all mean the tool did NOT run.
@@ -114,14 +117,22 @@ function collectCandidates(projectsDir, idSet, minTsMs) {
 	return byId;
 }
 
+// The gate home-abbreviates transcript_path since 0.2.0 (~ = homedir), so a
+// logged `~/…` path expands back before exact matching; absolute lines from
+// older gates expand to themselves. Basename stays as the last fallback.
+function expandHome(p, home) {
+	return typeof p === "string" && (p === "~" || p.startsWith("~/")) ? join(home, p.slice(1)) : p;
+}
+
 // Which transcript record answers this verdict: the one its transcript_path
 // names, else its session, else a lone candidate; several unrouted candidates
 // are ambiguous (a repeated id across sessions) → no-match, never a guess.
-function pickCandidate(candidates, v) {
+function pickCandidate(candidates, v, home) {
 	if (candidates.length === 0) return { candidate: null, basis: "missing" };
 	if (candidates.length > 1) {
+		const tp = expandHome(v.transcript_path, home);
 		const routed =
-			(v.transcript_path && (candidates.find((c) => c.file === v.transcript_path) ?? candidates.find((c) => basename(c.file) === basename(v.transcript_path))))
+			(tp && (candidates.find((c) => c.file === tp) ?? candidates.find((c) => basename(c.file) === basename(tp))))
 			?? (v.session_id && candidates.find((c) => c.sessionId === v.session_id));
 		if (routed) return { candidate: routed, basis: classify(routed) };
 		return { candidate: null, basis: "ambiguous" };
@@ -188,11 +199,12 @@ const alreadyLabeled = verdicts.length - skippedNoId - pending.length;
 
 const minTsMs = Math.min(...pending.map((v) => Date.parse(v.ts)).filter(Number.isFinite).concat(Infinity));
 const byId = collectCandidates(cfg.projects, new Set(pending.map((v) => v.tool_use_id)), minTsMs);
+const home = homedir();
 
 const outcomes = [];
 const byDecision = {}, byClass = new Map();
 for (const v of pending) {
-	const { candidate, basis } = pickCandidate(byId.get(v.tool_use_id) ?? [], v);
+	const { candidate, basis } = pickCandidate(byId.get(v.tool_use_id) ?? [], v, home);
 	const outcome = label(basis, v.decision);
 	outcomes.push({
 		ts: new Date().toISOString(),

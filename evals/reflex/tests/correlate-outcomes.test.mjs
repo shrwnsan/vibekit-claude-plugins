@@ -331,3 +331,33 @@ test("summary reports override rate per decision and per class", async () => {
 	assert.match(r.out, /fastpath:ask:force push/);
 	rmSync(root, { recursive: true, force: true });
 });
+
+test("home-abbreviated transcript_path (~ form, gate ≥0.2.0) still routes", async () => {
+	// The gate logs `~/…` since 0.2.0; expansion maps it back to homedir(), which
+	// cannot reach this tmpdir fixture tree, so routing lands on the basename
+	// fallback — the designed tolerance for path-spelling drift.
+	const root = mkdtempSync(join(tmpdir(), "reflex-corr-"));
+	const mk = (rel, content) => { const p = join(root, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, content); };
+	mk("log.jsonl", [
+		verdict({ ts: "T16", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "call_16", transcriptPath: "~/fake-projects/sess-16.jsonl" }),
+		verdict({ ts: "T17", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "call_17", transcriptPath: "~/fake-projects/sess-17.jsonl" }),
+	].join("\n") + "\n");
+	// two transcripts sharing the id (ambiguous) — the tilde path must still
+	// route to sess-16.jsonl via basename, not collapse to no-match
+	mk("projects/p-a/sess-16.jsonl", [
+		assistantUse("call_16", "git push --force"),
+		userResult("call_16", { kind: "user-rejected", isError: true, text: "no", toolUseResult: "User rejected tool use" }),
+	].join("\n") + "\n");
+	mk("projects/p-b/sess-17.jsonl", [
+		assistantUse("call_16", "git push --force"),
+		userResult("call_16"),
+		assistantUse("call_17", "git push --force"),
+		userResult("call_17"),
+	].join("\n") + "\n");
+	const r = await runCorrelator(root);
+	assert.deepEqual(r.outcomes.map(strip), [
+		{ verdictTs: "T16", tool_use_id: "call_16", verdict: "ask", outcome: "agreed", basis: "user-rejected", class: "fastpath:ask:force push" },
+		{ verdictTs: "T17", tool_use_id: "call_17", verdict: "ask", outcome: "overridden", basis: "ran", class: "fastpath:ask:force push" },
+	]);
+	rmSync(root, { recursive: true, force: true });
+});

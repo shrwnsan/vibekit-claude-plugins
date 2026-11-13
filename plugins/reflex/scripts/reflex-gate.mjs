@@ -419,9 +419,12 @@ async function main() {
 		// the post-hoc outcome correlator join a verdict line to the exact
 		// transcript tool_use record — the human's actual decision. Absent
 		// fields stay absent: JSON.stringify drops undefined.
+		// transcript_path is home-abbreviated like cwd: it is the last logged
+		// field that carried /Users/<name>, and the correlator expands `~`
+		// (basename fallback covers pre-0.2.0 absolute lines) before matching.
 		tool_use_id: input?.tool_use_id,
 		session_id: input?.session_id,
-		transcript_path: input?.transcript_path,
+		transcript_path: typeof input?.transcript_path === "string" ? tildify(input.transcript_path) : input?.transcript_path,
 	};
 
 	// No-allow invariant: outside auto mode an "allow" becomes a silent exit —

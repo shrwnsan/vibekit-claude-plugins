@@ -128,11 +128,12 @@ to session transcripts and appends `kind:"outcome"` lines — `agreed`
 (the tool's fate matched the verdict), `overridden` (reality contradicted
 it), `no-match` (no transcript answer, ESC interrupt, ambiguous duplicate).
 It is idempotent, read-only over transcripts, and deliberately outside the
-gate process (zero hot-path latency, no new failure mode). The log's `cwd`
-field is home-abbreviated like the provider prompt (`$HOME` → `~`), so
-shared logs carry no username; verbatim fields (`command`,
-`transcript_path`) are exact by design — replay and the transcript join
-need them byte-for-byte:
+gate process (zero hot-path latency, no new failure mode). The log's
+`cwd` and `transcript_path` fields are home-abbreviated like the provider
+prompt (`$HOME` → `~`), so shared logs carry no username; the correlator
+expands `~` before matching (basename fallback covers older absolute
+lines). The one verbatim field is `command` — eval replay needs the exact
+text the gate decided on:
 
 ```bash
 node evals/reflex/correlate-outcomes.mjs            # label + summarize
@@ -145,6 +146,26 @@ habituation; that number is the input to threshold tuning. Outcome labels
 accumulate only while 0.1.5+ is running (pre-0.1.5 verdict lines carry no
 ids and are skipped). Ship the harness, not just the gate (XavierJev's
 lesson: the wiring is the easy part).
+
+## Status
+
+`/reflex:status` (or the reader directly) prints a paste-safe health and
+metrics report — labels and counts only, never command text:
+
+```bash
+node plugins/reflex/scripts/reflex-status.mjs             # last 7 days
+node plugins/reflex/scripts/reflex-status.mjs --since 30  # custom window
+node plugins/reflex/scripts/reflex-status.mjs --since all # everything
+```
+
+It reports gate health (kill switch, provider failstate with cooldowns,
+log permissions — 0600/0700 by construction, wider is flagged), windowed
+metrics (decision counts, ask rate, fast-path/model split, hook and
+provider latency percentiles, top pattern labels), outcome-label tallies
+with the ask override rate, and version drift: the running gate's vintage
+is inferred from the newest verdict line's field shape (`mode` since 0.1.3,
+`~`-cwd since 0.1.6) and compared against the installed manifest, because
+hooks pin at session start and lag plugin updates. Always exits 0.
 
 ## Thresholds are defaults, not truths
 

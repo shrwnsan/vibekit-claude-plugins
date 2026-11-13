@@ -15,7 +15,7 @@
 import http from "node:http";
 import { spawn } from "node:child_process";
 import { accessSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -195,6 +195,14 @@ mkdirSync(join(tmp, "sub"));
 r = await runGate("ls -la", { HOME: tmp }, {}, { cwd: join(tmp, "sub") });
 check("logged cwd home-abbreviated (cwd under $HOME → ~/sub)",
 	r.log.some((l) => l.kind === "verdict" && l.cwd === "~/sub"));
+
+// v0.2.0: transcript_path is home-abbreviated too (last field carrying the
+// username). Absolute paths outside home stay exact — the v0.1.5 case above
+// asserts /tmp/t.jsonl lands byte-for-byte, and this case asserts the ~/ form.
+resetArtifacts();
+r = await runGate("ls -la", {}, { tool_use_id: "toolu_tp_1", transcript_path: join(homedir(), "reflex-tp-check", "sess.jsonl") });
+check("transcript_path under $HOME logged as ~/…",
+	r.log.some((l) => l.kind === "verdict" && l.transcript_path === "~/reflex-tp-check/sess.jsonl"));
 
 // -- Optional live smoke ----------------------------------------------------------
 

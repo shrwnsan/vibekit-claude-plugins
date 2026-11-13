@@ -74,7 +74,7 @@ metadata:
   context_quality: "high"
   missing_context: []
   config:
-    source: "/home/user/.config/agents/handoff-context-config.yml"
+    source: "~/.config/agents/handoff-context-config.yml"
     format: "yaml"
 ```
 
@@ -83,8 +83,8 @@ metadata:
 | Source | Meaning |
 |--------|---------|
 | `builtin` | Using built-in defaults (no config file found) |
-| `/home/user/.config/agents/handoff-context-config.yml` | Cross-tool config (Amp, others) |
-| `/home/user/.claude/handoff-context-config.yml` | Claude Code specific config |
+| `~/.config/agents/handoff-context-config.yml` | Cross-tool config (Amp, others) |
+| `~/.claude/handoff-context-config.yml` | Claude Code specific config |
 | `/project/.agents/handoff-context-config.yml` | Project-local config |
 
 ### Conditional Sections

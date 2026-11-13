@@ -55,6 +55,7 @@ To publish a plugin's skills to the hub, deliberately add it to `"synced"` in `.
 - Plugin names: kebab-case
 - JSON: 2-space indentation
 - Markdown: GitHub-flavored
+- Plugin outputs (logs, hook JSON, generated docs, skill examples) never carry absolute home paths (`/Users/<name>`, `/home/<name>`) — abbreviate `$HOME` to `~`
 
 ## Testing
 

@@ -13,7 +13,7 @@
       "name": "base",
       "source": "./plugins/base",
       "description": "Essential Claude Code workflow and context engineering tools for productive development",
-      "version": "1.12.3",
+      "version": "1.12.4",
       "author": {
         "name": "shrwnsan"
       },

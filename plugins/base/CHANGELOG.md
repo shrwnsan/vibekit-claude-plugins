@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing pending.
 
+## [1.12.4] - 2026-11-13
+
+### Changed
+- handoff-context skill examples and templates use home-relative paths
+  (`~/…`) instead of `/home/user/…` literals, so handoff docs written from
+  them inherit the `~` convention (repo-wide rule: plugin outputs never
+  carry absolute home paths — enforced across all plugins in the 0.2.0
+  era sweep; reflex abbreviates `cwd`/`transcript_path` since 0.1.6/0.2.0).
+
 ## [1.12.3] - 2026-11-07
 
 ### Changed

@@ -2,7 +2,7 @@
   "skills": ["handoff-context"],
   "query": "Handoff this context",
   "context": {
-    "working_directory": "/home/user/project",
+    "working_directory": "~/project",
     "git_repo": false,
     "current_work": [
       {

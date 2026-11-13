@@ -119,7 +119,7 @@ Each handoff file includes metadata about which config was used:
 ```yaml
 metadata:
   config:
-    source: "/home/user/.config/agents/handoff-context-config.yml"
+    source: "~/.config/agents/handoff-context-config.yml"
     format: "yaml"
 ```
 

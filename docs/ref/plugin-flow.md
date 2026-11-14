@@ -2,8 +2,9 @@
 
 Verified against each plugin's hooks.json on 14 Nov 2026. This page shows
 where every plugin touches a session, who decides what, and the concrete
-benefit each one delivers. Companion to the friction table in the main
-README.
+benefit each one delivers. The main README carries a simplified birds-eye
+view of this diagram, one node per plugin; this page is the verified wiring
+reference. Companion to the friction table in the main README.
 
 ## The flow
 
@@ -102,7 +103,7 @@ flowchart TD
 | reflex | whether a command runs at all | what the command costs |
 | base | what lands, and what running it costs | how much process a task earns |
 | tempo | how much process a task earns | any execution-time decision |
-| haku | what gets journaled and reviewed | safety verdicts |
+| haku | what gets journaled, reviewed, and loop-gated. With its loop enabled, haku spans the session: decision capture at task start, spec pressure-tests during work, a ship review at the checkpoint, and wins-log after | safety verdicts |
 | search-plus | how research recovers from failure | any gate decision |
 | ping | nothing. It notifies | anything |
 

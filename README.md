@@ -46,32 +46,16 @@ The full flow chart, the ownership map, and per-plugin evidence live in
 ## How six plugins share one session
 
 ```mermaid
-flowchart TD
-    start(["Session start"]) --> tempo["tempo: inject tier routing table"]
-    start --> pingS["ping: session-start ding"]
-    tempo --> tier{"Task tier?"}
-    tier -- "t0 trivial" --> t0["do now, verify, done"]
-    tier -- "t1 standard" --> t1["plan note, test-first"]
-    tier -- "t2 risky" --> t2["plan, build, review gate"]
-    t0 --> work["Work loop: any tier"]
-    t1 --> work
-    t2 --> work
-    work --> bash{{"PreToolUse: Bash, three inspectors, one checkpoint"}}
-    bash --> trim["base: trim verbose test output. Cost only, never blocks"]
-    trim --> ship{"commit or ship command?"}
-    ship -- "yes" --> review["haku: review gate"]
-    ship -- "no" --> gate
-    review --> gate["reflex: gate the final command form"]
-    gate -- "secret or destructive" --> deny["DENY"]
-    gate -- "ambiguous" --> ask["ASK: you decide"]
-    gate -- "read-only or safe" --> allow["ALLOW: executes"]
-    allow --> out(["output back to the agent"])
-    out --> sf{"search failed?"}
-    sf -- "yes" --> sp["search-plus: alternate provider"]
-    out --> dec{"decision made?"}
-    dec -- "yes" --> hj["haku: journal it"]
-    out --> td{"task done?"}
-    td -- "yes" --> pd["ping: stop ding"]
+flowchart LR
+    s(["Session"]) --> t["tempo: pace each task"]
+    s -.-> p["ping: sounds"]
+    t --> w["work loop"]
+    w --> c{"checkpoint: base trims, reflex gates"}
+    c -->|"allow"| o(["trimmed, cited answer"])
+    c -->|"ask or deny"| you(["you decide"])
+    h["haku: decide, review, journal"] -.->|"loop gates, receipts"| w
+    o --> hj["haku logs the win"]
+    w -.->|"search fails"| sp["search-plus: alternate provider"]
 ```
 
 The wiring behind this diagram, the ownership map, and per-plugin evidence

@@ -13,7 +13,39 @@ the command. Treat them as three inspectors at one checkpoint rather than a
 pipeline: the verdicts are independent, and reflex evaluating last means it
 judges the final, cost-trimmed command form.
 
+```mermaid
+flowchart TD
+    start(["Session start"]) --> tempo["tempo: inject tier routing table"]
+    start --> pingS["ping: session-start ding"]
+    tempo --> tier{"Task tier?"}
+    tier -- "t0 trivial" --> t0["do now, verify, done"]
+    tier -- "t1 standard" --> t1["plan note, test-first"]
+    tier -- "t2 risky" --> t2["plan, build, review gate"]
+    t0 --> work["Work loop: any tier"]
+    t1 --> work
+    t2 --> work
+    work --> bash{{"PreToolUse: Bash, three inspectors, one checkpoint"}}
+    bash --> trim["base: trim verbose test output. Cost only, never blocks"]
+    trim --> ship{"commit or ship command?"}
+    ship -- "yes" --> review["haku: review gate"]
+    ship -- "no" --> gate
+    review --> gate["reflex: gate the final command form"]
+    gate -- "secret or destructive" --> deny["DENY"]
+    gate -- "ambiguous" --> ask["ASK: you decide"]
+    gate -- "read-only or safe" --> allow["ALLOW: executes"]
+    allow --> out(["output back to the agent"])
+    out --> sf{"search failed?"}
+    sf -- "yes" --> sp["search-plus: alternate provider"]
+    out --> dec{"decision made?"}
+    dec -- "yes" --> hj["haku: journal it"]
+    out --> td{"task done?"}
+    td -- "yes" --> pd["ping: stop ding"]
 ```
+
+<details>
+<summary>Plain-text view (terminals and non-rendering clients)</summary>
+
+```text
                         SESSION START
                               |
             +-----------------+------------------+
@@ -61,6 +93,7 @@ judges the final, cost-trimmed command form.
      |            |
      +-> retry via alternate provider, log the win
 ```
+</details>
 
 ## Who owns what
 

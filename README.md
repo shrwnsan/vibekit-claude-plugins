@@ -14,12 +14,12 @@ Agentic development has six friction points, and each plugin targets one:
 
 | Friction point | Plugin | The fix |
 |---|---|---|
-| **Inputs** — the agent stalls when the web says 403 | 🔍 [search-plus](#-search-plus) | Multi-provider fallback keeps the information supply reliable, even keyless |
-| **Judgment** — agents execute well but decide poorly | 📏 [haku](#-haku) | A decide → spec → evidence loop with gate agents for the human-machine decision points |
-| **Output** — vibes need hygiene | 🛠️ [base](#️-base) | Disciplined commits, quality gates, and worktree isolation before anything lands |
-| **Attention** — long agent runs pull you out of flow | 🔔 [ping](#-ping) | Sound notifications call you back exactly when it's your turn |
-| **Process** — every change pays the flat ceremony tax | ⏱️ [tempo](#️-tempo) | Risk-tiered loop: trivial changes skip ceremony, risky changes earn it |
-| **Safety** — auto mode fires shell commands without a second look | 🛡️ [reflex](#️-reflex) | Typed allow/ask/deny gate decides before execution; uncertainty or failure hands the call back untouched |
+| **Inputs**: the agent stalls when the web says 403 | 🔍 [search-plus](#search-plus) | Multi-provider fallback keeps the information supply reliable, even keyless |
+| **Judgment**: agents execute well but decide poorly | 📏 [haku](#haku) | A decide → spec → evidence loop with gate agents for the human-machine decision points |
+| **Output**: vibes need hygiene | 🛠️ [base](#base) | Disciplined commits, quality gates, and worktree isolation before anything lands |
+| **Attention**: long agent runs pull you out of flow | 🔔 [ping](#ping) | Sound notifications call you back exactly when it's your turn |
+| **Process**: every change pays the flat ceremony tax | ⏱️ [tempo](#tempo) | Risk-tiered loop: trivial changes skip ceremony, risky changes earn it |
+| **Safety**: auto mode fires shell commands without a second look | 🛡️ [reflex](#reflex) | Typed allow/ask/deny gate decides before execution; uncertainty or failure hands the call back untouched |
 
 The through-line: **remove the human as the bottleneck**, either by making the agent self-sufficient (search fallback, quality gates), pacing your attention (notifications, decision logs), pacing the agent's process to the task's risk (tempo), or spending the human's attention only where a calibrated gate says it's actually needed (reflex). And it stays deliberately low-dependency: search-plus works without API keys, ping needs no services, haku is process rather than API, tempo is structure rather than infrastructure, and reflex's local regex fast paths are keyless. Without a provider key it simply steps aside.
 
@@ -43,7 +43,41 @@ backed by measurement or a real incident:
 The full flow chart, the ownership map, and per-plugin evidence live in
 [docs/ref/plugin-flow.md](docs/ref/plugin-flow.md).
 
-## 🚀 Quick Start
+## How six plugins share one session
+
+```mermaid
+flowchart TD
+    start(["Session start"]) --> tempo["tempo: inject tier routing table"]
+    start --> pingS["ping: session-start ding"]
+    tempo --> tier{"Task tier?"}
+    tier -- "t0 trivial" --> t0["do now, verify, done"]
+    tier -- "t1 standard" --> t1["plan note, test-first"]
+    tier -- "t2 risky" --> t2["plan, build, review gate"]
+    t0 --> work["Work loop: any tier"]
+    t1 --> work
+    t2 --> work
+    work --> bash{{"PreToolUse: Bash, three inspectors, one checkpoint"}}
+    bash --> trim["base: trim verbose test output. Cost only, never blocks"]
+    trim --> ship{"commit or ship command?"}
+    ship -- "yes" --> review["haku: review gate"]
+    ship -- "no" --> gate
+    review --> gate["reflex: gate the final command form"]
+    gate -- "secret or destructive" --> deny["DENY"]
+    gate -- "ambiguous" --> ask["ASK: you decide"]
+    gate -- "read-only or safe" --> allow["ALLOW: executes"]
+    allow --> out(["output back to the agent"])
+    out --> sf{"search failed?"}
+    sf -- "yes" --> sp["search-plus: alternate provider"]
+    out --> dec{"decision made?"}
+    dec -- "yes" --> hj["haku: journal it"]
+    out --> td{"task done?"}
+    td -- "yes" --> pd["ping: stop ding"]
+```
+
+The wiring behind this diagram, the ownership map, and per-plugin evidence
+live in [docs/ref/plugin-flow.md](docs/ref/plugin-flow.md).
+
+## Quick start
 
 Add this marketplace to Claude Code:
 
@@ -79,9 +113,9 @@ Use the search-plus agent to investigate a topic
 Research latest web development trends
 ```
 
-## 📦 Available Plugins
+## Plugins
 
-### 🛠️ Base
+### Base
 
 Essential workflow and context engineering tools for productive development. Includes intelligent git commit crafting, quality assurance automation, and workflow orchestration to streamline your development process.
 
@@ -107,7 +141,7 @@ Essential workflow and context engineering tools for productive development. Inc
 
 [→ Detailed Documentation](plugins/base/README.md)
 
-### 🔍 Search Plus
+### Search-plus
 
 Enhanced web search with advanced error handling for 403, 429, 451, and connection issues that commonly occur when Claude Code attempts to research websites. Features multi-provider fallback (search: TinyFish → Tavily → Brave → Exa → Jina → keyless Firecrawl; extraction asks the origin for markdown first, then adds Defuddle and Wayback), structured failure detection, and reliable URL content extraction.
 
@@ -120,7 +154,7 @@ Enhanced web search with advanced error handling for 403, 429, 451, and connecti
 
 **Multi-Service Architecture:**
 - **Primary**: Tavily API for fast, reliable access (95-98% success, ~863ms avg)
-- **Fallback**: Keyless services — Jina Reader, Firecrawl, Defuddle, and the Wayback Machine for extraction; keyless Firecrawl search when no API keys are configured
+- **Fallback**: Keyless services. Jina Reader, Firecrawl, Defuddle, and the Wayback Machine for extraction; keyless Firecrawl search when no API keys are configured
 - **Smart Activation**: Only triggers fallback when needed (failed requests or empty content)
 - **Zero Configuration**: Works out-of-the-box with free services
 
@@ -138,7 +172,7 @@ Enhanced web search with advanced error handling for 403, 429, 451, and connecti
 
 [→ Detailed Documentation](plugins/search-plus/README.md)
 
-### 🔔 Ping
+### Ping
 
 Sound notifications and alerts for Claude Code tasks. Get audio feedback when tasks complete, when Claude needs your input, or when sessions start/end.
 
@@ -171,36 +205,36 @@ Sound notifications and alerts for Claude Code tasks. Get audio feedback when ta
 
 [→ Detailed Documentation](plugins/ping/README.md)
 
-### 📏 Haku
+### Haku
 
-A lean leadership plugin for AI PMs, engineering managers, TPMs, and senior ICs who'd rather decide well than write fast. An always-on core—8 skills + 5 gate agents—runs the decide → spec → evidence loop; 8 opt-in role packs bolt on for product, people, comms, and engineering work.
+A lean leadership plugin for AI PMs, engineering managers, TPMs, and senior ICs who'd rather decide well than write fast. An always-on core of 8 skills and 5 gate agents runs the decide → spec → evidence loop; 8 opt-in role packs bolt on for product, people, comms, and engineering work.
 
 **Key Features:**
 - 🎯 **Decide → Spec → Evidence Loop**: capture intent, pressure-test specs with a red-team gate, log wins as merge evidence
-- 🧠 **Compounding Memory**: `user-profile` anchor file — explain yourself once, get tailored output forever
-- 🚪 **Gate Agents**: reducer, spec-writer, red-teamer, RFC-reviewer, retro-facilitator — judgment at the decision points
+- 🧠 **Compounding Memory**: `user-profile` anchor file. explain yourself once, get tailored output forever
+- 🚪 **Gate Agents**: reducer, spec-writer, red-teamer, RFC-reviewer, retro-facilitator. judgment at the decision points
 - 📦 **8 Opt-In Packs**: people, stakeholder, team, comms, leadership, engineering-ops, research, evals
 - 🔍 **Routing Evals**: golden dataset gates every description change in CI
 - 🩺 **Doctor**: health-checks your reflection data, backups, and pack installs
 
-**License:** CC BY-SA 4.0 (the only non-Apache plugin here — vendored from its own upstream repo at tag `v0.5.0`)
+**License:** CC BY-SA 4.0 (the only non-Apache plugin here. vendored from its own upstream repo at tag `v0.5.0`)
 
 [→ Detailed Documentation](plugins/haku/README.md)
 
-### ⏱️ tempo
+### Tempo
 
 Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk: trivial changes load no skills at all, standard changes get test-first with a single agent, risky changes get a plan file and a review gate. A ~10-line routing table at session start, not a philosophy lecture. Fail-twice auto-promotion and a verify-before-done gate hold at every tier.
 
 **Measured** (one backend, hidden tests, medians of 3 runs per task; full table in the [tempo README](plugins/tempo/README.md#benchmarks)):
 
-- 📊 **The process-flat tax is measurable**: a reference process-heavy plugin cost 1.2–2.7× tokens and 1.45–1.8× turns over bare Claude Code at identical correctness, on every tier
-- 🎯 **tempo tier 2**: beat bare outright — 0.66× tokens with parity turns and wall-clock; the plan file and review gate paid for themselves
+- 📊 **The process-flat tax is measurable**: a reference process-heavy plugin cost 1.2 to 2.7× tokens and 1.45 to 1.8× turns over bare Claude Code at identical correctness, on every tier
+- 🎯 **tempo tier 2**: beat bare outright. 0.66× tokens with parity turns and wall-clock; the plan file and review gate paid for themselves
 - 🎯 **tempo tier 0**: turns and wall-clock at the bare floor; tokens ~1.5× bare from fixed plugin overhead, visible only on the shortest tasks
-- 🎯 **tempo tier 1**: on the re-based same-CLI comparison, near parity with the process-heavy reference — 0.79× its tokens, 0.91× its turns — while keeping test-first, the plan note, and full verification, and the fastest wall-clock of the three
+- 🎯 **tempo tier 1**: on the re-based same-CLI comparison, near parity with the process-heavy reference. 0.79× its tokens, 0.91× its turns. while keeping test-first, the plan note, and full verification, and the fastest wall-clock of the three
 
 **Example Usage:**
 ```bash
-# Nothing to invoke for the common case — triage happens per task
+# Nothing to invoke for the common case. triage happens per task
 
 # When you want it explicit:
 /tempo:risk-triage      # classify the current task
@@ -209,74 +243,63 @@ Safety-proportional process for agentic SDLC. Every task is tiered 0/1/2 by risk
 
 [→ Detailed Documentation](plugins/tempo/README.md)
 
-### 🛡️ Reflex
+### Reflex
 
-A permission gate for Claude Code's auto mode. Before the built-in auto-mode classifier sees a shell command, reflex screens it: local regex rules instantly allow read-only commands, ask on secrets/key material, and deny unambiguous destruction, while risky-but-contextual commands go to a System One decision model (TypeSafe Jev, Liquid d1, or any compatible endpoint) that returns typed risk probabilities — allow / ask a human / deny. Hard invariant: reflex never allows outside auto mode; `REFLEX_ALL_MODES=1` extends ask/deny gating to other modes.
+A permission gate for Claude Code's auto mode. Before the built-in auto-mode classifier sees a shell command, reflex screens it: local regex rules instantly allow read-only commands, ask on secrets/key material, and deny unambiguous destruction, while risky-but-contextual commands go to a System One decision model (TypeSafe Jev, Liquid d1, or any compatible endpoint) that returns typed risk probabilities. allow / ask a human / deny. Hard invariant: reflex never allows outside auto mode; `REFLEX_ALL_MODES=1` extends ask/deny gating to other modes.
 
 **Key Features:**
-- 🎯 **Typed decisions, not prose**: allow/ask/deny from calibrated probabilities across destructive, exfiltration, and prod/shared-infra dimensions — not a chat model's gut feel
+- 🎯 **Typed decisions, not prose**: allow/ask/deny from calibrated probabilities across destructive, exfiltration, and prod/shared-infra dimensions. not a chat model's gut feel
 - ⚡ **Local fast paths**: read-only commands pass with zero latency; unambiguous destruction is denied without any model call
-- 🪂 **Fails safe by construction**: provider error, timeout, or mid-band uncertainty hands the call back to Claude Code's own classifier untouched — reflex can only sharpen a decision, never loosen one
+- 🪂 **Fails safe by construction**: provider error, timeout, or mid-band uncertainty hands the call back to Claude Code's own classifier untouched. reflex can only sharpen a decision, never loosen one
 - 🔒 **Mode-scoped, secrets-aware**: gates in auto mode only (`REFLEX_ALL_MODES=1` opts into ask/deny elsewhere, `bypassPermissions` always excluded); a command naming `.env`/`.pem`/`id_rsa`-class material asks before the read-only fast path can allow it, and a command carrying an inline credential literal (Authorization/Bearer header, `sk-`/GitHub/AWS/Slack-class token, PEM key block) asks before any provider call, so the secret never reaches the decision model
 - 🔁 **Provider cycle with failover**: Liquid and TypeSafe presets, custom specs for Vercel AI Gateway / OpenRouter / any System One-compatible endpoint; three consecutive failures bench a provider
 - 🚨 **Kill switch**: `REFLEX_DISABLED=1` steps the whole gate aside
 - 📊 **Every verdict logged**: one JSON line per decision in `~/.local/share/reflex/verdicts.jsonl`, model calls and errors included. The log stores your commands verbatim, so it and the failstate file are created user-private (0600, directories 0700); existing files from older versions need a one-time `chmod 600`
 
-**Main use case:** running Claude Code in auto-accept mode without blanket trust — especially in prod-adjacent or shared-infrastructure repos, where you want a machine-speed second opinion on shell commands and a hard stop on the obviously destructive.
+**Main use case:** running Claude Code in auto-accept mode without blanket trust. especially in prod-adjacent or shared-infrastructure repos, where you want a machine-speed second opinion on shell commands and a hard stop on the obviously destructive.
 
 **Enable it:**
 ```bash
 /plugin install reflex@vibekit
-export TYPESAFE_API_KEY=...  # or LIQUID_API_KEY — or point a spec at a localhost System One endpoint for zero egress
+export TYPESAFE_API_KEY=...  # or LIQUID_API_KEY. or point a spec at a localhost System One endpoint for zero egress
 # start a new session, then watch decisions land:
 tail -f ~/.local/share/reflex/verdicts.jsonl
 ```
 
-**Metrics:** none published yet, deliberately. The deny/ask thresholds (0.85 / 0.55) are starting points, not truths — the verdict log accumulates labeled real traffic (each verdict carries the hook's `tool_use_id`, so `evals/reflex/correlate-outcomes.mjs` can join verdicts to session transcripts and label outcomes: agreed / overridden / no-match, summarized as an override rate per pattern class). Thresholds get tuned against your own usage rather than guessed. Numbers land in this section once real traffic has accumulated.
+**Metrics:** none published yet, deliberately. The deny/ask thresholds (0.85 / 0.55) are starting points, not truths. the verdict log accumulates labeled real traffic (each verdict carries the hook's `tool_use_id`, so `evals/reflex/correlate-outcomes.mjs` can join verdicts to session transcripts and label outcomes: agreed / overridden / no-match, summarized as an override rate per pattern class). Thresholds get tuned against your own usage rather than guessed. Numbers land in this section once real traffic has accumulated.
 
 [→ Detailed Documentation](plugins/reflex/README.md)
 
-## 🎯 What You Can Do
-
-Our plugins help developers:
-
-- **Gate Auto Mode**: Screen shell commands through a permission gate that fails safe before execution
-- **Automate Git Workflows**: Create intelligent commits with proper formatting
-- **Research Reliably**: Search the web without hitting rate limits or errors
-- **Extract Web Content**: Pull information from documentation and tutorials
-- **Boost Productivity**: Solve common development challenges with purpose-built tools
-- **Handle Edge Cases**: Address limitations in Claude Code's native functionality
-
-## 🤝 Community & Feedback
+## Community and feedback
 
 VibeKit is currently maintained as a solo project, but community feedback is invaluable! Here's how you can help improve it:
 
-### 🐛 Report Issues
+### Report an issue
 Found a bug or unexpected behavior? Please open an issue with:
 - Clear description of the problem
 - Steps to reproduce
 - Expected vs actual behavior
 - Your environment (OS, Claude Code version)
 
-### 💡 Request Features
+### Request a feature
 Have an idea for a new plugin or improvement? Please share:
 - Use case and problem it solves
 - Expected functionality
 - Any relevant examples or references
 
-### 📝 General Feedback
+### General feedback
 - What plugins do you find most useful?
 - Any pain points in installation or usage?
 - Suggestions for better documentation
 
-### 📞 Stay Connected
+### Stay connected
 - ⭐ **Star the repository** if you find VibeKit helpful
 - 👀 **Watch for updates** when new plugins are released
 - 🐛 **Report issues** at [github.com/shrwnsan/vibekit-claude-plugins/issues](https://github.com/shrwnsan/vibekit-claude-plugins/issues)
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on reporting issues, requesting features, and providing feedback.
 
-## 🏗️ Plugin Architecture
+## Plugin architecture
 
 Each plugin includes:
 
@@ -287,7 +310,7 @@ Each plugin includes:
 - **Hooks**: Custom behavior at key workflow points
 - **MCP Servers**: External tool integrations (when applicable)
 
-## 🛠️ Development
+## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Project structure and guidelines
@@ -295,7 +318,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Security best practices
 - Code style conventions
 
-## 📄 License
+## License
 
 This marketplace and all included plugins are licensed under the Apache License 2.0.
 

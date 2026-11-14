@@ -39,10 +39,15 @@ flowchart LR
     t --> w["work loop"]
     w --> c{"checkpoint: base trims, reflex gates"}
     c -->|"allow"| o(["trimmed, cited answer"])
-    c -->|"ask or deny"| you(["you decide"])
-    h["haku: decide, review, journal"] -.->|"loop gates, receipts"| w
+    c -->|"ask"| you(["you decide"])
+    you -.->|"your call, journaled"| h["haku: decide, review, journal"]
+    you -->|"approved"| o
+    c -->|"deny"| stop(["blocked, nothing runs"])
+    h -.->|"loop gates, receipts"| w
     o --> hj["haku logs the win"]
+    hj -.->|"wins feed the next decision"| h
     w -.->|"search fails"| sp["search-plus: alternate provider"]
+    sp -.->|"results return"| w
 ```
 
 The wiring behind this diagram, the ownership map, and per-plugin evidence

@@ -33,10 +33,12 @@ flowchart TD
     review --> gate["reflex: gate the final command form"]
     gate -- "secret or destructive" --> deny["DENY"]
     gate -- "ambiguous" --> ask["ASK: you decide"]
+    ask -.->|your ruling, journaled| hj
     gate -- "read-only or safe" --> allow["ALLOW: executes"]
     allow --> out(["output back to the agent"])
     out --> sf{"search failed?"}
     sf -- "yes" --> sp["search-plus: alternate provider"]
+    sp -.->|fallback results feed back into the work loop| work
     out --> dec{"decision made?"}
     dec -- "yes" --> hj["haku: journal it"]
     out --> td{"task done?"}

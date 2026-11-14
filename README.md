@@ -34,16 +34,16 @@ provider key it simply steps aside.
 
 ```mermaid
 flowchart LR
-    s(["Session"]) --> t["tempo: pace each task"]
+    s(["Session"]) --> h["haku: decide, review, journal"]
+    s --> t["tempo: pace each task"]
     s -.-> p["ping: sounds"]
-    t --> w["work loop"]
+    h -.->|"loop gates, receipts"| w["work loop"]
+    t --> w
     w --> c{"checkpoint: base trims, reflex gates"}
     c -->|"allow"| o(["trimmed, cited answer"])
     c -->|"ask"| you(["you decide"])
-    you -.->|"your call, journaled"| h["haku: decide, review, journal"]
-    you -->|"approved"| o
+    you -.->|"your ruling, journaled"| h
     c -->|"deny"| stop(["blocked, nothing runs"])
-    h -.->|"loop gates, receipts"| w
     o --> hj["haku logs the win"]
     hj -.->|"wins feed the next decision"| h
     w -.->|"search fails"| sp["search-plus: alternate provider"]

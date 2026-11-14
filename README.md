@@ -42,6 +42,7 @@ flowchart LR
     c -->|"ask or deny"| you(["you decide"])
     h["haku: decide, review, journal"] -.->|"loop gates, receipts"| w
     o --> hj["haku logs the win"]
+    hj -.->|"wins feed the next decision"| h
     w -.->|"search fails"| sp["search-plus: alternate provider"]
 ```
 

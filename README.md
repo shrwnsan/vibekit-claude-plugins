@@ -21,7 +21,27 @@ Agentic development has six friction points, and each plugin targets one:
 | **Process** — every change pays the flat ceremony tax | ⏱️ [tempo](#️-tempo) | Risk-tiered loop: trivial changes skip ceremony, risky changes earn it |
 | **Safety** — auto mode fires shell commands without a second look | 🛡️ [reflex](#️-reflex) | Typed allow/ask/deny gate decides before execution; uncertainty or failure hands the call back untouched |
 
-The through-line: **remove the human as the bottleneck** — either by making the agent self-sufficient (search fallback, quality gates), pacing your attention (notifications, decision logs), pacing the agent's process to the task's risk (tempo), or spending the human's attention only where a calibrated gate says it's actually needed (reflex). And it stays deliberately low-dependency: search-plus works without API keys, ping needs no services, haku is process rather than API, tempo is structure rather than infrastructure, and reflex's local regex fast paths are keyless — without a provider key it simply steps aside.
+The through-line: **remove the human as the bottleneck**, either by making the agent self-sufficient (search fallback, quality gates), pacing your attention (notifications, decision logs), pacing the agent's process to the task's risk (tempo), or spending the human's attention only where a calibrated gate says it's actually needed (reflex). And it stays deliberately low-dependency: search-plus works without API keys, ping needs no services, haku is process rather than API, tempo is structure rather than infrastructure, and reflex's local regex fast paths are keyless. Without a provider key it simply steps aside.
+
+## What you get
+
+Run the uninstall test in reverse. Six plugins, six benefits you keep, each
+backed by measurement or a real incident:
+
+- search-plus keeps research alive when providers fail. A measured baseline
+  of 0 to 20% success on blocked sites rose to 95%+ with keyless fallback.
+- tempo paces process to risk. Risky tasks spend 34% fewer tokens than no
+  process at all; trivial tasks stay at bare speed.
+- base trims the bill and guards what lands, from test-output noise to
+  verification scripts that lie.
+- reflex makes reduced supervision safe: secrets denied, destructive
+  commands paused for your call, decided before the command runs.
+- ping ends the alt-tab. Four sounds cover session start, your prompt,
+  attention requests, and completion.
+- haku keeps the receipts. Decisions land in a journal you can audit.
+
+The full flow chart, the ownership map, and per-plugin evidence live in
+[docs/ref/plugin-flow.md](docs/ref/plugin-flow.md).
 
 ## 🚀 Quick Start
 

@@ -82,6 +82,22 @@ function runReport(root, args = []) {
 
 // -- cases ----------------------------------------------------------------------
 
+test("multi-line Bash command flattened onto a single row line", async () => {
+	const root = scenario({
+		"projects/p-a/sess-a.jsonl": [
+			assistantUse("ml_1", "Bash", { command: "docker volume rm \\\n  vol_a \\\n  vol_b" }),
+			denial("ml_1", { category: "unverifiable_deletion_scope" }),
+		].join("\n") + "\n",
+	});
+	const r = await runReport(root);
+	assert.equal(r.code, 0, r.err);
+	// whole command on one physical line: starts with the docker segment,
+	// ends with the last volume — no raw newline inside the row
+	assert.match(r.out, /docker volume rm .*vol_b/);
+	assert.doesNotMatch(r.out, /docker volume rm \\\n/);
+	rmSync(root, { recursive: true, force: true });
+});
+
 test("Bash denial with category → row under Bash with command text (miss list)", async () => {
 	const root = scenario({
 		"projects/p-a/sess-a.jsonl": [

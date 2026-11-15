@@ -124,10 +124,13 @@ function collectUses(projectsDir, floorMs, ids) {
 }
 
 // What to show for a denied call: the command for Bash, the file for the
-// editing tools, compact JSON otherwise. Drift-truncated, never multiline.
+// editing tools, compact JSON otherwise. Drift-truncated, never multiline —
+// embedded newlines become ⏎ so one denial stays one row line.
 function inputRepr(use) {
 	const input = use?.input;
-	if (use?.name === "Bash" && typeof input?.command === "string") return input.command;
+	if (use?.name === "Bash" && typeof input?.command === "string") {
+		return input.command.replace(/\s*\n\s*/g, " ⏎ ");
+	}
 	if (typeof input?.file_path === "string") return input.file_path;
 	const s = JSON.stringify(input ?? null) ?? "null";
 	return s.length > CELL ? s.slice(0, CELL - 1) + "…" : s;

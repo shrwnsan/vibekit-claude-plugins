@@ -219,8 +219,8 @@ Per-plugin change detail stays in each plugin's `CHANGELOG.md`; plugin bumps rid
 
 ### tempo (`plugins/tempo/`)
 - Safety-proportional process: risk-triage router + tier-0/1/2 flow skills + SessionStart routing table
-- Measured against bare Claude Code and a process-heavy reference (tasks-005); skills hub-published to shrwnsan/agents
-- Skills sync allowlisted in `.github/sync-skills.json`; routing golden set in `evals/ceremony/`
+- Measured against bare Claude Code and a process-heavy reference (tasks-005)
+- Skills are plugin-internal: sync membership removed in #140 after hub resurrection churn; routing golden set in `evals/ceremony/`
 
 ### Reflex (`plugins/reflex/`)
 - Pre-classifier permission gate for auto mode: typed allow/ask/deny PreToolUse decisions from System One decision models (TypeSafe Jev, Liquid d1, compatible endpoints)

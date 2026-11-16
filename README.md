@@ -33,19 +33,20 @@ provider key it simply steps aside.
 ## How six plugins share one session
 
 ```mermaid
-flowchart LR
+flowchart TD
     s(["Session"]) --> h["haku: decide, review, journal"]
     s --> t["tempo: pace each task"]
-    s -.-> p["ping: sounds"]
+    s -.-> p["ping: session-start ding"]
     h -.->|"loop gates, receipts"| w["work loop"]
     t --> w
-    w --> c{"checkpoint: base trims, reflex gates"}
+    w --> c["checkpoint: base trims, haku reviews ships, reflex gates"]
     c -->|"allow"| o(["trimmed, cited answer"])
     c -->|"ask"| you(["you decide"])
-    you -.->|"your ruling, journaled"| h
+    you -.->|"ruling journaled"| h
     c -->|"deny"| stop(["blocked, nothing runs"])
+    o -.->|"done"| pd["ping: stop ding"]
     o --> hj["haku logs the win"]
-    hj -.->|"wins feed the next decision"| h
+    hj -.->|"wins compound"| h
     w -.->|"search fails"| sp["search-plus: alternate provider"]
     sp -.->|"results return"| w
 ```

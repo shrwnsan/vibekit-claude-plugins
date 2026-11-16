@@ -1,61 +1,61 @@
 # Search Plus: Reliable Web Search for Claude Code
 
-**Stop seeing "search failed" messages.** Get reliable web search and URL extraction that actually works when Claude Code's built-in search fails.
+**Search that survives failures.** Reliable web search and URL extraction when Claude Code's built-in search fails.
 
-> **From 20% to 95% success rate** - transforms Claude Code's search reliability with intelligent fallback strategies
+> **From 20% to 95% success on blocked sites**, via provider fallback chains with structured failure detection.
 
-## Quick Start (2 minutes)
+## Quick start (2 minutes)
 
 ```bash
 # 1. Install from VibeKit Marketplace
 /plugin marketplace add shrwnsan/vibekit-claude-plugins
 /plugin install search-plus@vibekit
 
-# 2. Test it works — just ask Claude to research something
+# 2. Test it works: just ask Claude to research something
 "Research Claude Code plugin documentation"
 
 # 3. Extract from blocked URLs
 "Extract content from https://docs.anthropic.com/en/docs/claude-code/plugins"
 ```
 
-## Why You Need This
+## Why you need this
 
-**The Problem**: Claude Code's search frequently fails with:
-- ❌ "403 Forbidden" - Access denied
-- ❌ "422 Unprocessable Entity" - Schema validation errors
-- ❌ "429 Too Many Requests" - Rate limiting
-- ❌ "Did 0 searches..." - Silent failures
+Claude Code's search fails in four ways:
 
-**The Solution**: Search Plus handles all these errors automatically and finds the content you need.
+- "403 Forbidden", access denied
+- "422 Unprocessable Entity", schema validation errors
+- "429 Too Many Requests", rate limiting
+- "Did 0 searches...", silent failures
 
-## What It Does
+Search Plus detects these failures and falls back across providers until one returns the content.
 
-### 🔍 Enhanced Web Search
+## What it does
+
+### Web search
 Searches the web when Claude Code's built-in search fails:
 
 > "Research latest React best practices 2025"
 
-### 📄 URL Content Extraction
+### URL content extraction
 Extracts content from blocked or problematic URLs:
 
 > "Extract content from https://github.com/facebook/react/blob/main/README.md"
 
-### ⚡ Intelligent Fallback
+### Fallback chain
 Automatically tries multiple services until one works:
-- **Self-hosted (optional)**: your SearXNG instance, tried first when `SEARCH_PLUS_SEARXNG_URL` is set
-- **Primary**: TinyFish Search (if configured)
-- **Fallback 1**: Tavily API (if configured)
-- **Fallback 2**: Brave Search API (if configured)
-- **Fallback 3**: Exa AI Search (if configured)
-- **Fallback 4**: Jina.ai Search API (if configured)
-- **Fallback 5**: Firecrawl Search (keyless — works with no API key)
-- **URL extraction**: Tavily (if configured) → Jina Reader → TinyFish (if configured) → Firecrawl → Defuddle → Wayback Machine
-- **GitHub Integration**: Native GitHub CLI access for repository content (when enabled)
-- **Result**: You get answers instead of errors
+- Self-hosted (optional): your SearXNG instance, tried first when `SEARCH_PLUS_SEARXNG_URL` is set
+- Primary: TinyFish Search (if configured)
+- Fallback 1: Tavily API (if configured)
+- Fallback 2: Brave Search API (if configured)
+- Fallback 3: Exa AI Search (if configured)
+- Fallback 4: Jina.ai Search API (if configured)
+- Fallback 5: Firecrawl Search (keyless, works with no API key)
+- URL extraction: Tavily (if configured), Jina Reader, TinyFish (if configured), Firecrawl, Defuddle, Wayback Machine
+- GitHub integration: native GitHub CLI access for repository content (when enabled)
 
-## Performance Results
+## Measured results
 
-Based on 35 comprehensive test scenarios:
+35 test scenarios:
 
 | Metric | Claude Code (Default) | With Search Plus | Improvement |
 |--------|----------------------|------------------|-------------|
@@ -65,34 +65,35 @@ Based on 35 comprehensive test scenarios:
 | **403 Forbidden** | 100% failure | **80% success** | High recovery |
 | **Silent Failures** | 100% occurrence | **0%** | Eliminated |
 
-*Tested on real-world problematic domains including documentation sites, financial platforms, and social media.*
+*Tested on documentation sites, financial platforms, and social media.*
 
-> **Re-measured on 3.4.0** (Oct 2026, [eval-027](../../docs/evals/eval-027-search-plus-35-scenario-remeasure.md)): 33/35 scenarios with honest post-3.4 success criteria — 100% of legitimate scenarios passed, 0 silent failures; both misses are by-design failure controls (a reserved domain and a clean 404) that failed with structured, actionable errors.
+> **Re-measured on 3.4.0** (Oct 2026, [eval-027](../../docs/evals/eval-027-search-plus-35-scenario-remeasure.md)): 33/35 scenarios with honest post-3.4 success criteria. 100% of legitimate scenarios passed, 0 silent failures; both misses are by-design failure controls (a reserved domain and a clean 404) that failed with structured, actionable errors.
 
-## When to Use Search Plus
+## When to use it
 
-**Use instead of Claude's default search when**:
-- 🚫 You see "403 Forbidden" errors
-- 🚫 You get "Did 0 searches..." responses
-- 🚫 Research fails on documentation sites
-- 🚫 Financial or news content blocks access
-- 🚫 You need reliable content extraction
+Use instead of Claude's default search when:
+- You see "403 Forbidden" errors
+- You get "Did 0 searches..." responses
+- Research fails on documentation sites
+- Financial or news content blocks access
+- You need reliable content extraction
 
-**Works great for**:
-- 📚 Documentation research
-- 🔍 Technical blog posts
-- 📰 News and current events
-- 💼 Professional and academic research
-- 🛠️ Development best practices
+Good fits:
 
-## Setup Options
+- Documentation research
+- Technical blog posts
+- News and current events
+- Professional and academic research
+- Development best practices
 
-### Option 1: Quick Start (No API Keys)
+## Setup options
+
+### Option 1: Quick start (no API keys)
 Works out of the box: web search uses Firecrawl's keyless tier (rate-limited per IP), and URL extraction uses Jina Reader, Firecrawl, Defuddle, and the Wayback Machine. For heavier use, add a free key:
-- **Tavily**: Sign up at [tavily.com](https://tavily.com) → 1,000 free searches/month (recurring)
-- **Jina.ai**: Sign up at [jina.ai](https://jina.ai) → 10M free tokens (~1,000 searches)
+- **Tavily**: sign up at [tavily.com](https://tavily.com) for 1,000 free searches a month (recurring)
+- **Jina.ai**: sign up at [jina.ai](https://jina.ai) for 10M free tokens (about 1,000 searches)
 
-### Option 2: Enhanced Performance (Optional)
+### Option 2: Enhanced performance (optional)
 Add API keys for maximum reliability and speed:
 
 ```bash
@@ -105,7 +106,7 @@ export SEARCH_PLUS_JINA_API_KEY=your_jina_key_here
 export SEARCH_PLUS_FIRECRAWL_API_KEY=your_firecrawl_key_here
 ```
 
-**Free tiers available**:
+Free tiers:
 - Tavily: 1,000 searches/month free (recurring)
 - TinyFish: free key (no card); search and up to 1,000 fetched URLs/day at no cost, with browser rendering
 - Brave Search: $5 free credits/month (~1,000 queries, recurring)
@@ -117,9 +118,9 @@ export SEARCH_PLUS_FIRECRAWL_API_KEY=your_firecrawl_key_here
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete setup details.
 
-> **Sandbox users**: Node.js `fetch()` does not use the proxy env vars that Claude Code's sandbox injects, so all search providers fail with DNS errors. **Fix**: add `"node"` to `excludedCommands` in your Claude Code settings (`~/.claude/settings.json`). This lets Node scripts bypass the sandbox network restrictions. On Node 22.22+ or 24+, you can instead set `NODE_USE_ENV_PROXY=1` to route fetch through the proxy without disabling the sandbox. One exception: the direct markdown fetch intentionally ignores proxy settings — its SSRF guard validates DNS answers at connect time, which requires owning the connection — so in a proxied sandbox the direct step always fails and the chain falls through to the other extraction providers. Also add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, `api.jina.ai`, `api.firecrawl.dev`, `api.search.tinyfish.ai`, `api.fetch.tinyfish.ai`, `defuddle.md`, and `archive.org` to `allowedDomains`. See [docs/evals/eval-026](../../docs/evals/eval-026-search-plus-sandbox-dns-investigation.md) for the full investigation.
+> **Sandbox users**: Node.js `fetch()` does not use the proxy env vars that Claude Code's sandbox injects, so all search providers fail with DNS errors. **Fix**: add `"node"` to `excludedCommands` in your Claude Code settings (`~/.claude/settings.json`). This lets Node scripts bypass the sandbox network restrictions. On Node 22.22+ or 24+, you can instead set `NODE_USE_ENV_PROXY=1` to route fetch through the proxy without disabling the sandbox. One exception: the direct markdown fetch intentionally ignores proxy settings; its SSRF guard validates DNS answers at connect time, which requires owning the connection. In a proxied sandbox the direct step always fails and the chain falls through to the other extraction providers. Also add `api.tavily.com`, `api.search.brave.com`, `api.exa.ai`, `s.jina.ai`, `r.jina.ai`, `api.jina.ai`, `api.firecrawl.dev`, `api.search.tinyfish.ai`, `api.fetch.tinyfish.ai`, `defuddle.md`, and `archive.org` to `allowedDomains`. See [docs/evals/eval-026](../../docs/evals/eval-026-search-plus-sandbox-dns-investigation.md) for the full investigation.
 
-### Option 3: GitHub CLI Integration (Advanced)
+### Option 3: GitHub CLI integration (advanced)
 
 Enable native GitHub repository access for maximum reliability with GitHub URLs:
 
@@ -134,16 +135,16 @@ export SEARCH_PLUS_GITHUB_ENABLED=true
 
 See [docs/CONFIGURATION.md#github-cli-integration](docs/CONFIGURATION.md#github-cli-integration) for complete setup details.
 
-## Usage Examples
+## Usage examples
 
-### Basic Web Search
+### Basic web search
 ```
 # When Claude's search fails
 "Research Python async await best practices"
 "Find React hooks documentation"
 ```
 
-### URL Content Extraction
+### URL content extraction
 ```
 # Extract from documentation sites
 "Extract content from https://nextjs.org/docs/api-reference/create-next-app"
@@ -152,7 +153,7 @@ See [docs/CONFIGURATION.md#github-cli-integration](docs/CONFIGURATION.md#github-
 "Get the content from https://reddit.com/r/programming/comments/example"
 ```
 
-### Complex Research
+### Complex research
 ```
 # Multi-topic research
 "Research microservices vs monolith pros cons 2025"
@@ -161,13 +162,13 @@ See [docs/CONFIGURATION.md#github-cli-integration](docs/CONFIGURATION.md#github-
 "Search site:github.com awesome list machine learning"
 ```
 
-## Two Ways to Use Search Plus
+## Two ways to use it
 
-### 1. Automatic (Skill)
+### 1. Automatic (skill)
 Claude automatically uses Search Plus when it detects you need web research or encounters search errors. Just ask:
 > "Research the latest Claude Code plugin architecture"
 
-### 2. Agent Mode (Advanced)
+### 2. Agent mode (advanced)
 For complex multi-step research:
 > "Use the search-plus agent to investigate this topic"
 
@@ -177,7 +178,7 @@ For complex multi-step research:
 A: Yes. Uses industry-standard APIs. No data stored beyond what's necessary.
 
 **Q: Will this make my searches slower?**
-A: Actually faster on average (2.3 seconds) compared to failed searches that require retries.
+A: Faster on average, 2.3 seconds, because failed searches cost retries.
 
 **Q: Do I need to pay for this?**
 A: No. Works with free services out-of-the-box. API keys are optional for enhanced performance.
@@ -194,11 +195,11 @@ cd plugins/search-plus/skills/meta-search/scripts
 node --test tests/*.test.mjs
 ```
 
-Note the glob is required: `node --test tests/` (directory form) fails with `MODULE_NOT_FOUND` on Node 22. Most tests are fully offline — `fetch`, DNS, and the direct-fetch transport are stubbed. Three end-to-end chain tests in `tests/content-quality.test.mjs` need DNS and skip themselves (reported as `skipped`, not failed) when it is unavailable, e.g. inside a network-restricted sandbox; run them on a machine with DNS for full coverage.
+Note the glob is required: `node --test tests/` (directory form) fails with `MODULE_NOT_FOUND` on Node 22. Most tests are fully offline: `fetch`, DNS, and the direct-fetch transport are stubbed. Three end-to-end chain tests in `tests/content-quality.test.mjs` need DNS and skip themselves (reported as `skipped`, not failed) when it is unavailable, e.g. inside a network-restricted sandbox; run them on a machine with DNS for full coverage.
 
 CI runs the same suite on Node 22 and 24, plus `claude plugin validate .`, for every pull request and push to `main` that touches `plugins/search-plus/` ([workflow](../../.github/workflows/search-plus-tests.yml)).
 
-## Advanced Information
+## More documentation
 
 - **Configuration**: [docs/CONFIGURATION.md](docs/CONFIGURATION.md) - API keys and advanced setup
 - **Technical Details**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Implementation and design
@@ -207,11 +208,8 @@ CI runs the same suite on Node 22 and 24, plus `claude plugin validate .`, for e
 
 ## License
 
-Apache License 2.0 - See main project [LICENSE](../../LICENSE) for details.
+License: Apache 2.0. See the main project [LICENSE](../../LICENSE) for details.
 
----
-
-**Stop fighting with search failures.** Install Search Plus and get reliable web research that just works.
 ## Standards
 
 Ships with dual manifests: a Claude Code plugin (`.claude-plugin/plugin.json`)

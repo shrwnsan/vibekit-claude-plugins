@@ -1,23 +1,24 @@
-# Base: Essential Claude Code Workflow Tools
+# Base: Claude Code workflow tools
 
-A Claude Code plugin providing foundational workflow automation tools for productive development.
+Commit crafting, systematic debugging, handoff context, branch cleanup,
+test output filtering, and a workflow orchestrator (beta).
 
 ## Features
 
-- **Git Commit Command**: Quick, intelligent commit creation with `/commit` slash command
-- **Git Commit Crafting**: Professional commit messages with conventional standards and attribution
-- **Systematic Debugging**: Structured debugging approach that finds root causes efficiently
-- **Handoff Context**: Natural language handoff detection for seamless thread continuation
-- **Workflow Orchestration**: Coordinates development workflows and quality assurance (beta)
-- **Test Output Filtering**: Automatic PreToolUse hook that filters verbose test output (npm, pytest, cargo, go, yarn, pnpm) to reduce token costs
+- `/commit` creates the commit: conventional formatting, quality validation, attribution, breaking-change detection
+- The crafting-commits skill drafts commit messages from natural-language requests ("help me commit")
+- `/systematic-debugging` runs a 5-step debugging workflow that targets root causes
+- `/handoff-context` writes a structured YAML summary for continuing work in a fresh thread
+- The workflow orchestrator (beta) chains commit, QA, and validation steps
+- A PreToolUse hook filters verbose test output (npm, pytest, cargo, go, yarn, pnpm), typically a 50 to 95% token reduction
 
-## Quick Start
+## Quick start
 
 ```bash
 # Install from VibeKit marketplace
 /plugin install base --marketplace shrwnsan/vibekit-claude-plugins
 
-# Quick commit with intelligent message drafting
+# Quick commit with a drafted message
 /commit
 
 # Try git commit crafting (automatic invocation)
@@ -37,12 +38,12 @@ A Claude Code plugin providing foundational workflow automation tools for produc
 
 ## Usage
 
-### Git Commit Tools
+### Git commit tools
 
-The Base Plugin offers two complementary approaches to creating commits:
+Two ways to create commits:
 
-#### 1. /commit Command
-Explicit control with flexible CLI options:
+#### 1. The /commit command
+Explicit control with CLI options:
 ```bash
 /commit                                    # Auto-detects complexity and routes appropriately
 /commit -f                                 # Fast mode for simple, routine changes
@@ -50,86 +51,86 @@ Explicit control with flexible CLI options:
 /commit "custom message"                   # Use your message with validation
 ```
 
-#### 2. crafting-commits Skill
-Intelligent automation that adapts to your changes. Use for phrases like:
+#### 2. The crafting-commits skill
+Drafts the message from natural-language requests:
 - "help me commit"
 - "draft a commit message"
 - "create a proper commit"
 - "write commit message for [changes]"
 - "I need to commit these changes"
 
-**Which to use?** See [Commit Approaches Comparison](docs/commit-approaches-comparison.md) for detailed guidance.
+Not sure which to use? See [the comparison guide](docs/commit-approaches-comparison.md).
 
-**Shared Features:**
+Both paths share:
 - Conventional commit formatting
 - Quality validation before committing
 - Proper attribution handling
 - Breaking change detection
 
-### Systematic Debugging
+### Systematic debugging
 
 **Slash command:** `/systematic-debugging`
 
-Automatically activates when you encounter errors, test failures, or unexpected behavior. No command needed—just describe the issue.
+Activates when you hit errors, test failures, or unexpected behavior. No command needed. Describe the issue.
 
-**When it activates:**
+When it activates:
 - Error messages or stack traces in conversation
 - Test failures being discussed
 - "Not working", "bug", "broken", or "unexpected behavior" mentioned
 - Questions like "why is this happening?"
 
-**What it provides:**
-- 5-step systematic debugging workflow
+What it provides:
+- 5-step debugging workflow
 - Guardrails against common debugging pitfalls
 - Guidance for multi-component systems
 - Architecture questioning when 3+ fixes fail
 
-**Usage examples:**
+Usage examples:
 - "This test is failing"
 - "Help me debug this error"
 - "Why isn't this working?"
 - "Something's broken after my changes"
 
-**Key principle:** Understand the root cause before attempting fixes. Systematic debugging is faster than random fixes.
+Understand the root cause before attempting fixes. Random fixes are slower and often leave the bug in place.
 
-### Handoff Context
+### Handoff context
 
 **Slash command:** `/handoff-context` (recommended)
 
-Automatically activates when you want to transition to a new thread and preserve your conversation context. No command needed—just say "handoff" naturally.
+Activates when you want to move to a new thread and keep the conversation context. No command needed. Say "handoff" in any phrasing.
 
-**When it activates:**
-- "Handoff and [action]" → Continue work in new thread (e.g., "Handoff and build an admin panel")
-- "Handoff to [action]" → Targeted continuation (e.g., "Handoff to implement the plan")
-- "Handoff [context]" → Context preservation only (e.g., "Handoff this context")
-- "Start a new thread with this" → Explicit thread continuation
+When it activates:
+- "Handoff and [action]" continues in a new thread with a goal, as in "Handoff and build an admin panel"
+- "Handoff to [action]" targets the continuation at one task, as in "Handoff to implement the plan"
+- "Handoff [context]" preserves context without a next action
+- "Start a new thread with this" states the continuation explicitly
 
-**What it provides:**
-- Structured YAML context summary written to `/tmp/handoff-TIMESTAMP.yaml`
-- Preserves git state, conversation phases, next steps, and key decisions
-- Integrates with workflow-orchestrator for workflow-aware handoffs
+What it provides:
+- A structured YAML summary written to `/tmp/handoff-TIMESTAMP.yaml`
+- Git state, conversation phases, next steps, and key decisions
+- Workflow-aware handoffs through the workflow orchestrator
 
-**Usage examples:**
+Usage examples:
 - "Handoff and refactor the authentication flow"
 - "Handoff to implement the plan"
 - "Start a new thread with this context"
 - "Continue in a fresh thread"
 
-**Key principle:** Seamless continuation without losing context. Stay in flow while transitioning to a fresh thread.
+The new thread reads the YAML file and resumes with the full state, so no context is lost in the switch.
 
-### Branch & Worktree Hygiene
+### Branch and worktree hygiene
 
 **Slash command:** `/branch-hygiene`
 
-Classifies every local/remote branch and worktree against the mainline, then cleans up what is resolved. Detects squash-merges that `git branch --merged` cannot see (subject/PR matching, file presence, content diffs) — the only reliable test in squash-merge workflows.
+Classifies every local and remote branch and worktree against the mainline, then cleans up what is resolved. Detects squash-merges that `git branch --merged` cannot see (subject/PR matching, file presence, content diffs), which is the only reliable test in squash-merge workflows.
 
-**What it detects:**
+What it detects:
 - Branches fully resolved via squash-merge (`merged-content`) or patch-equivalence (`merged-ancestry`)
 - Superseded branches (content landed, mainline evolved past them) and stale-base branches (merging would regress)
 - Remote-gone branches, prunable worktrees, orphaned worktree-looking directories
 - Worktree-attached branches are never auto-delete eligible; dirty/unmerged work is never touched
 
-**Safety model:** the classifier script is strictly read-only. Tiered action policy — auto (local branch delete, `worktree prune`), confirm (worktree remove, remote ref deletion), never (dirty or unmerged).
+**Safety model:** the classifier script is strictly read-only. Tiered action policy: auto (local branch delete, `worktree prune`), confirm (worktree remove, remote ref deletion), never (dirty or unmerged).
 
 **Usage examples:**
 - "Clean up my merged branches"
@@ -138,15 +139,15 @@ Classifies every local/remote branch and worktree against the mainline, then cle
 
 **Key principle:** Every deletion is backed by a verified verdict, never an ancestry guess.
 
-### Test Output Filtering
+### Test output filtering
 
-**Automatic activation** - No command needed, filters test output by default to reduce token costs.
+Automatic. The hook filters test output by default to cut token costs.
 
-**Supported runners**: npm test, pytest, go test, cargo test, yarn test, pnpm test, bun test, rspec, rails test, mvn test, gradle test
+Supported runners: npm test, pytest, go test, cargo test, yarn test, pnpm test, bun test, rspec, rails test, mvn test, gradle test
 
-**How it works**: Intercepts test commands and pipes output through filters that show only errors, failures, and key results (typically 50-95% token reduction).
+How it works: the hook intercepts test commands and pipes output through filters that keep errors, failures, and key results, typically a 50 to 95% token reduction.
 
-**Disable filtering**:
+Disable filtering:
 ```bash
 export VIBEKIT_BASE_TEST_FILTER=none
 # or
@@ -157,10 +158,10 @@ export VIBEKIT_BASE_TEST_FILTER=disable
 
 For detailed documentation, see [test-output-filtering.md](docs/test-output-filtering.md).
 
-### Workflow Orchestrator (beta)
-The workflow orchestrator coordinates complex development workflows, integrating git operations, quality assurance, and productivity automation. It manages parallel development, enforces quality gates, and sequences tasks for smooth development processes.
+### Workflow orchestrator (beta)
+The workflow orchestrator chains git operations, QA checks, and validation into one flow. It creates isolated worktrees for parallel work, runs the QA scope your change type needs, and reports progress after each step.
 
-#### Workflow Types
+#### Workflow types
 ```bash
 "base: workflow commit"                    # Standard commit workflow with quality integration
 "base: workflow qa --scope code"           # Quality assurance checks (code/docs/feature)
@@ -168,20 +169,20 @@ The workflow orchestrator coordinates complex development workflows, integrating
 "base: workflow clean"                     # Clean and reset workspace
 ```
 
-#### Key Capabilities
-- **Git Workflow Integration**: Automated commit → quality check → validation pipeline
-- **Parallel Development**: Creates isolated worktrees for feature branches
-- **Quality Gate Enforcement**: Runs scoped QA based on change type and scope
-- **Error Recovery**: Provides rollback options and recovery guidance
-- **Progress Tracking**: Monitors workflow status with detailed reporting
+#### Key capabilities
+- Commit, quality check, and validation run as one pipeline
+- Parallel development gets isolated worktrees
+- QA scope follows the change type
+- Errors come with rollback options and recovery guidance
+- Progress is reported per step
 
-#### Quality Assurance Scope Options
+#### QA scope options
 - `--scope code` - Linting, testing, and build validation
 - `--scope docs` - Link checking and formatting validation
 - `--scope feature` - Comprehensive QA for new features
 - `--scope minimal` - Basic syntax and structure validation
 
-#### Usage Examples
+#### Usage examples
 ```bash
 # Standard feature development with QA
 "base: workflow commit"
@@ -196,9 +197,9 @@ The workflow orchestrator coordinates complex development workflows, integrating
 "base: workflow clean"
 ```
 
-The orchestrator automatically determines the appropriate workflow type based on your context and requirements, providing detailed progress reports and recommendations for next steps.
+The orchestrator infers the workflow type from your request and reports progress and next steps as it runs.
 
-### Terminal Productivity (Planned Features)
+### Terminal productivity (planned)
 ```bash
 "base: clean-deps --safe"         # Uses trash instead of rm (planned)
 "base: quality-check"             # Run lint + test + build (planned)
@@ -231,8 +232,8 @@ plugins/base/
 └── LICENSE                        # Apache 2.0
 ```
 
-## Configuration (Planned Features)
-> Note: The following environment variables are planned for future releases
+## Configuration (planned)
+> These variables are planned for a future release
 
 ```bash
 # VibeKit Base Plugin Configuration (defaults shown)

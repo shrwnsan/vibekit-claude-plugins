@@ -4,8 +4,7 @@ Sound notifications and alerts for Claude Code tasks.
 
 ## Overview
 
-Ping provides audio feedback for key Claude Code events through hook-based sound notifications. Get notified when tasks complete, when Claude needs your input, or when sessions start/end.
-
+Ping plays a sound on key Claude Code events through hooks: task completion, input requests, session start and end.
 
 ## Features
 
@@ -14,7 +13,7 @@ Ping provides audio feedback for key Claude Code events through hook-based sound
 - **Notification** - Sound for general notifications
 - **Stop** - Sound when a session completes
 
-## Quick Start / Installation
+## Quick start
 
 The Ping plugin is part of the VibeKit marketplace.
 
@@ -30,9 +29,9 @@ claude plugin install ping@vibekit
 
 3. Sounds will play on session events
 
-That's it! The plugin uses built-in OS sounds by default.
+The plugin uses built-in OS sounds by default.
 
-## Configuration (Recommended)
+## Configuration
 
 Create a configuration file at `~/.claude/ping-config.json`:
 
@@ -50,13 +49,13 @@ Create a configuration file at `~/.claude/ping-config.json`:
 ```
 
 This approach:
-- Helps custom sound directory (soundsDir) work with hook events (unlike `PING_SOUNDS_DIR` environment variable)
+- The config-file sound directory (`soundsDir`) works with hook events, unlike the `PING_SOUNDS_DIR` environment variable
 - Survives plugin updates without reconfiguration
 - Supports IDE autocomplete via [JSON Schema](config-schema.json)
 
 See [ping-config.json.example](ping-config.json.example) for a full template with all options.
 
-## Custom Sounds
+## Custom sounds
 
 **Default sound filenames** (used if no config or environment variables are set):
 
@@ -69,24 +68,24 @@ See [ping-config.json.example](ping-config.json.example) for a full template wit
 
 ### Using Game Sounds
 
-Follow Delba's tip and use nostalgic game sounds! Here are some popular sources:
+Follow Delba's tip and use nostalgic game sounds. Popular sources:
 
-**Warcraft Sounds:**
+**Warcraft sounds**
 - [WoWhead: Peon sounds](https://www.wowhead.com/sounds/name:peon)
 - [WoWhead: Peasant sounds](https://www.wowhead.com/sounds/name:peasant)
 
-**MyInstants (instant sound buttons):**
+**MyInstants** (instant sound buttons):
 - [MyInstants: Mario sounds](https://www.myinstants.com/en/search/?name=mario)
 - [MyInstants: SpongeBob sounds](https://www.myinstants.com/en/search/?name=spongebob)
 - [MyInstants: Star Wars sounds](https://www.myinstants.com/en/search/?name=star+wars)
 
-## Platform Support
+## Platform support
 
 - **macOS**: Uses `afplay` command
 - **Linux**: Uses `paplay` (PulseAudio) or `aplay` (ALSA)
 - **Windows**: Uses PowerShell `Media.SoundPlayer`
 
-## 📈 Recent Updates
+## Recent updates
 
 - **v1.3.0**: Added config file support (`~/.claude/ping-config.json`) that works with hook events, with JSON schema for IDE autocomplete
 - **v1.2.0**: Added relative sound filenames, per-event disable, and `${CLAUDE_PLUGIN_ROOT}` variable; migrated to `settings.json` configuration

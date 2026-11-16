@@ -3,16 +3,16 @@
 **Pre-classifier permission gate for Claude Code auto mode.**
 
 A `PreToolUse` hook that decides shell commands *before* Claude Code's
-auto-mode classifier sees them, using System One decision models — typed
-probabilities (noul) from a dedicated decision-model API, not a chat model's
-prose. Fast, cheap, and composable with whatever provider you already have a
-key for.
+auto-mode classifier sees them, using System One decision models, which
+return typed probabilities (noul) from a dedicated decision-model API
+rather than a chat model's prose. Fast, cheap, and composable with whatever
+provider you already have a key for.
 
 ```
 Bash call → reflex
-  ├─ names secrets/key material → ASK    (local regex — read-only ≠ safe)
+  ├─ names secrets/key material → ASK    (local regex, read-only ≠ safe)
   ├─ read-only regex          → ALLOW            (local, zero latency)
-  ├─ unambiguous destruction  → DENY             (local regex — "places a regex beats the model")
+  ├─ unambiguous destruction  → DENY             (local regex, "places a regex beats the model")
   ├─ risky-but-contextual     → ASK              (local regex)
   └─ everything else          → decision-model chain (noul ×3: destructive,
                                                      exfiltration, prod/shared infra)
@@ -22,9 +22,9 @@ Bash call → reflex
         └─ anywhere in between           → ASK
 ```
 
-## The failure posture (the whole point)
+## The failure posture
 
-Reflex is a **safety gate**, not a cost-saver — the inversion of
+Reflex is a **safety gate**, not a cost-saver. It inverts
 [pi-agent's session-summary decision gate](https://github.com/shrwnsan/pi-agent),
 which "can only save a call, never block one". Reflex can only *sharpen* a
 decision, never loosen one:
@@ -32,7 +32,7 @@ decision, never loosen one:
 - **Uncertain probabilities** → `ask` (a human), never silent-allow.
 - **Any permission mode other than auto mode** → **silent exit**. In manual
   modes a reflex `allow` would bypass the human prompt and a reflex `deny`
-  would take the decision from the human — both loosen the default flow,
+  would take the decision from the human. Both loosen the default flow,
   so reflex gates nothing there.
 - **A command naming secrets or key material** (`.env`, `*.pem`, `id_rsa`,
   …) → `ask` before the read-only fast path: a read-only allow must never
@@ -41,15 +41,15 @@ decision, never loosen one:
   Bearer headers, `sk-`/`ghp_`/`AKIA…`-class tokens, PEM key blocks) → the
   same `ask`, BEFORE the decision-model chain: a literal secret reaches a
   human, never a provider.
-- **The verdict log stores verbatim command text** — including anything
+- **The verdict log stores verbatim command text**, including anything
   typed. Files are user-private by construction (0600, dirs 0700); no
-  content redaction, deliberately: masking heuristics give false comfort,
+  content redaction, by design. Masking heuristics give false comfort,
   and the ask above keeps literal secrets out of provider egress.
 - **Provider error, timeout, malformed response, chain exhausted** → **silent
-  exit**: no hook output means Claude Code's normal flow — allow rules, then
-  the auto-mode classifier — handles the call untouched.
+  exit**: no hook output means Claude Code's normal flow handles the call
+  untouched, allow rules first and then the auto-mode classifier.
 - **Plugin disabled or kill-switched** (`REFLEX_DISABLED=1`) → same silent exit.
-- **Hard rule, any configuration: reflex never allows outside auto mode.** `REFLEX_ALL_MODES=1` extends ask/deny gating to other modes; `bypassPermissions` is always excluded — with no prompts beneath the gate, a deny there would make reflex the sole authority.
+- **Hard rule, any configuration: reflex never allows outside auto mode.** `REFLEX_ALL_MODES=1` extends ask/deny gating to other modes; `bypassPermissions` is always excluded. With no prompts beneath the gate, a deny there would make reflex the sole authority.
 
 ## Providers
 
@@ -64,7 +64,7 @@ cooldown (`REFLEX_RECOVERY_MS`) elapses, then one retry decides again.
 | `liquid` | `api.liquid.ai/decisions/v1/systemone` | `d1.1` | `LIQUID_API_KEY` |
 | `typesafe` | `api.typesafe.ai/v1/systemone` | `jev-latest` | `TYPESAFE_API_KEY` |
 
-Any System One-compatible endpoint works as a custom spec — e.g. Vercel AI
+Any System One-compatible endpoint works as a custom spec, for example Vercel AI
 Gateway's TypeSafe surface (`ai-gateway.vercel.sh/typesafe/v1/systemone`,
 model `typesafe-ai/jev`, paid tiers) or OpenRouter's decision surfaces:
 
@@ -73,10 +73,11 @@ export REFLEX_PROVIDERS="liquid,typesafe,gateway"
 export REFLEX_SPEC_GATEWAY_JSON='{"type":"systemone","url":"https://ai-gateway.vercel.sh/typesafe/v1/systemone","model":"typesafe-ai/jev","apiKeyEnv":"AI_GATEWAY_API_KEY"}'
 ```
 
-A keyless spec with a localhost URL is the zero-cost, zero-egress tier (e.g.
-Ollama serving a decision model — note the Ollama path speaks `chat`, which
-reflex does **not** implement: its YES/NO → 0.9/0.1 mapping is too coarse for
-safety decisions. Use a System One-compatible local endpoint instead).
+A keyless spec with a localhost URL is the zero-cost, zero-egress tier, for
+example Ollama serving a decision model. Note the Ollama path speaks `chat`,
+which reflex does **not** implement: its YES/NO → 0.9/0.1 mapping is too
+coarse for safety decisions. Use a System One-compatible local endpoint
+instead.
 
 ## Install
 
@@ -104,12 +105,12 @@ tail -f ~/.local/share/reflex/verdicts.jsonl
 | `REFLEX_MAX_FAILURES` | `3` | Consecutive failures → provider disabled |
 | `REFLEX_RECOVERY_MS` | `1800000` | Disabled-provider cooldown before a retry (30 min) |
 | `REFLEX_LOG` | `~/.local/share/reflex/verdicts.jsonl` | Verdict log (one JSON per line) |
-| `REFLEX_ALL_MODES` | – | `1` = also gate non-auto modes (ask/deny only — reflex never allows outside auto; `bypassPermissions` always excluded) |
+| `REFLEX_ALL_MODES` | – | `1` = also gate non-auto modes (ask/deny only; reflex never allows outside auto; `bypassPermissions` always excluded) |
 | `REFLEX_DISABLED` | – | `1` = kill switch (silent exit) |
 
 ## What the model sees (injection discipline)
 
-The command text (≤2,000 chars) and the working directory — nothing else.
+The command text (≤2,000 chars) and the working directory, nothing else.
 (The working directory is home-abbreviated: `$HOME` → `~`, so the username
 never egresses to the provider.)
 No tool output, no assistant prose, no file contents: hostile content in a
@@ -119,12 +120,12 @@ rules.
 
 ## Measurement
 
-Every verdict — fast-path and model, provider errors included — is one JSON
-line in `REFLEX_LOG`. Since 0.1.5 each verdict also carries the hook's
+Each verdict, whether fast-path or model and including provider errors, is
+one JSON line in `REFLEX_LOG`. Since 0.1.5 each verdict also carries the hook's
 `tool_use_id`/`session_id`/`transcript_path`, which is what makes outcome
 labeling possible: the post-hoc correlator
 (`evals/reflex/correlate-outcomes.mjs` in the vibekit repo) joins verdicts
-to session transcripts and appends `kind:"outcome"` lines — `agreed`
+to session transcripts and appends `kind:"outcome"` lines: `agreed`
 (the tool's fate matched the verdict), `overridden` (reality contradicted
 it), `no-match` (no transcript answer, ESC interrupt, ambiguous duplicate).
 It is idempotent, read-only over transcripts, and deliberately outside the
@@ -132,25 +133,25 @@ gate process (zero hot-path latency, no new failure mode). The log's
 `cwd` and `transcript_path` fields are home-abbreviated like the provider
 prompt (`$HOME` → `~`), so shared logs carry no username; the correlator
 expands `~` before matching (basename fallback covers older absolute
-lines). The one verbatim field is `command` — eval replay needs the exact
-text the gate decided on:
+lines). The one verbatim field is `command`, because eval replay needs the
+exact text the gate decided on:
 
 ```bash
 node evals/reflex/correlate-outcomes.mjs            # label + summarize
 node evals/reflex/correlate-outcomes.mjs --dry-run  # summary only
 ```
 
-Its summary prints the override rate per decision and per pattern class —
-if humans approve most asks, ask patterns are over-fitted and train
+Its summary prints the override rate per decision and per pattern class.
+If humans approve most asks, ask patterns are over-fitted and train
 habituation; that number is the input to threshold tuning. Outcome labels
 accumulate only while 0.1.5+ is running (pre-0.1.5 verdict lines carry no
-ids and are skipped). Ship the harness, not just the gate (XavierJev's
-lesson: the wiring is the easy part).
+ids and are skipped). The correlator ships with the gate; XavierJev's
+lesson is that the wiring is the easy part.
 
 ## Status
 
 `/reflex:status` (or the reader directly) prints a paste-safe health and
-metrics report — labels and counts only, never command text:
+metrics report, labels and counts only, never command text:
 
 ```bash
 node plugins/reflex/scripts/reflex-status.mjs             # last 7 days
@@ -159,7 +160,7 @@ node plugins/reflex/scripts/reflex-status.mjs --since all # everything
 ```
 
 It reports gate health (kill switch, provider failstate with cooldowns,
-log permissions — 0600/0700 by construction, wider is flagged), windowed
+log permissions, 0600/0700 by construction, wider is flagged), windowed
 metrics (decision counts, ask rate, fast-path/model split, hook and
 provider latency percentiles, top pattern labels), outcome-label tallies
 with the ask override rate, and version drift: the running gate's vintage
@@ -172,17 +173,17 @@ hooks pin at session start and lag plugin updates. Always exits 0.
 `0.85 / 0.55` are starting points calibrated to nothing. Tune them against
 your own traffic: raise `ask` if reflex asks too often on your routine
 commands; raise `deny` if you see false denies in the log. The ladder is
-deliberately conservative between thresholds — the middle band is always
+deliberately conservative between thresholds, so the middle band is always
 `ask`.
 
 ## Credits & lineage
 
 - Provider protocol: [TypeSafe](https://docs.typesafe.ai) System One
-  (`jev`), [Liquid AI](https://docs.liquid.ai) `d1` — both speak the same
-  wire contract; Vercel AI Gateway proxies it too.
+  (`jev`), [Liquid AI](https://docs.liquid.ai) `d1`; both speak the same
+  wire contract, and Vercel AI Gateway proxies it too.
 - Pattern: adapted from
   [shrwnsan/pi-agent](https://github.com/shrwnsan/pi-agent)
-  `extensions/session-summary/decision-gate.ts` (MIT) — provider registry,
+  `extensions/session-summary/decision-gate.ts` (MIT): provider registry,
   cycle/failover, state-assembly discipline. Inverted for safety.
 - Prior art that shaped the guardrails:
   [XavierJev](https://github.com/liu-x27/XavierJev) (measure, keep the regex

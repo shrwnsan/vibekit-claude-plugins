@@ -18,7 +18,11 @@ const PROVIDER_ENV = [
   'SEARCH_PLUS_BRAVE_API_KEY', 'BRAVE_API_KEY',
   'SEARCH_PLUS_EXA_API_KEY', 'EXA_API_KEY',
   'SEARCH_PLUS_JINA_API_KEY', 'SEARCH_PLUS_JINAAI_API_KEY', 'JINA_API_KEY', 'JINAAI_API_KEY',
-  'SEARCH_PLUS_FIRECRAWL_API_KEY', 'SEARCH_PLUS_TINYFISH_API_KEY'
+  'SEARCH_PLUS_FIRECRAWL_API_KEY', 'SEARCH_PLUS_TINYFISH_API_KEY',
+  // Bare legacy name: hosts that still export TINYFISH_API_KEY must not leak
+  // it into the fresh module imports below, or the gate-semantics tests run
+  // with a TinyFish provider that was never configured for the case.
+  'TINYFISH_API_KEY'
 ];
 
 const FAKE = {

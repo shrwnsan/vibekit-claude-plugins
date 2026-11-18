@@ -9,8 +9,10 @@ import assert from 'node:assert/strict';
 import { promises as dns } from 'node:dns';
 
 // API key constants are read at import time, so clear them before importing.
+// Bare legacy TINYFISH_API_KEY is scrubbed like TAVILY/JINA: an ambient
+// legacy key would flip the TinyFish gate in the chain tests below.
 for (const key of Object.keys(process.env)) {
-  if (/^(SEARCH_PLUS_|TAVILY_API_KEY$|JINA_API_KEY$)/.test(key)) delete process.env[key];
+  if (/^(SEARCH_PLUS_|TAVILY_API_KEY$|JINA_API_KEY$|TINYFISH_API_KEY$)/.test(key)) delete process.env[key];
 }
 const { extractContent, isHardContentFailure } = await import('../content-extractor.mjs');
 // A second instance with a TinyFish key (the query string forces a fresh module evaluation).

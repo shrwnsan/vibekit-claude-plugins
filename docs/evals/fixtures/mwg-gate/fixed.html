@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<!-- mwg-gate fixture: FIXED page. Same content as index.html with the four
+     defects repaired per Modern Web Guidance: reserved space + dimensions (CLS),
+     prefers-reduced-motion arm (motion), full dark theme + color-scheme (dark),
+     native <dialog> with showModal (focus/inertness/Esc/focus return). -->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>MWG gate fixture — fixed</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; margin: 2rem; background: #ffffff; color: #111111; }
+  nav a { margin-right: 1rem; }
+  .cta { display: inline-block; padding: .5rem 1rem; background: #2563eb; color: #fff;
+         border-radius: 6px; transition: transform 0.3s ease; }
+  .cta:hover { transform: scale(1.08); }
+  /* Fix 2: reduced motion keeps a short fade-worthy transition, drops movement */
+  @media (prefers-reduced-motion: reduce) {
+    .cta { transition-duration: 0.1s; }
+    .cta:hover { transform: none; }
+  }
+  /* Fix 3: real dark theme, not a heading tint */
+  @media (prefers-color-scheme: dark) {
+    body { background: #0b1220; color: #e5e7eb; }
+    h1 { color: #93c5fd; }
+    #dialog { background: #111827; color: #e5e7eb; }
+  }
+  .hero { min-height: 40vh; }
+  .feed { min-height: 150vh; }
+  .feed li { padding: .75rem 0; border-bottom: 1px solid #eee; }
+  /* Fix 1: reserved space with explicit dimensions on the banner slot */
+  .banner { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 180; background: #dbeafe; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="#settings">Settings</a>
+  <a href="#billing">Billing</a>
+  <a href="#logout">Log out</a>
+</nav>
+<h1>Account</h1>
+<div class="hero">
+  <img class="banner" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDEyMDAgMTgwIj4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiNkYmVhZmUiLz4KICA8dGV4dCB4PSIyNCIgeT0iMTA0IiBmb250LWZhbWlseT0ic3lzdGVtLXVpIiBmb250LXNpemU9IjQwIiBmaWxsPSIjMWQ0ZWQ4Ij5Qcm9tbyBiYW5uZXI8L3RleHQ+Cjwvc3ZnPgo=" width="1200" height="180" alt="Promo banner">
+  <p>Manage your account preferences, plan, and devices.</p>
+  <a class="cta" href="#upgrade">Upgrade plan</a>
+</div>
+<ul class="feed">
+  <li>Recent sessions</li>
+  <li>Active devices</li>
+  <li>Storage usage</li>
+  <li>Billing history</li>
+</ul>
+<button id="open-modal">Delete account</button>
+<!-- Fix 4: native dialog gives inertness, initial focus, Esc, focus return -->
+<dialog id="dialog">
+  <h2>Delete account?</h2>
+  <p>This permanently removes your data.</p>
+  <button id="confirm-delete">Yes, delete</button>
+  <button id="cancel-delete" autofocus>Cancel</button>
+</dialog>
+<script>
+  const dialog = document.getElementById('dialog');
+  document.getElementById('open-modal').addEventListener('click', () => dialog.showModal());
+  document.getElementById('cancel-delete').addEventListener('click', () => dialog.close());
+  document.getElementById('confirm-delete').addEventListener('click', () => dialog.close());
+</script>
+</body>
+</html>

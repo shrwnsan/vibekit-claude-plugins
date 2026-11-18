@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<!-- mwg-gate fixture: DEFECT page. Four seeded violations, one per check family.
+     Do not "fix" anything here; fixes live in fixed.html so the checks can be
+     validated in both directions. -->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MWG gate fixture — defect</title>
+<style>
+  :root { color-scheme: light only; }
+  body { font-family: system-ui, sans-serif; margin: 2rem; background: #ffffff; color: #111111; }
+  nav a { margin-right: 1rem; }
+  /* Defect 2 (reduced motion): 0.3s transition, no prefers-reduced-motion arm */
+  .cta { display: inline-block; padding: .5rem 1rem; background: #2563eb; color: #fff;
+         border-radius: 6px; transition: transform 0.3s ease; }
+  .cta:hover { transform: scale(1.08); }
+  /* Defect 3 (color scheme): dark arm present but only tints a heading;
+     body background stays white, so dark-mode users get a blinding page.
+     color-scheme stays light-only. */
+  @media (prefers-color-scheme: dark) { h1 { color: #93c5fd; } }
+  .hero { min-height: 40vh; }
+  .feed { min-height: 150vh; }
+  .feed li { padding: .75rem 0; border-bottom: 1px solid #eee; }
+  /* Defect 4 (modal): hand-rolled div modal. Background stays clickable and in
+     the a11y tree, focus never moves into the "dialog", Esc does nothing. */
+  #modal { display: none; position: fixed; inset: 30% 30%; background: #fff;
+           border: 1px solid #ccc; padding: 1.5rem; z-index: 10; }
+  #modal.open { display: block; }
+  #modal h2 { margin-top: 0; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="#settings">Settings</a>
+  <a href="#billing">Billing</a>
+  <a href="#logout">Log out</a>
+</nav>
+<h1>Account</h1>
+<!-- Defect 1 (layout shift): image injected after load with no reserved space
+     and no dimensions, pushing the CTA down mid-session. -->
+<div class="hero">
+  <p>Manage your account preferences, plan, and devices.</p>
+  <a class="cta" href="#upgrade">Upgrade plan</a>
+</div>
+<ul class="feed">
+  <li>Recent sessions</li>
+  <li>Active devices</li>
+  <li>Storage usage</li>
+  <li>Billing history</li>
+</ul>
+<button id="open-modal">Delete account</button>
+<div id="modal" role="presentation">
+  <h2>Delete account?</h2>
+  <p>This permanently removes your data.</p>
+  <button id="confirm-delete">Yes, delete</button>
+  <button id="cancel-delete">Cancel</button>
+</div>
+<script>
+  // Defect 1 continues: late-injected banner image above the fold.
+  addEventListener('load', () => {
+    setTimeout(() => {
+      const img = new Image();
+      img.src = 'banner.svg'; img.height = 300; // sized, but no space reserved before it loads
+      img.style.width = '100%';
+      document.querySelector('.hero').prepend(img);
+    }, 250);
+  });
+  // Defect 4 continues: open/close with no focus management, no Esc, no inert.
+  const modal = document.getElementById('modal');
+  document.getElementById('open-modal').addEventListener('click', () => modal.classList.add('open'));
+  document.getElementById('cancel-delete').addEventListener('click', () => modal.classList.remove('open'));
+  document.getElementById('confirm-delete').addEventListener('click', () => modal.classList.remove('open'));
+</script>
+</body>
+</html>

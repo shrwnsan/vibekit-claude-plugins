@@ -1,0 +1,4 @@
+Modernize this page for current web platform best practices. Work only inside the page directory. Do not create a git repo.
+
+Improve this page according to current web platform best practices.
+Page directory: /tmp/vibekit-gate/scripts/tempo-gate/runs/20261119T195528Z/armD-run1/page

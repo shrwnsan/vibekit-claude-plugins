@@ -11,27 +11,14 @@
 // floor a decision model must beat to justify a per-task call.
 //
 // Usage: node heuristic-router.mjs [--set routing-golden.json]
-// Also exports floorDecide()/predictTier() for the Stage A wired-runner
-// (stage-a-wired.mjs) — importing must not run the CLI.
+// Exports predictTier() for other eval scripts. The canonical floor rules
+// live in the shipped plugin (plugins/tempo/scripts/triage-router.mjs,
+// floorDecide) — this CLI imports them so the eval floor and the runtime
+// fast path can never drift.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-
-// floorDecide returns {tier, matched}: matched=false means no keyword rule
-// fired and the tier-1 default was taken — the signal to hand the case to
-// the decision-model router instead (floor hits never spend a call).
-export function floorDecide(task) {
-  const t = task.toLowerCase();
-  // 1. documentation/comment surface: whatever it mentions, the change is copy
-  if (/\b(docs|documentation|contributor guide|comment|readme|heading|markdown link)\b/.test(t)) return { tier: 0, matched: true };
-  // 2. risk signals: security surface, concurrency, data lifecycle, architecture
-  if (/\b(auth\b|authenticat|token|credential|password|hashing|signing|encrypt|argon|hmac|multi-tenant|isolation|rate[ .]limit\w*|concurr|migration|migrate|sqlite|middleware)\b/.test(t)) return { tier: 2, matched: true };
-  if (/\b(refactor|split|rewrite|share (their |the )?common|deduplicat|preserv\w* behavior)\b/.test(t)) return { tier: 2, matched: true };
-  // 3. trivial signals
-  if (/\b(typo|misspell|copy tweak|one-line|one line|rename the local|log message|heading|constant|version string|stale comment|port)\b/.test(t)) return { tier: 0, matched: true };
-  // 4. default: standard change
-  return { tier: 1, matched: false };
-}
+import { floorDecide } from '../../plugins/tempo/scripts/triage-router.mjs';
 
 export const predictTier = (task) => floorDecide(task).tier;
 

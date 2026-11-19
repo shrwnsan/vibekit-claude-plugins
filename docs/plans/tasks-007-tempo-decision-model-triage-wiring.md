@@ -24,12 +24,14 @@ promotion detection) reuse the same router and are follow-ups, not gates.
 
 ## Design decisions
 
-1. **Opt-in via env, never by default.** No provider key set → behavior is
-   byte-identical to today (floor → main model). Presence of
-   `TYPESAFE_API_KEY` or `LIQUID_API_KEY` enables the layer; `TEMPO_TRIAGE=0`
-   is the kill switch (mirrors `REFLEX_DISABLED`). Setting a key is the
-   privacy consent: task context egresses to the hosted provider, stated in
-   the README.
+1. **Opt-in via env, never by default.** No provider key set → no network,
+   no egress; the router's keyword floor still tiers obvious cases (local,
+   free, zero keys — added during implementation: outcome-identical to the
+   skill prose floor, just deterministic). Presence of
+   `TYPESAFE_API_KEY` or `LIQUID_API_KEY` enables the model layer;
+   `TEMPO_TRIAGE=0` is the kill switch (mirrors `REFLEX_DISABLED`).
+   Setting a key is the privacy consent: task context egresses to the
+   hosted provider, stated in the README.
 2. **Jev-compatible protocol, vendor-agnostic script.** Jev-API
    compatibility is the de-facto standard (prd-010 §5 — Clef adopted it;
    Liquid d1 is drop-in). The shipped script is `triage-router.mjs`, not
@@ -145,6 +147,12 @@ when the host is allowlisted (curl works — it honors the proxy). Run Stage A
 live with sandbox egress disabled; the shipped router is unaffected (it runs
 in hook/skill context, outside the agent sandbox — reflex's 900+ verdicts
 prove the path).
+
+Re-run after the review-driven rework (floor moved inside the router, keyless
+floor, env-registered custom providers): identical **27/28** — floor 18,
+router 3, defer 7, same single miss (`routing-stage-a-wired-2026-11-19T14-39-11.json`) —
+now measured through the exact shipped code path rather than a runner-side
+floor pre-check.
 
 ## Resolved open questions
 

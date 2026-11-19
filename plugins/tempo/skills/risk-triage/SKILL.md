@@ -31,15 +31,23 @@ is the only routing step — it does not contain the flows themselves.
 Conflict rule: take the higher tier. Genuinely torn between 1 and 2 with the user
 present — ask one question; headless, take tier 2.
 
-## Router assist (optional, env-gated)
+## Router assist (deterministic, local-first)
 
-If classification above is not a clear first match and a decision-model provider
-is configured (`TYPESAFE_API_KEY` or `LIQUID_API_KEY` in env, or
-`TEMPO_LOCAL_URL`; `TEMPO_TRIAGE=0` disables), run the plugin's
-`scripts/triage-router.mjs --task "<the task>"`. Adopt the returned tier when
-`status` is `tier`; for anything else — `defer`, `error`, `unconfigured`,
-`disabled` — classify yourself as above. The router's say never lowers a
-non-rule: a one-line auth change stays tier 2 regardless.
+Run the plugin's `scripts/triage-router.mjs --task "<the task>"` before
+classifying yourself — one local script, three possible outcomes:
+
+- `status: "tier"` → adopt that tier and route. Done. (Covers keyword-obvious
+  cases, which cost nothing and need no keys, and high-confidence provider
+  answers.)
+- anything else (`defer`, `unconfigured`, `disabled`, `error`) → classify
+  yourself per the rules above. No event, no retry.
+
+Providers are opt-in: the keyword floor is local and free; the model call
+happens only when a provider is configured (`TYPESAFE_API_KEY` or
+`LIQUID_API_KEY` in env, a custom `TEMPO_PROVIDER_<NAME>_URL`, or
+`TEMPO_LOCAL_URL`); `TEMPO_TRIAGE=0` disables the whole assist. The
+router's say never lowers a non-rule: a one-line auth change stays tier 2
+regardless.
 
 ## Route (one line each)
 

@@ -17,7 +17,11 @@ import { join } from "node:path";
 
 import { triage, PROVIDERS } from "../triage-router.mjs";
 
-const TASK = "Fix the typo in the README heading.";
+// floor-neutral text: must not contain any floorDecide keyword, or the
+// keyword-floor fast path fires before any provider call and provider-path
+// assertions silently fail.
+const TASK = "Add a slugify helper to the utils module.";
+const FLOOR_TASK = "Fix the typo in the README heading.";
 
 // -- fixture helpers ----------------------------------------------------------
 
@@ -273,6 +277,127 @@ test("log hygiene: cwd home-abbreviated, log file mode 0600", async () => {
 		assert.match(entry.cwd, /^~/);
 		assert.ok(!entry.cwd.includes(homedir()), "raw home dir path must not appear");
 		assert.equal(statSync(logPath).mode & 0o777, 0o600);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("keyword floor fast path: typo/docs task → tier 0 via floor, no fetch, no log", async () => {
+	const tmp = makeTmp();
+	try {
+		let calls = 0;
+		const v = await triage(FLOOR_TASK, {
+			env: baseEnv(tmp),
+			fetchImpl: () => {
+				calls += 1;
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.tier, 0);
+		assert.equal(v.source, "floor");
+		assert.equal(calls, 0);
+		assert.equal(existsSync(join(tmp, "verdicts.jsonl")), false);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("keyword floor risk path: rate limiting task → tier 2 via floor, no fetch", async () => {
+	const tmp = makeTmp();
+	try {
+		let calls = 0;
+		const v = await triage("Add rate limiting to the public API.", {
+			env: baseEnv(tmp),
+			fetchImpl: () => {
+				calls += 1;
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.tier, 2);
+		assert.equal(v.source, "floor");
+		assert.equal(calls, 0);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("env-registered custom provider: url alone activates, model + no auth header", async () => {
+	const tmp = makeTmp();
+	try {
+		const seen = [];
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {
+				TYPESAFE_API_KEY: "",
+				LIQUID_API_KEY: "",
+				TEMPO_PROVIDER_CLEF_URL: "https://clef.example/decide",
+				TEMPO_PROVIDER_CLEF_MODEL: "clef-flash",
+			}),
+			fetchImpl: (url, opts = {}) => {
+				seen.push({ url, headers: opts.headers ?? {}, body: JSON.parse(opts.body ?? "{}") });
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.source, "provider");
+		assert.equal(v.provider, "clef");
+		assert.equal(seen.length, 1);
+		assert.equal(seen[0].url, "https://clef.example/decide");
+		assert.equal(seen[0].body.model, "clef-flash");
+		assert.equal("Authorization" in seen[0].headers, false, "no Authorization without a key env");
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("custom provider with TEMPO_PROVIDER_<NAME>_KEY sends Bearer auth", async () => {
+	const tmp = makeTmp();
+	try {
+		const seen = [];
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {
+				TYPESAFE_API_KEY: "",
+				LIQUID_API_KEY: "",
+				TEMPO_PROVIDER_CLEF_URL: "https://clef.example/decide",
+				TEMPO_PROVIDER_CLEF_MODEL: "clef-flash",
+				TEMPO_PROVIDER_CLEF_KEY: "sekrit",
+			}),
+			fetchImpl: (url, opts = {}) => {
+				seen.push({ url, headers: opts.headers ?? {} });
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.provider, "clef");
+		assert.equal(seen[0].headers.Authorization, "Bearer sekrit");
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("TEMPO_PROVIDERS is authoritative: custom provider not auto-appended", async () => {
+	const tmp = makeTmp();
+	try {
+		const urls = [];
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {
+				TEMPO_PROVIDER_CLEF_URL: "https://c.example/",
+				TEMPO_PROVIDERS: "typesafe",
+			}),
+			fetchImpl: (url) => {
+				urls.push(url);
+				return Promise.resolve(mockAnswer("tier-2-risky", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.provider, "typesafe");
+		assert.deepEqual(urls, [PROVIDERS.typesafe.url]);
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}

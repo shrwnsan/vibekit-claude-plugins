@@ -32,8 +32,17 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // -- Providers ---------------------------------------------------------------
-// Same transport reflex-gate.mjs proved live (typesafe + liquid); any
-// Jev-API-compatible endpoint drops in as "local".
+// Same transport reflex-gate.mjs proved live (typesafe + liquid). New
+// providers need no code change: any Jev-API-compatible endpoint registers
+// via env —
+//   TEMPO_PROVIDERS=clef                        (add to the cycle order)
+//   TEMPO_PROVIDER_CLEF_URL=https://...         (required — activates it)
+//   TEMPO_PROVIDER_CLEF_MODEL=clef-flash        (optional, default jev-latest)
+//   TEMPO_PROVIDER_CLEF_KEY=...                 (optional bearer; public
+//                                                local endpoints need none)
+// Built-ins keep their fixed env names for reflex parity; models are
+// overridable per provider (TEMPO_MODEL_TYPESAFE etc.), so version bumps
+// are config, not commits.
 const PROVIDERS = {
   typesafe: {
     url: 'https://api.typesafe.ai/v1/systemone',
@@ -55,6 +64,42 @@ const PROVIDERS = {
     urlEnv: 'TEMPO_LOCAL_URL',
   },
 };
+
+// Env-registered custom providers (TEMPO_PROVIDER_<NAME>_URL ...). Scanned,
+// not enumerated — adding one never touches this file.
+function customProviders(env) {
+  const found = {};
+  for (const key of Object.keys(env)) {
+    const m = key.match(/^TEMPO_PROVIDER_([A-Z0-9_]+)_URL$/);
+    if (!m) continue;
+    const name = m[1].toLowerCase();
+    found[name] = {
+      url: env[key],
+      model: env[`TEMPO_PROVIDER_${m[1]}_MODEL`] ?? 'jev-latest',
+      apiKeyEnv: `TEMPO_PROVIDER_${m[1]}_KEY`, // optional: absence = no auth header
+      modelEnv: `TEMPO_PROVIDER_${m[1]}_MODEL`,
+      activatesBy: 'url', // presence of the URL env is the activation
+    };
+  }
+  return found;
+}
+
+// -- Keyword floor (fast path, zero cost) ------------------------------------
+// Canonical copy — evals/ceremony/heuristic-router.mjs imports this so the
+// shipped router and the eval floor can never drift. Rules ordered on
+// principle, deliberately generic, NOT tuned against golden labels.
+export function floorDecide(task) {
+  const t = task.toLowerCase();
+  // 1. documentation/comment surface: whatever it mentions, the change is copy
+  if (/\b(docs|documentation|contributor guide|comment|readme|heading|markdown link)\b/.test(t)) return { tier: 0, matched: true };
+  // 2. risk signals: security surface, concurrency, data lifecycle, architecture
+  if (/\b(auth\b|authenticat|token|credential|password|hashing|signing|encrypt|argon|hmac|multi-tenant|isolation|rate[ .]limit\w*|concurr|migration|migrate|sqlite|middleware)\b/.test(t)) return { tier: 2, matched: true };
+  if (/\b(refactor|split|rewrite|share (their |the )?common|deduplicat|preserv\w* behavior)\b/.test(t)) return { tier: 2, matched: true };
+  // 3. trivial signals
+  if (/\b(typo|misspell|copy tweak|one-line|one line|rename the local|log message|heading|constant|version string|stale comment|port)\b/.test(t)) return { tier: 0, matched: true };
+  // 4. default: standard change — no signal, hand upward
+  return { tier: 1, matched: false };
+}
 
 const FLOW_TIER = { 'tier-0-trivial': 0, none: 0, 'tier-1-standard': 1, 'tier-2-risky': 2 };
 
@@ -91,12 +136,16 @@ function resolveConfig(env = process.env) {
 }
 
 function configuredProviders(cfg) {
-  const list = [...cfg.order];
-  if (!cfg.env.TEMPO_PROVIDERS && cfg.env.TEMPO_LOCAL_URL && !list.includes('local')) list.push('local');
+  const all = { ...customProviders(cfg.env), ...PROVIDERS };
+  let list = [...cfg.order];
+  if (!cfg.env.TEMPO_PROVIDERS) {
+    if (cfg.env.TEMPO_LOCAL_URL && !list.includes('local')) list.push('local');
+    list = [...list, ...Object.keys(customProviders(cfg.env)).sort()];
+  }
   return list
-    .map((name) => PROVIDERS[name])
+    .map((name) => (all[name] ? { name, ...all[name] } : null))
     .filter(Boolean)
-    .filter((p) => (p.urlEnv ? Boolean(cfg.env[p.urlEnv]) : Boolean(cfg.env[p.apiKeyEnv])));
+    .filter((p) => (p.urlEnv ? Boolean(cfg.env[p.urlEnv]) : p.activatesBy === 'url' ? true : Boolean(cfg.env[p.apiKeyEnv])));
 }
 
 // Live tier descriptions from the plugin's own skills — the elicitation
@@ -204,6 +253,13 @@ async function triage(task, opts = {}) {
   const common = { task, cwd: homeAbbrev(process.cwd()), mode: env.TRIAGE_MODE ?? 'cli' };
 
   if (!cfg.enabled) return { status: 'disabled', ms: now() - start };
+
+  // keyword floor first — local, free, works with zero keys; a hit decides
+  // for no cost, no call, no log (same shape as reflex's regex fast paths
+  // before its provider chain)
+  const floor = floorDecide(task);
+  if (floor.matched) return { status: 'tier', tier: floor.tier, source: 'floor', ms: now() - start };
+
   const providers = configuredProviders(cfg);
   if (!providers.length) return { status: 'unconfigured', ms: now() - start };
 
@@ -211,7 +267,7 @@ async function triage(task, opts = {}) {
   const health = readFailstate(cfg, now());
   const errors = [];
   for (const p of providers) {
-    const name = Object.keys(PROVIDERS).find((k) => PROVIDERS[k] === p);
+    const { name } = p;
     if (health[name]) {
       errors.push(`${name} skipped: backing off until ${health[name].until}`);
       continue;
@@ -237,7 +293,7 @@ async function triage(task, opts = {}) {
       outcome.confidence >= cfg.threshold
         ? { status: 'tier', tier, choice: outcome.choice, confidence: outcome.confidence }
         : { status: 'defer', choice: outcome.choice, confidence: outcome.confidence };
-    const full = { ...verdict, provider: name, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start };
+    const full = { ...verdict, source: 'provider', provider: name, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start };
     logVerdict(cfg, { t: new Date(now()).toISOString(), status: full.status, tier: full.tier ?? null, ...full, ...common });
     return full;
   }
@@ -261,4 +317,4 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
-export { PROVIDERS, FLOW_TIER, RULES, resolveConfig, configuredProviders, loadCriteria, triage, homeAbbrev };
+export { PROVIDERS, FLOW_TIER, RULES, resolveConfig, configuredProviders, customProviders, loadCriteria, triage, homeAbbrev };

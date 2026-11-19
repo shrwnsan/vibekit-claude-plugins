@@ -79,19 +79,30 @@ off by default — it activates only when you set a provider key; see
 
 ## Decision-model triage (optional)
 
-`risk-triage` can ask a decision model for the tier instead of guessing: with
-`TYPESAFE_API_KEY` or `LIQUID_API_KEY` in the environment (or `TEMPO_LOCAL_URL`
-pointing at a self-hosted Jev-compatible endpoint), the skill runs
-`scripts/triage-router.mjs` whenever classification is not a clear first match.
-High-confidence answers (≥ 0.7, `TEMPO_TRIAGE_THRESHOLD`) are adopted; everything
-else — low confidence, provider error, no key — falls back to self-triage exactly
-as before. `TEMPO_TRIAGE=0` disables the layer.
+**The pitch:** tempo already right-sizes ceremony per task. With one API key,
+the "which tier is this?" call gets a dedicated micro-judge — a purpose-built
+model that answers in milliseconds for ~$0.0002 a question (about two cents
+per thousand tasks). You get expert routing on every task and sub-task, not
+just the ones someone remembered to triage, and it never grabs the wheel:
+unsure answers, provider outages, or no key at all simply hand the decision
+back to your agent, which routes exactly as it does today. The model layer
+is off by default; on with one env var.
 
-Notes: setting a provider key is the privacy consent — task text goes to that
-hosted provider (self-hosted `TEMPO_LOCAL_URL` sidesteps this). Calls cost
-~$0.0002 each (Jev published rate, ~4K-token state). Every call is logged to
-`~/.local/share/tempo/verdicts.jsonl` (0600, `$HOME`-abbreviated). Design and
-eval plan: `docs/plans/tasks-007`, `docs/plans/prd-010` §3.3.
+Bring any Jev-compatible provider — TypeSafe Jev (`TYPESAFE_API_KEY`), Liquid
+d1 (`LIQUID_API_KEY`), a self-hosted open-weight endpoint (`TEMPO_LOCAL_URL`),
+or anything new via `TEMPO_PROVIDER_<NAME>_URL` (no code change, model
+overridable). `risk-triage` runs `scripts/triage-router.mjs` first: the
+keyword floor is local and free — it tiers obvious tasks instantly with zero
+keys — and when a provider is configured, everything else goes to the model,
+where high-confidence answers (≥ 0.7, `TEMPO_TRIAGE_THRESHOLD`) return the
+tier directly and low confidence or provider error falls back to
+self-triage. `TEMPO_TRIAGE=0` is the kill switch.
+
+Setting a provider key is the privacy consent — task text goes to that hosted
+provider (a self-hosted endpoint sidesteps this). Every call is logged to
+`~/.local/share/tempo/verdicts.jsonl` (0600, `$HOME`-abbreviated). Measured:
+27/28 routing accuracy on the golden set, parity with the best heuristic —
+see `docs/plans/tasks-007` and `docs/plans/prd-010` §3.3.
 
 ## Usage
 

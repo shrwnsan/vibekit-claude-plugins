@@ -3,7 +3,14 @@
 ## 0.2.0 (2026-11-19)
 
 - Optional decision-model triage layer (prd-010 §3.3, tasks-007): `scripts/triage-router.mjs`
-  poses the tier choice to a Jev-compatible provider when one is configured.
+  classifies via keyword floor → provider → confidence deferral, one deterministic call site.
+- Keyword floor ships inside the router (canonical `floorDecide`, imported by the eval
+  harness so runtime and eval can never drift) — floor hits decide for free, no provider
+  call, and work with zero keys (local-only; the model layer stays opt-in). Same
+  fast-path shape as reflex. `risk-triage` just runs the script and adopts `status:"tier"`.
+- New providers are config, not code: any Jev-compatible endpoint registers via
+  `TEMPO_PROVIDER_<NAME>_URL` (+ optional `_MODEL`/`_KEY`); built-ins TypeSafe/Liquid/local
+  keep their env names, models overridable per provider.
 - Provider-agnostic by design: TypeSafe Jev (`TYPESAFE_API_KEY`), Liquid d1
   (`LIQUID_API_KEY`), or a self-hosted open-weight endpoint (`TEMPO_LOCAL_URL`); any
   Jev-API-compatible server drops in. Provider failure cycles to the next, then

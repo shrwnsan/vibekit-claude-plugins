@@ -1,15 +1,9 @@
 #!/usr/bin/env node
 // stage-a-wired.mjs — Stage A acceptance gate for the wired triage router
 // (tasks-007): run plugins/tempo/scripts/triage-router.mjs over the frozen
-// 28-case routing golden set in the shipped floor→router→deferral blend.
-//
-// Blend under test (what the plugin actually enacts):
-//   1. keyword-floor hit (heuristic-router rules 1–3) decides — no call spent
-//   2. otherwise the router is asked (live provider call)
-//   3. router confidence < threshold → defer to the main model
-// Deferred cases are scored against the model condition's recorded per-case
-// answers when --model-answers <routing-*.json> is given; otherwise against
-// the floor's tier-1 default as a documented proxy.
+// 28-case routing golden set. The script under test IS the shipped blend —
+// keyword floor (fast path, no call) → provider → confidence deferral —
+// so this gate measures exactly what users run.
 //
 // Gate: blended accuracy ≥ 27/28 (the heuristic floor's committed score) —
 // the router must match-or-beat the free floor to ship (tasks-007 §Design 5).
@@ -22,10 +16,13 @@
 // Usage: node stage-a-wired.mjs [--set routing-golden.json] [--model-answers file]
 // Verdict log for the run is redirected into test-results/ (the runtime
 // ~/.local/share/tempo log stays untouched by evals).
+// Deferred cases (router confidence < threshold) are scored against the
+// model condition's recorded per-case answers when --model-answers
+// <routing-*.json> is given; otherwise against the floor's tier-1 default
+// as a documented proxy.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { floorDecide } from './heuristic-router.mjs';
-import { triage } from '../../plugins/tempo/scripts/triage-router.mjs';
+import { triage, floorDecide } from '../../plugins/tempo/scripts/triage-router.mjs';
 
 const arg = (name, dflt) => {
   const i = process.argv.indexOf(name);
@@ -53,19 +50,18 @@ const runEnv = { ...process.env, TEMPO_LOG: path.join(RESULTS, `routing-stage-a-
 
 const rows = [];
 for (const c of g.cases) {
-  const floor = floorDecide(c.task);
-  if (floor.matched) {
-    rows.push({ id: c.id, tier: c.tier, source: 'floor', predicted: floor.tier, ok: floor.tier === c.tier });
-    continue;
-  }
   const v = await triage(c.task, { env: runEnv });
   if (v.status === 'tier') {
-    rows.push({ id: c.id, tier: c.tier, source: 'router', predicted: v.tier, provider: v.provider, model: v.servedModel ?? v.model, confidence: v.confidence, ok: v.tier === c.tier });
+    const source = v.source === 'floor' ? 'floor' : 'router';
+    rows.push({ id: c.id, tier: c.tier, source, predicted: v.tier, provider: v.provider, model: v.servedModel ?? v.model, confidence: v.confidence, ok: v.tier === c.tier });
   } else if (v.status === 'defer') {
-    const predicted = modelAnswers ? modelAnswers[c.id] : floor.tier;
+    // without recorded model answers, the proxy for "main model decides" is
+    // the floor's answer (its tier-1 default for these no-signal cases)
+    const predicted = modelAnswers ? modelAnswers[c.id] : floorDecide(c.task).tier;
     rows.push({ id: c.id, tier: c.tier, source: 'defer', predicted, deferredTo: modelAnswers ? 'model-recorded' : 'floor-proxy', choice: v.choice, confidence: v.confidence, provider: v.provider, ok: predicted === c.tier });
   } else {
-    rows.push({ id: c.id, tier: c.tier, source: 'error', predicted: floor.tier, error: v.error, ok: floor.tier === c.tier });
+    const fallback = floorDecide(c.task).tier; // documented fail-safe: floor default
+    rows.push({ id: c.id, tier: c.tier, source: 'error', predicted: fallback, error: v.error, ok: fallback === c.tier });
   }
 }
 

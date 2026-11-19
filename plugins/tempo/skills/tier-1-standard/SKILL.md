@@ -37,6 +37,10 @@ verified>." Can't state it in one line? The task is tier 2 — switch to
 - diff matches the plan note — nothing extra snuck in
 - one agent did the work; no subagent fan-out at this tier
 
-**Promotion:** the same approach failing twice (test runs, edit-revert cycles,
-debug dead ends) → promote to tier 2 in one line and follow `tier-2-risky` from
-there. Never attempt the same failing approach a third time.
+**Promotion:** a failure that could signal under-tiering (risk surface, hidden
+scope) — and the router is configured — gets the fail-once check:
+`scripts/triage-router.mjs --promote --task "<task>" --evidence "<what failed>"`;
+`status: "escalate"` promotes to tier 2 now, any other output means continue.
+Either way the backstop stands: the same approach failing twice (test runs,
+edit-revert cycles, debug dead ends) → promote to tier 2 in one line and follow
+`tier-2-risky` from there. Never attempt the same failing approach a third time.

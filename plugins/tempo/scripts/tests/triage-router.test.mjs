@@ -516,6 +516,81 @@ test("TEMPO_LOCAL_URL must be https, even when named", async () => {
 	}
 });
 
+test("timeout drill: typesafe aborts both attempts, liquid answers → verdict provider liquid, escalate-choice tier from liquid", async () => {
+	const tmp = makeTmp();
+	try {
+		const v = await triage(TASK, {
+			env: baseEnv(tmp),
+			fetchImpl: (url) => {
+				if (url === PROVIDERS.typesafe.url)
+					return Promise.reject(new Error("This operation was aborted"));
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.provider, "liquid");
+		assert.equal(v.tier, 1);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("garbage-body drill: 200 with choiceless body everywhere → status error naming both providers, exactly one error line in verdicts.jsonl, failstate backs off both", async () => {
+	const tmp = makeTmp();
+	try {
+		const garbage = {
+			json: () => Promise.reject(new Error("Unexpected token")),
+			ok: true,
+			status: 200,
+		};
+		const v = await triage(TASK, {
+			env: baseEnv(tmp),
+			fetchImpl: () => Promise.resolve(garbage),
+			now: () => NOW,
+		});
+		assert.equal(v.status, "error");
+		assert.match(v.error, /typesafe/);
+		assert.match(v.error, /liquid/);
+
+		const lines = readFileSync(join(tmp, "verdicts.jsonl"), "utf8").trim().split("\n");
+		assert.equal(lines.length, 1);
+		assert.equal(JSON.parse(lines[0]).status, "error");
+
+		const statePath = join(tmp, "failstate.json");
+		assert.equal(existsSync(statePath), true);
+		const state = JSON.parse(readFileSync(statePath, "utf8"));
+		assert.ok(state.providers.typesafe, "failstate has a typesafe entry");
+		assert.ok(state.providers.liquid, "failstate has a liquid entry");
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("unknown-choice drill: provider answers an unknown flow name → immediate fallthrough to next provider (no same-provider retry)", async () => {
+	const tmp = makeTmp();
+	try {
+		const urls = [];
+		const v = await triage(TASK, {
+			env: baseEnv(tmp),
+			fetchImpl: (url) => {
+				urls.push(url);
+				if (url === PROVIDERS.typesafe.url)
+					return Promise.resolve(mockAnswer("tier-3-ultra", 0.95));
+				return Promise.resolve(mockAnswer("tier-2-risky", 0.85));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.provider, "liquid");
+		assert.equal(v.tier, 2);
+		// unknown choice must not trigger the 2-attempt retry HTTP errors get
+		assert.equal(urls.filter((u) => u === PROVIDERS.typesafe.url).length, 1);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
 test("named https TEMPO_LOCAL_URL works and is called at that URL", async () => {
 	const tmp = makeTmp();
 	try {

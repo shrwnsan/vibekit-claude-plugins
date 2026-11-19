@@ -102,6 +102,15 @@ where high-confidence answers (≥ 0.7, `TEMPO_TRIAGE_THRESHOLD`) return the
 tier directly and low confidence or provider error falls back to
 self-triage. `TEMPO_TRIAGE=0` is the kill switch.
 
+The same router answers **"escalate now?"** too: after a first failed attempt
+in the tier-0 or tier-1 flow, `scripts/triage-router.mjs --promote --task …
+--evidence …` runs one yes/no judgment on whether the failure reveals
+under-tiering (a risk surface, hidden scope) rather than an ordinary fixable
+mistake. `escalate` (p ≥ 0.6, `TEMPO_PROMOTE_THRESHOLD`) promotes one tier
+immediately; every other outcome changes nothing. The check is one-way — it
+can only save you a wasted attempt, never weaken the fail-twice backstop
+that always stands behind it.
+
 Setting a provider key is the privacy consent — task text goes to that hosted
 provider (a self-hosted endpoint sidesteps this). Every call is logged to
 `~/.local/share/tempo/verdicts.jsonl` (0600, `$HOME`-abbreviated). Measured:

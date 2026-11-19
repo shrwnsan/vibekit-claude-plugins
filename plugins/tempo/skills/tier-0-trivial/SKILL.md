@@ -19,5 +19,10 @@ Does not qualify — go back to `risk-triage`: anything touching auth, public
 API, build config, or more than one file; anything where the fix isn't obvious
 before you start.
 
+Verification failed once? If the triage router is configured (see
+`risk-triage`), run its promote check before retrying:
+`scripts/triage-router.mjs --promote --task "<task>" --evidence "<what failed>"` —
+`status: "escalate"` means promote to tier 1 now; anything else, one more attempt.
+
 Verification failed twice? The task was not tier 0. Promote to tier 1 and follow
-`tier-1-standard` from there.
+`tier-1-standard` from there. This backstop stands regardless of the router.

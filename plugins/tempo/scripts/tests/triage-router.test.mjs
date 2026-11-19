@@ -468,3 +468,77 @@ test("egress visibility: verdict and log line carry the destination host", async
 		rmSync(tmp, { recursive: true, force: true });
 	}
 });
+
+test("TEMPO_LOCAL_URL does not auto-join: naming in TEMPO_PROVIDERS is the consent", async () => {
+	const tmp = makeTmp();
+	try {
+		let calls = 0;
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {
+				TYPESAFE_API_KEY: "",
+				LIQUID_API_KEY: "",
+				TEMPO_LOCAL_URL: "https://selfhost.example/decide",
+			}),
+			fetchImpl: () => {
+				calls++;
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "unconfigured");
+		assert.equal(calls, 0);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("TEMPO_LOCAL_URL must be https, even when named", async () => {
+	const tmp = makeTmp();
+	try {
+		let calls = 0;
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {
+				TYPESAFE_API_KEY: "",
+				LIQUID_API_KEY: "",
+				TEMPO_PROVIDERS: "local",
+				TEMPO_LOCAL_URL: "http://selfhost.example/decide",
+			}),
+			fetchImpl: () => {
+				calls++;
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "unconfigured");
+		assert.equal(calls, 0);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("named https TEMPO_LOCAL_URL works and is called at that URL", async () => {
+	const tmp = makeTmp();
+	try {
+		const urls = [];
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {
+				TYPESAFE_API_KEY: "",
+				LIQUID_API_KEY: "",
+				TEMPO_PROVIDERS: "local",
+				TEMPO_LOCAL_URL: "https://selfhost.example/decide",
+				TEMPO_LOCAL_MODEL: "d1-3b",
+			}),
+			fetchImpl: (url) => {
+				urls.push(url);
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.provider, "local");
+		assert.equal(v.host, "selfhost.example");
+		assert.deepEqual(urls, ["https://selfhost.example/decide"]);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});

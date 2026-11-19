@@ -14,6 +14,8 @@
   customs are https-only, activate only when named in `TEMPO_PROVIDERS` or gated behind
   `TEMPO_CUSTOM_PROVIDERS=1` (env can arrive from sources the script can't distinguish,
   e.g. project-scoped settings), and every provider call logs its destination host.
+  `TEMPO_LOCAL_URL` follows the same rules (https + named in `TEMPO_PROVIDERS`; setting
+  the URL is not itself consent — unlike an API key it chooses the destination).
 - Provider-agnostic by design: TypeSafe Jev (`TYPESAFE_API_KEY`), Liquid d1
   (`LIQUID_API_KEY`), or a self-hosted open-weight endpoint (`TEMPO_LOCAL_URL`); any
   Jev-API-compatible server drops in. Provider failure cycles to the next, then

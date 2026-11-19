@@ -44,8 +44,10 @@ classifying yourself — one local script, three possible outcomes:
 
 Providers are opt-in: the keyword floor is local and free; the model call
 happens only when a provider is configured (`TYPESAFE_API_KEY` or
-`LIQUID_API_KEY` in env, a custom `TEMPO_PROVIDER_<NAME>_URL`, or
-`TEMPO_LOCAL_URL`); `TEMPO_TRIAGE=0` disables the whole assist. The
+`LIQUID_API_KEY` in env; env-supplied URLs — custom
+`TEMPO_PROVIDER_<NAME>_URL` or `TEMPO_LOCAL_URL` — must be https and are
+activated by naming in `TEMPO_PROVIDERS`); `TEMPO_TRIAGE=0` disables the
+whole assist. The
 router's say never lowers a non-rule: a one-line auth change stays tier 2
 regardless.
 

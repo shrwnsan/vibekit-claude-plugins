@@ -89,11 +89,12 @@ back to your agent, which routes exactly as it does today. The model layer
 is off by default; on with one env var.
 
 Bring any Jev-compatible provider — TypeSafe Jev (`TYPESAFE_API_KEY`), Liquid
-d1 (`LIQUID_API_KEY`), a self-hosted open-weight endpoint (`TEMPO_LOCAL_URL`),
-or anything new via `TEMPO_PROVIDER_<NAME>_URL` (https only; it activates
-when named in `TEMPO_PROVIDERS` or with `TEMPO_CUSTOM_PROVIDERS=1`, so a
-stray env var never silently becomes an egress path — and every call's
-destination host is written to the verdict log). `risk-triage` runs
+d1 (`LIQUID_API_KEY`), a self-hosted open-weight endpoint (`TEMPO_LOCAL_URL`,
+https, named in `TEMPO_PROVIDERS`), or anything new via
+`TEMPO_PROVIDER_<NAME>_URL` (https only; it activates when named in
+`TEMPO_PROVIDERS` or with `TEMPO_CUSTOM_PROVIDERS=1`, so a stray env var
+never silently becomes an egress path — and every call's destination host is
+written to the verdict log). `risk-triage` runs
 `scripts/triage-router.mjs` first: the
 keyword floor is local and free — it tiers obvious tasks instantly with zero
 keys — and when a provider is configured, everything else goes to the model,

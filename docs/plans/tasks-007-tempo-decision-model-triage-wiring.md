@@ -177,6 +177,16 @@ control the destination — the gate raises the bar against stray/untrusted
 settings, not against full env control, which is outside any script's threat
 model. Covered by tests 16–18.
 
+Addendum (deliberate `/security-review` pass, 2026-11-19): the review found
+`TEMPO_LOCAL_URL` bypassed both mitigations — it auto-joined on URL presence
+alone and was the one env-supplied destination with no https check. Scored
+7/10 (below its reporting bar) on a defensible counter-reading ("setting the
+URL is consent", by analogy with API keys), but the analogy is structurally
+wrong: an API key consents to sending to a fixed, audited host, while
+`TEMPO_LOCAL_URL` chooses the destination itself. Closed rather than
+accepted: `local` now follows the customs rules — https-only, active only
+when named in `TEMPO_PROVIDERS`. Tests 19–21.
+
 ## Resolved open questions
 
 - **Call site: skill-mediated, no new hook.** The risk-triage skill runs the

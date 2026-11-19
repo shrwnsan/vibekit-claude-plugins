@@ -40,6 +40,10 @@ import { pathToFileURL } from 'node:url';
 //   TEMPO_PROVIDER_CLEF_MODEL=clef-flash        (optional, default jev-latest)
 //   TEMPO_PROVIDER_CLEF_KEY=...                 (optional bearer; public
 //                                                local endpoints need none)
+// The built-in `local` provider (TEMPO_LOCAL_URL) follows the same rules:
+// https-only, and active only when named in TEMPO_PROVIDERS — setting the
+// URL is not itself consent, because unlike an API key (which consents to
+// sending to a fixed, audited host) it chooses the destination itself.
 // Security posture (SSRF/exfil review): env-registered customs activate
 // ONLY when explicitly named in TEMPO_PROVIDERS or when
 // TEMPO_CUSTOM_PROVIDERS=1 is set, and only over https:// — env is
@@ -149,19 +153,31 @@ function resolveConfig(env = process.env) {
   };
 }
 
+// https-only for every env-supplied destination URL (customs and local
+// alike): malformed or non-https values are ignored, never fatal.
+const isHttps = (u) => {
+  try {
+    return new URL(u).protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 function configuredProviders(cfg) {
   const all = { ...customProviders(cfg.env), ...PROVIDERS };
   let list = [...cfg.order];
   if (!cfg.env.TEMPO_PROVIDERS) {
-    if (cfg.env.TEMPO_LOCAL_URL && !list.includes('local')) list.push('local');
     // ambient auto-discovery of customs requires explicit consent; naming
-    // one in TEMPO_PROVIDERS is itself consent, so that path needs no flag
+    // one in TEMPO_PROVIDERS is itself consent, so that path needs no flag.
+    // `local` has no ambient path at all — naming it in TEMPO_PROVIDERS is
+    // the consent (its URL chooses the destination, so URL-presence alone
+    // must not activate it).
     if (cfg.env.TEMPO_CUSTOM_PROVIDERS === '1') list = [...list, ...Object.keys(customProviders(cfg.env)).sort()];
   }
   return list
     .map((name) => (all[name] ? { name, ...all[name] } : null))
     .filter(Boolean)
-    .filter((p) => (p.urlEnv ? Boolean(cfg.env[p.urlEnv]) : p.activatesBy === 'url' ? true : Boolean(cfg.env[p.apiKeyEnv])));
+    .filter((p) => (p.urlEnv ? isHttps(cfg.env[p.urlEnv]) : p.activatesBy === 'url' ? true : Boolean(cfg.env[p.apiKeyEnv])));
 }
 
 // Live tier descriptions from the plugin's own skills — the elicitation

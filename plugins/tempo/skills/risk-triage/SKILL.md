@@ -31,6 +31,16 @@ is the only routing step — it does not contain the flows themselves.
 Conflict rule: take the higher tier. Genuinely torn between 1 and 2 with the user
 present — ask one question; headless, take tier 2.
 
+## Router assist (optional, env-gated)
+
+If classification above is not a clear first match and a decision-model provider
+is configured (`TYPESAFE_API_KEY` or `LIQUID_API_KEY` in env, or
+`TEMPO_LOCAL_URL`; `TEMPO_TRIAGE=0` disables), run the plugin's
+`scripts/triage-router.mjs --task "<the task>"`. Adopt the returned tier when
+`status` is `tier`; for anything else — `defer`, `error`, `unconfigured`,
+`disabled` — classify yourself as above. The router's say never lowers a
+non-rule: a one-line auth change stays tier 2 regardless.
+
 ## Route (one line each)
 
 - **Tier 0** → do the change now; rules in `tier-0-trivial` only if unsure it qualifies.

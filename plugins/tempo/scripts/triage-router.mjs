@@ -1,0 +1,264 @@
+#!/usr/bin/env node
+// triage-router.mjs — optional decision-model triage layer for tempo
+// (tasks-007, prd-010 §3.3).
+//
+// Provider-agnostic on the Jev-compatible "systemone" protocol: TypeSafe
+// Jev, Liquid d1, or a self-hosted open-weight endpoint (Clef / d1-3B).
+// Opt-in: inert unless a provider API key (or TEMPO_LOCAL_URL) is present —
+// unconfigured sessions behave exactly as before this layer existed.
+//
+// Proposes, never disposes: confidence below the threshold, provider
+// failure, or the kill switch defers to main-model self-triage. The
+// verify gate, the conflict rule, and fail-twice promotion are never
+// bypassed by this script's output.
+//
+// Env:
+//   TEMPO_TRIAGE=0               kill switch
+//   TEMPO_PROVIDERS              csv cycle order (default "typesafe,liquid";
+//                                "local" joins automatically when TEMPO_LOCAL_URL is set)
+//   TEMPO_TRIAGE_THRESHOLD       adopt-if-confidence-≥ (default 0.7, clamp 0.3–0.95)
+//   TEMPO_MODEL_TYPESAFE / _LIQUID / TEMPO_LOCAL_MODEL    per-provider model override
+//   TEMPO_LOCAL_URL              self-hosted systemone endpoint (adds "local")
+//   TEMPO_LOCAL_API_KEY          optional bearer token for the local endpoint
+//   TEMPO_LOG / TEMPO_STATE_FILE runtime state (default ~/.local/share/tempo/*)
+//
+// Usage: node triage-router.mjs --task "Fix the typo in the README heading."
+//        echo "task text" | node triage-router.mjs
+// Prints one JSON line. Exits 0 for every operational outcome (fail-safe:
+// never block the flow), 2 only for usage errors. Importable as a module.
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+// -- Providers ---------------------------------------------------------------
+// Same transport reflex-gate.mjs proved live (typesafe + liquid); any
+// Jev-API-compatible endpoint drops in as "local".
+const PROVIDERS = {
+  typesafe: {
+    url: 'https://api.typesafe.ai/v1/systemone',
+    model: 'jev-latest', // runtime default; evals pin via TEMPO_MODEL_TYPESAFE
+    apiKeyEnv: 'TYPESAFE_API_KEY',
+    modelEnv: 'TEMPO_MODEL_TYPESAFE',
+  },
+  liquid: {
+    url: 'https://api.liquid.ai/decisions/v1/systemone',
+    model: 'd1.1',
+    apiKeyEnv: 'LIQUID_API_KEY',
+    modelEnv: 'TEMPO_MODEL_LIQUID',
+  },
+  local: {
+    url: null, // from TEMPO_LOCAL_URL
+    model: 'd1-3B',
+    apiKeyEnv: 'TEMPO_LOCAL_API_KEY', // optional
+    modelEnv: 'TEMPO_LOCAL_MODEL',
+    urlEnv: 'TEMPO_LOCAL_URL',
+  },
+};
+
+const FLOW_TIER = { 'tier-0-trivial': 0, none: 0, 'tier-1-standard': 1, 'tier-2-risky': 2 };
+
+const RULES =
+  'Pick the single tier skill that should handle the described task, judging only on the skill descriptions. ' +
+  'Do not invent capabilities. If the task is trivial enough that no flow should load, pick none.';
+
+// Fallback criteria if the sibling SKILL.md files are unreadable (they ship
+// with the plugin, so this is a safety net). Keep in sync with
+// skills/<flow>/SKILL.md frontmatter — descriptions are the elicitation.
+const FALLBACK_DESCS = {
+  'tier-0-trivial':
+    'Tier-0 trivial-change rules (typo, copy tweak, one-line fix, docs update). Rarely needs loading — the rules below are the whole flow; consult only when unsure a change qualifies as trivial.',
+  'tier-1-standard':
+    'Tier-1 standard-change flow — one-line plan note, test-first, single agent, systematic debugging on failures. Use for normal feature work and bug fixes with clear requirements.',
+  'tier-2-risky':
+    'Tier-2 risky-change flow — short plan file, deliberate build, review gate and verify gate before done. Use for architectural changes, concurrency and rate-limiting work, public API changes, ambiguous requirements, security/auth/data work, or after a tier-1 task failed twice.',
+  none: 'No tier flow is an appropriate match; the task is trivial enough to just do it',
+};
+
+const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+const homeAbbrev = (p) => (p && p.startsWith(homedir()) ? `~${p.slice(homedir().length)}` : p);
+
+function resolveConfig(env = process.env) {
+  return {
+    enabled: env.TEMPO_TRIAGE !== '0',
+    threshold: clamp(Number(env.TEMPO_TRIAGE_THRESHOLD ?? 0.7), 0.3, 0.95),
+    order: env.TEMPO_PROVIDERS?.split(',').map((s) => s.trim()).filter(Boolean) ?? ['typesafe', 'liquid'],
+    log: env.TEMPO_LOG ?? path.join(homedir(), '.local', 'share', 'tempo', 'verdicts.jsonl'),
+    stateFile: env.TEMPO_STATE_FILE ?? path.join(homedir(), '.local', 'share', 'tempo', 'failstate.json'),
+    backoffMs: 5 * 60 * 1000,
+    env,
+  };
+}
+
+function configuredProviders(cfg) {
+  const list = [...cfg.order];
+  if (!cfg.env.TEMPO_PROVIDERS && cfg.env.TEMPO_LOCAL_URL && !list.includes('local')) list.push('local');
+  return list
+    .map((name) => PROVIDERS[name])
+    .filter(Boolean)
+    .filter((p) => (p.urlEnv ? Boolean(cfg.env[p.urlEnv]) : Boolean(cfg.env[p.apiKeyEnv])));
+}
+
+// Live tier descriptions from the plugin's own skills — the elicitation
+// must test what the plugin ships (same principle as jev-router.mjs).
+function loadCriteria(skillsDir = path.resolve(path.dirname(pathToFileURL(import.meta.url).pathname), '..', 'skills')) {
+  const criteria = {};
+  for (const name of ['tier-0-trivial', 'tier-1-standard', 'tier-2-risky']) {
+    let desc = FALLBACK_DESCS[name];
+    try {
+      const md = readFileSync(path.join(skillsDir, name, 'SKILL.md'), 'utf8');
+      desc = md.match(/^description: (.+)$/m)?.[1] ?? desc;
+    } catch {
+      /* keep fallback */
+    }
+    criteria[name] = `tier skill: ${desc}`;
+  }
+  criteria.none = FALLBACK_DESCS.none;
+  return criteria;
+}
+
+// -- Failstate (provider health for the fail-safe cycle) ---------------------
+function readFailstate(cfg, now) {
+  try {
+    const s = JSON.parse(readFileSync(cfg.stateFile, 'utf8'));
+    const healthy = {};
+    for (const [name, v] of Object.entries(s.providers ?? {})) {
+      if (new Date(v.until).getTime() > now) healthy[name] = v;
+    }
+    return healthy;
+  } catch {
+    return {};
+  }
+}
+
+function writeFailstate(cfg, state) {
+  try {
+    mkdirSync(path.dirname(cfg.stateFile), { recursive: true, mode: 0o700 });
+    writeFileSync(cfg.stateFile, JSON.stringify({ v: 1, providers: state }, null, 2) + '\n', { mode: 0o600 });
+  } catch {
+    /* state tracking is best-effort; never block a verdict on it */
+  }
+}
+
+// -- Provider call -----------------------------------------------------------
+async function callProvider(cfg, provider, name, task, criteria, fetchImpl, now) {
+  const body = {
+    state: { user_message: task, rules: RULES },
+    model: cfg.env[provider.modelEnv] ?? provider.model,
+    questions: { tier: { type: 'choice', instructions: 'Which tier skill should handle this task?', criteria } },
+  };
+  const headers = { 'Content-Type': 'application/json' };
+  const key = cfg.env[provider.apiKeyEnv];
+  if (key) headers.Authorization = `Bearer ${key}`;
+  const url = provider.urlEnv ? cfg.env[provider.urlEnv] : provider.url;
+  const model = body.model;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 1000));
+    let res;
+    try {
+      res = await fetchImpl(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (e) {
+      if (attempt) throw new Error(`${name} request failed: ${e.message}`);
+      continue;
+    }
+    const json = await res.json().catch(() => ({}));
+    if (res.status === 429 || res.status === 529 || res.status >= 500) {
+      if (attempt) throw new Error(`${name} HTTP ${res.status} after retry`);
+      continue;
+    }
+    if (!res.ok) throw new Error(`${name} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 120)}`);
+    const a = json.answers?.tier;
+    if (!a || typeof a.choice !== 'string') throw new Error(`${name} returned no choice answer`);
+    if (!(a.choice in FLOW_TIER)) throw new Error(`${name} returned unknown choice "${a.choice}"`);
+    return { choice: a.choice, confidence: Number(a.confidence ?? 0), model, servedModel: json.model ?? model };
+  }
+  throw new Error(`${name} exhausted retries`); // unreachable; for shape
+}
+
+// -- Verdict log -------------------------------------------------------------
+// One line per actual call outcome (tier/defer/error). Unconfigured and
+// disabled make no call, so they log nothing. Task text stays verbatim
+// (replay + outcome joins); every path field is $HOME-abbreviated.
+function logVerdict(cfg, entry) {
+  try {
+    mkdirSync(path.dirname(cfg.log), { recursive: true, mode: 0o700 });
+    appendFileSync(cfg.log, JSON.stringify({ v: 1, plugin: 'tempo', ...entry }) + '\n', { mode: 0o600 });
+  } catch {
+    /* logging is best-effort */
+  }
+}
+
+// -- Triage ------------------------------------------------------------------
+// Returns { status, tier?, choice?, confidence?, provider?, model?, servedModel?, ms, error? }
+// status: disabled | unconfigured | tier | defer | error
+async function triage(task, opts = {}) {
+  const { env = process.env, fetchImpl = globalThis.fetch.bind(globalThis), now = Date.now } = opts;
+  const cfg = resolveConfig(env);
+  const start = now();
+  const common = { task, cwd: homeAbbrev(process.cwd()), mode: env.TRIAGE_MODE ?? 'cli' };
+
+  if (!cfg.enabled) return { status: 'disabled', ms: now() - start };
+  const providers = configuredProviders(cfg);
+  if (!providers.length) return { status: 'unconfigured', ms: now() - start };
+
+  const criteria = loadCriteria(opts.skillsDir);
+  const health = readFailstate(cfg, now());
+  const errors = [];
+  for (const p of providers) {
+    const name = Object.keys(PROVIDERS).find((k) => PROVIDERS[k] === p);
+    if (health[name]) {
+      errors.push(`${name} skipped: backing off until ${health[name].until}`);
+      continue;
+    }
+    let outcome;
+    try {
+      outcome = await callProvider(cfg, p, name, task, criteria, fetchImpl, now);
+    } catch (e) {
+      errors.push(e.message);
+      const prev = readFailstate(cfg, now())[name] ?? { fails: 0 };
+      writeFailstate(cfg, { ...readFailstate(cfg, now()), [name]: { fails: prev.fails + 1, until: new Date(now() + cfg.backoffMs).toISOString() } });
+      continue;
+    }
+    // success clears any stale health entry
+    const currentHealth = readFailstate(cfg, now());
+    if (currentHealth[name]) {
+      const { [name]: _drop, ...rest } = currentHealth;
+      writeFailstate(cfg, rest);
+    }
+
+    const tier = FLOW_TIER[outcome.choice];
+    const verdict =
+      outcome.confidence >= cfg.threshold
+        ? { status: 'tier', tier, choice: outcome.choice, confidence: outcome.confidence }
+        : { status: 'defer', choice: outcome.choice, confidence: outcome.confidence };
+    const full = { ...verdict, provider: name, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start };
+    logVerdict(cfg, { t: new Date(now()).toISOString(), status: full.status, tier: full.tier ?? null, ...full, ...common });
+    return full;
+  }
+  const full = { status: 'error', ms: now() - start, error: errors.join('; ') };
+  logVerdict(cfg, { t: new Date(now()).toISOString(), status: 'error', tier: null, ...full, ...common });
+  return full; // fail-safe: caller self-triages
+}
+
+// -- CLI ---------------------------------------------------------------------
+async function main() {
+  const i = process.argv.indexOf('--task');
+  let task = i >= 0 ? process.argv[i + 1] : null;
+  if (task == null && !process.stdin.isTTY) task = readFileSync(0, 'utf8').trim();
+  if (!task) {
+    console.error('usage: triage-router.mjs --task "<task text>"  (or pipe task text on stdin)');
+    process.exit(2);
+  }
+  const verdict = await triage(task);
+  console.log(JSON.stringify(verdict));
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+
+export { PROVIDERS, FLOW_TIER, RULES, resolveConfig, configuredProviders, loadCriteria, triage, homeAbbrev };

@@ -325,7 +325,7 @@ test("keyword floor risk path: rate limiting task → tier 2 via floor, no fetch
 	}
 });
 
-test("env-registered custom provider: url alone activates, model + no auth header", async () => {
+test("env-registered custom provider: consent flag activates, model + no auth header", async () => {
 	const tmp = makeTmp();
 	try {
 		const seen = [];
@@ -333,6 +333,7 @@ test("env-registered custom provider: url alone activates, model + no auth heade
 			env: baseEnv(tmp, {
 				TYPESAFE_API_KEY: "",
 				LIQUID_API_KEY: "",
+				TEMPO_CUSTOM_PROVIDERS: "1",
 				TEMPO_PROVIDER_CLEF_URL: "https://clef.example/decide",
 				TEMPO_PROVIDER_CLEF_MODEL: "clef-flash",
 			}),
@@ -362,6 +363,7 @@ test("custom provider with TEMPO_PROVIDER_<NAME>_KEY sends Bearer auth", async (
 			env: baseEnv(tmp, {
 				TYPESAFE_API_KEY: "",
 				LIQUID_API_KEY: "",
+				TEMPO_CUSTOM_PROVIDERS: "1",
 				TEMPO_PROVIDER_CLEF_URL: "https://clef.example/decide",
 				TEMPO_PROVIDER_CLEF_MODEL: "clef-flash",
 				TEMPO_PROVIDER_CLEF_KEY: "sekrit",
@@ -398,6 +400,70 @@ test("TEMPO_PROVIDERS is authoritative: custom provider not auto-appended", asyn
 		assert.equal(v.status, "tier");
 		assert.equal(v.provider, "typesafe");
 		assert.deepEqual(urls, [PROVIDERS.typesafe.url]);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("custom provider URL must be https: http:// registration is ignored", async () => {
+	const tmp = makeTmp();
+	try {
+		let calls = 0;
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {
+				TYPESAFE_API_KEY: "",
+				LIQUID_API_KEY: "",
+				TEMPO_CUSTOM_PROVIDERS: "1",
+				TEMPO_PROVIDER_HTTP_URL: "http://collect.example/decide",
+			}),
+			fetchImpl: () => {
+				calls++;
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "unconfigured");
+		assert.equal(calls, 0);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("consent gate: custom URL without TEMPO_CUSTOM_PROVIDERS or TEMPO_PROVIDERS is inert", async () => {
+	const tmp = makeTmp();
+	try {
+		let calls = 0;
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {
+				TYPESAFE_API_KEY: "",
+				LIQUID_API_KEY: "",
+				TEMPO_PROVIDER_CLEF_URL: "https://clef.example/decide",
+			}),
+			fetchImpl: () => {
+				calls++;
+				return Promise.resolve(mockAnswer("tier-1-standard", 0.9));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "unconfigured");
+		assert.equal(calls, 0);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("egress visibility: verdict and log line carry the destination host", async () => {
+	const tmp = makeTmp();
+	try {
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, {}),
+			fetchImpl: () => Promise.resolve(mockAnswer("tier-2-risky", 0.95)),
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(v.host, "api.typesafe.ai");
+		const line = JSON.parse(readFileSync(join(tmp, "verdicts.jsonl"), "utf8").trim());
+		assert.equal(line.host, "api.typesafe.ai");
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}

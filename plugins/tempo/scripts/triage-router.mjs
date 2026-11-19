@@ -35,11 +35,17 @@ import { pathToFileURL } from 'node:url';
 // Same transport reflex-gate.mjs proved live (typesafe + liquid). New
 // providers need no code change: any Jev-API-compatible endpoint registers
 // via env —
-//   TEMPO_PROVIDERS=clef                        (add to the cycle order)
-//   TEMPO_PROVIDER_CLEF_URL=https://...         (required — activates it)
+//   TEMPO_PROVIDERS=clef                        (explicit: adds it to the cycle)
+//   TEMPO_PROVIDER_CLEF_URL=https://...         (required — https only)
 //   TEMPO_PROVIDER_CLEF_MODEL=clef-flash        (optional, default jev-latest)
 //   TEMPO_PROVIDER_CLEF_KEY=...                 (optional bearer; public
 //                                                local endpoints need none)
+// Security posture (SSRF/exfil review): env-registered customs activate
+// ONLY when explicitly named in TEMPO_PROVIDERS or when
+// TEMPO_CUSTOM_PROVIDERS=1 is set, and only over https:// — env is
+// merged from sources the script cannot distinguish (user shell vs
+// project-scoped settings), so activation is an explicit act. Every
+// provider call logs its destination host for egress visibility.
 // Built-ins keep their fixed env names for reflex parity; models are
 // overridable per provider (TEMPO_MODEL_TYPESAFE etc.), so version bumps
 // are config, not commits.
@@ -66,19 +72,27 @@ const PROVIDERS = {
 };
 
 // Env-registered custom providers (TEMPO_PROVIDER_<NAME>_URL ...). Scanned,
-// not enumerated — adding one never touches this file.
+// not enumerated — adding one never touches this file. https only: a custom
+// endpoint is egress for task text, and plaintext-HTTP egress doubles as
+// an SSRF probe primitive.
 function customProviders(env) {
   const found = {};
   for (const key of Object.keys(env)) {
     const m = key.match(/^TEMPO_PROVIDER_([A-Z0-9_]+)_URL$/);
     if (!m) continue;
-    const name = m[1].toLowerCase();
-    found[name] = {
+    let url;
+    try {
+      url = new URL(env[key]);
+    } catch {
+      continue; // malformed — ignore, never throw on env noise
+    }
+    if (url.protocol !== 'https:') continue;
+    found[m[1].toLowerCase()] = {
       url: env[key],
       model: env[`TEMPO_PROVIDER_${m[1]}_MODEL`] ?? 'jev-latest',
       apiKeyEnv: `TEMPO_PROVIDER_${m[1]}_KEY`, // optional: absence = no auth header
       modelEnv: `TEMPO_PROVIDER_${m[1]}_MODEL`,
-      activatesBy: 'url', // presence of the URL env is the activation
+      activatesBy: 'url', // explicit naming in TEMPO_PROVIDERS or the consent flag
     };
   }
   return found;
@@ -140,7 +154,9 @@ function configuredProviders(cfg) {
   let list = [...cfg.order];
   if (!cfg.env.TEMPO_PROVIDERS) {
     if (cfg.env.TEMPO_LOCAL_URL && !list.includes('local')) list.push('local');
-    list = [...list, ...Object.keys(customProviders(cfg.env)).sort()];
+    // ambient auto-discovery of customs requires explicit consent; naming
+    // one in TEMPO_PROVIDERS is itself consent, so that path needs no flag
+    if (cfg.env.TEMPO_CUSTOM_PROVIDERS === '1') list = [...list, ...Object.keys(customProviders(cfg.env)).sort()];
   }
   return list
     .map((name) => (all[name] ? { name, ...all[name] } : null))
@@ -293,7 +309,14 @@ async function triage(task, opts = {}) {
       outcome.confidence >= cfg.threshold
         ? { status: 'tier', tier, choice: outcome.choice, confidence: outcome.confidence }
         : { status: 'defer', choice: outcome.choice, confidence: outcome.confidence };
-    const full = { ...verdict, source: 'provider', provider: name, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start };
+    // egress visibility: every provider call logs where it went
+    let host = null;
+    try {
+      host = new URL(p.urlEnv ? cfg.env[p.urlEnv] : p.url).host;
+    } catch {
+      /* unreachable for configured providers */
+    }
+    const full = { ...verdict, source: 'provider', provider: name, host, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start };
     logVerdict(cfg, { t: new Date(now()).toISOString(), status: full.status, tier: full.tier ?? null, ...full, ...common });
     return full;
   }

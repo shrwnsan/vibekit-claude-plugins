@@ -154,6 +154,29 @@ router 3, defer 7, same single miss (`routing-stage-a-wired-2026-11-19T14-39-11.
 now measured through the exact shipped code path rather than a runner-side
 floor pre-check.
 
+## Security review (post-implementation, 2026-11-19)
+
+Automated review flagged the keyless env-registered provider surface as
+SSRF/exfil: a URL-only activation means any env source — including a cloned
+repo's project-scoped `env` settings, which the script cannot distinguish
+from the user's shell — becomes a task-text egress path. Adopted mitigations:
+
+1. **https-only** for custom-provider URLs (plaintext HTTP is both exfil and
+   a probe primitive; malformed URLs are ignored, never fatal).
+2. **Explicit activation**: customs join the cycle only when named in
+   `TEMPO_PROVIDERS` (typing the name is consent) or behind
+   `TEMPO_CUSTOM_PROVIDERS=1`. Ambient auto-discovery is opt-in.
+3. **Egress visibility**: every provider verdict line logs the destination
+   `host`.
+
+Rejected: private-range/localhost blocking — `TEMPO_LOCAL_URL` and customs
+exist precisely to reach self-hosted endpoints, so IP-range rules would break
+the feature; the consent gate covers the intent. Residual risk, stated
+plainly: if an attacker controls env wholesale (both URL and flag), they
+control the destination — the gate raises the bar against stray/untrusted
+settings, not against full env control, which is outside any script's threat
+model. Covered by tests 16–18.
+
 ## Resolved open questions
 
 - **Call site: skill-mediated, no new hook.** The risk-triage skill runs the

@@ -13,10 +13,11 @@
 // bypassed by this script's output.
 //
 // Env:
-//   TEMPO_TRIAGE=0               kill switch
+//   TEMPO_TRIAGE=0               kill switch (kills triage AND promote checks)
 //   TEMPO_PROVIDERS              csv cycle order (default "typesafe,liquid";
 //                                "local" joins automatically when TEMPO_LOCAL_URL is set)
 //   TEMPO_TRIAGE_THRESHOLD       adopt-if-confidence-≥ (default 0.7, clamp 0.3–0.95)
+//   TEMPO_PROMOTE_THRESHOLD      promote-check adopt-if-p-≥ (default 0.6, clamp 0.3–0.95)
 //   TEMPO_MODEL_TYPESAFE / _LIQUID / TEMPO_LOCAL_MODEL    per-provider model override
 //   TEMPO_LOCAL_URL              self-hosted systemone endpoint (adds "local")
 //   TEMPO_LOCAL_API_KEY          optional bearer token for the local endpoint
@@ -24,6 +25,7 @@
 //
 // Usage: node triage-router.mjs --task "Fix the typo in the README heading."
 //        echo "task text" | node triage-router.mjs
+//        node triage-router.mjs --promote --task "<task>" --evidence "<what failed>"
 // Prints one JSON line. Exits 0 for every operational outcome (fail-safe:
 // never block the flow), 2 only for usage errors. Importable as a module.
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -125,6 +127,29 @@ const RULES =
   'Pick the single tier skill that should handle the described task, judging only on the skill descriptions. ' +
   'Do not invent capabilities. If the task is trivial enough that no flow should load, pick none.';
 
+// Fail-once promotion detector (prd-010 §3.3.4, tasks-008). Noul wire shape
+// is the one reflex proved live (type "noul" → answers.<q>.noul, probability
+// or bool — Number() coerces both). Deliberately NO keyword floor here: a
+// deterministic early-escalation rule would be guessing; the skill's
+// fail-twice rule is the floor and always stands regardless of this check.
+const PROMOTE_RULES =
+  'One attempt at the task just failed under its current tier flow (tier 0 trivial, 1 standard, 2 risky/heaviest). ' +
+  'Judge ONLY whether this failure is evidence the task was under-tiered — that the next-heavier flow should take ' +
+  'over NOW — versus an ordinary failure the current flow is designed to absorb. Escalate on signal (the failure ' +
+  'implicates risk surfaces: security, auth, concurrency, data lifecycle, architecture, hidden scope), not on the ' +
+  'mere fact of failure.';
+
+const PROMOTE_QUESTION = {
+  escalate: {
+    type: 'noul',
+    instructions: 'A task failed once at its current tier. Should it escalate to the next heavier tier flow right now?',
+    criteria: {
+      true: 'The failure reveals under-tiering: a risk surface (security/auth/concurrency/data/architecture), hidden scope beyond the stated task, or a dead end the current flow cannot absorb',
+      false: 'Ordinary first failure — wrong variable, missing fixture, incomplete fix — that the current flow’s debug-and-retest loop handles',
+    },
+  },
+};
+
 // Fallback criteria if the sibling SKILL.md files are unreadable (they ship
 // with the plugin, so this is a safety net). Keep in sync with
 // skills/<flow>/SKILL.md frontmatter — descriptions are the elicitation.
@@ -145,6 +170,7 @@ function resolveConfig(env = process.env) {
   return {
     enabled: env.TEMPO_TRIAGE !== '0',
     threshold: clamp(Number(env.TEMPO_TRIAGE_THRESHOLD ?? 0.7), 0.3, 0.95),
+    promoteThreshold: clamp(Number(env.TEMPO_PROMOTE_THRESHOLD ?? 0.6), 0.3, 0.95),
     order: env.TEMPO_PROVIDERS?.split(',').map((s) => s.trim()).filter(Boolean) ?? ['typesafe', 'liquid'],
     log: env.TEMPO_LOG ?? path.join(homedir(), '.local', 'share', 'tempo', 'verdicts.jsonl'),
     stateFile: env.TEMPO_STATE_FILE ?? path.join(homedir(), '.local', 'share', 'tempo', 'failstate.json'),
@@ -262,6 +288,49 @@ async function callProvider(cfg, provider, name, task, criteria, fetchImpl, now)
   throw new Error(`${name} exhausted retries`); // unreachable; for shape
 }
 
+// Noul variant of callProvider for the promote check — same retry skeleton,
+// kept separate rather than parameterizing the shipped Choice path (zero
+// regression surface on the triage transport; the shapes diverge only in
+// question and answer parsing).
+async function callNoul(cfg, provider, name, task, evidence, fetchImpl, now) {
+  const body = {
+    state: { user_message: task, evidence, rules: PROMOTE_RULES },
+    model: cfg.env[provider.modelEnv] ?? provider.model,
+    questions: PROMOTE_QUESTION,
+  };
+  const headers = { 'Content-Type': 'application/json' };
+  const key = cfg.env[provider.apiKeyEnv];
+  if (key) headers.Authorization = `Bearer ${key}`;
+  const url = provider.urlEnv ? cfg.env[provider.urlEnv] : provider.url;
+  const model = body.model;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 1000));
+    let res;
+    try {
+      res = await fetchImpl(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (e) {
+      if (attempt) throw new Error(`${name} request failed: ${e.message}`);
+      continue;
+    }
+    const json = await res.json().catch(() => ({}));
+    if (res.status === 429 || res.status === 529 || res.status >= 500) {
+      if (attempt) throw new Error(`${name} HTTP ${res.status} after retry`);
+      continue;
+    }
+    if (!res.ok) throw new Error(`${name} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 120)}`);
+    const p = Number(json.answers?.escalate?.noul);
+    if (!Number.isFinite(p)) throw new Error(`${name} returned no noul answer`);
+    return { p, model, servedModel: json.model ?? model };
+  }
+  throw new Error(`${name} exhausted retries`); // unreachable; for shape
+}
+
 // -- Verdict log -------------------------------------------------------------
 // One line per actual call outcome (tier/defer/error). Unconfigured and
 // disabled make no call, so they log nothing. Task text stays verbatim
@@ -341,19 +410,87 @@ async function triage(task, opts = {}) {
   return full; // fail-safe: caller self-triages
 }
 
+// -- Promote check (fail-once escalation, prd-010 §3.3.4) --------------------
+// Returns { status, p?, provider?, host?, model?, servedModel?, ms, error? }
+// status: disabled | unconfigured | escalate | hold | error
+// Every non-escalate outcome means the same thing to the caller: the skill's
+// existing promotion rule stands untouched. The detector can only ever move
+// the escalation EARLIER, never suppress or delay the fail-twice backstop.
+async function promoteCheck(task, evidence, opts = {}) {
+  const { env = process.env, fetchImpl = globalThis.fetch.bind(globalThis), now = Date.now } = opts;
+  const cfg = resolveConfig(env);
+  const start = now();
+  const common = { task, evidence, cwd: homeAbbrev(process.cwd()), mode: 'promote' };
+
+  if (!cfg.enabled) return { status: 'disabled', ms: now() - start };
+
+  const providers = configuredProviders(cfg);
+  if (!providers.length) return { status: 'unconfigured', ms: now() - start };
+
+  const health = readFailstate(cfg, now());
+  const errors = [];
+  for (const p of providers) {
+    const { name } = p;
+    if (health[name]) {
+      errors.push(`${name} skipped: backing off until ${health[name].until}`);
+      continue;
+    }
+    let outcome;
+    try {
+      outcome = await callNoul(cfg, p, name, task, evidence, fetchImpl, now);
+    } catch (e) {
+      errors.push(e.message);
+      const prev = readFailstate(cfg, now())[name] ?? { fails: 0 };
+      writeFailstate(cfg, { ...readFailstate(cfg, now()), [name]: { fails: prev.fails + 1, until: new Date(now() + cfg.backoffMs).toISOString() } });
+      continue;
+    }
+    const currentHealth = readFailstate(cfg, now());
+    if (currentHealth[name]) {
+      const { [name]: _drop, ...rest } = currentHealth;
+      writeFailstate(cfg, rest);
+    }
+
+    const verdict = outcome.p >= cfg.promoteThreshold ? { status: 'escalate' } : { status: 'hold' };
+    let host = null;
+    try {
+      host = new URL(p.urlEnv ? cfg.env[p.urlEnv] : p.url).host;
+    } catch {
+      /* unreachable for configured providers */
+    }
+    const full = { ...verdict, p: outcome.p, source: 'provider', provider: name, host, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start };
+    logVerdict(cfg, { t: new Date(now()).toISOString(), status: full.status, p: full.p, ...full, ...common });
+    return full;
+  }
+  const full = { status: 'error', ms: now() - start, error: errors.join('; ') };
+  logVerdict(cfg, { t: new Date(now()).toISOString(), status: 'error', ...full, ...common });
+  return full; // fail-safe: caller keeps the standard promotion rule
+}
+
 // -- CLI ---------------------------------------------------------------------
 async function main() {
   const i = process.argv.indexOf('--task');
+  const e = process.argv.indexOf('--evidence');
   let task = i >= 0 ? process.argv[i + 1] : null;
+  const evidence = e >= 0 ? process.argv[e + 1] : null;
   if (task == null && !process.stdin.isTTY) task = readFileSync(0, 'utf8').trim();
-  if (!task) {
-    console.error('usage: triage-router.mjs --task "<task text>"  (or pipe task text on stdin)');
+  const usage =
+    'usage: triage-router.mjs --task "<task text>"  (or pipe task text on stdin)\n' +
+    '       triage-router.mjs --promote --task "<task>" --evidence "<what failed on the first attempt>"';
+  if (process.argv.includes('--promote')) {
+    if (!task || !evidence) {
+      console.error(usage);
+      process.exit(2);
+    }
+    console.log(JSON.stringify(await promoteCheck(task, evidence)));
+    return;
+  }
+  if (!task || evidence) {
+    console.error(usage);
     process.exit(2);
   }
-  const verdict = await triage(task);
-  console.log(JSON.stringify(verdict));
+  console.log(JSON.stringify(await triage(task)));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
-export { PROVIDERS, FLOW_TIER, RULES, resolveConfig, configuredProviders, customProviders, loadCriteria, triage, homeAbbrev };
+export { PROVIDERS, FLOW_TIER, RULES, resolveConfig, configuredProviders, customProviders, loadCriteria, triage, promoteCheck, homeAbbrev };

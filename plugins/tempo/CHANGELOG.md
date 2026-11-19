@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.0 (2026-11-19)
+
+- Fail-once promotion detector (prd-010 §3.3.4, tasks-008): `scripts/triage-router.mjs
+  --promote --task "<task>" --evidence "<what failed>"` asks one Noul question — did this
+  first failure reveal under-tiering (risk surface, hidden scope) or is it an ordinary
+  failure the current flow absorbs? `escalate` at p ≥ 0.6 (`TEMPO_PROMOTE_THRESHOLD`)
+  promotes one tier immediately; `hold`/`unconfigured`/`error` change nothing.
+- One-directional by construction: the detector can only move an escalation earlier.
+  The tier skills' fail-twice backstop is unchanged and always stands — the check runs
+  at first failure only, where it can save a wasted attempt on visibly under-tiered
+  tasks (live smoke: benign test failure → hold p=0.04; rate-limiting/concurrency
+  deadlock → escalate p=0.83).
+- Same infrastructure as triage, no new surface: same provider cycle and consent gates,
+  same `TEMPO_TRIAGE=0` kill switch, same failstate backoff, same verdict log (mode
+  `promote`; evidence verbatim, paths `$HOME`-abbreviated, 0600). No keyword floor for
+  promotion — deterministic early-escalation would be guessing; fail-twice is the floor.
+- `tier-0-trivial` and `tier-1-standard` gained one sentence each wiring the check in
+  before their existing promotion rules. Skill descriptions untouched (they are the
+  triage elicitation; changing them would invalidate the golden-set baseline).
+- Stage C fallback drills from tasks-007 landed with this PR: timeout, garbage-body,
+  and unknown-choice provider fallthroughs now unit-tested (24 router + 8 promote
+  tests, 32 total).
+
 ## 0.2.0 (2026-11-19)
 
 - Optional decision-model triage layer (prd-010 §3.3, tasks-007): `scripts/triage-router.mjs`

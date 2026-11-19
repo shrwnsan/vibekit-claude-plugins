@@ -164,9 +164,13 @@ claude plugin validate .
 - **Minor** (x.X.0): New features, backward compatible
 - **Major** (X.0.0): Breaking changes
 
-Always update BOTH:
+Always update ALL THREE (the third is CI-gated by the Manifest sync job —
+`claude plugin validate` does not check it):
 - `plugins/[name]/.claude-plugin/plugin.json`
 - `.claude-plugin/marketplace.json`
+- `plugins/[name]/plugin.json` (top-level, agent-plugins.org schema; feeds the agents-hub sync)
+
+Before pushing any bump, run `node scripts/check-agent-plugin-manifests.mjs` (repo root).
 
 A version bump is **required whenever a plugin's content changes** — skills, agents, commands, hooks, scripts, README — at minimum patch, in the same PR as the change. Un-bumped content changes make release-train bodies unreliable (e.g. #114 shipped a base-skills fix without one, so base 1.12.0 content differed between trains).
 

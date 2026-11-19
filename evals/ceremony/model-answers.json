@@ -1,0 +1,280 @@
+{
+  "schema": 1,
+  "source": "run-routing --condition tempo (Q&A, headless)",
+  "ts": "2026-11-19T19-27-39",
+  "claude_version": "2.1.319 (Claude Code)",
+  "cases": [
+    {
+      "id": "r0-readme-typo",
+      "expected_tier": 0,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r0-port-constant",
+      "expected_tier": 0,
+      "stated_primary": 1,
+      "stated_tiers": [
+        1,
+        0,
+        2
+      ],
+      "pass": false
+    },
+    {
+      "id": "r0-var-rename",
+      "expected_tier": 0,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r0-test-typo",
+      "expected_tier": 0,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r1-slugify",
+      "expected_tier": 1,
+      "stated_primary": 1,
+      "stated_tiers": [
+        1,
+        0,
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r1-lint-script",
+      "expected_tier": 1,
+      "stated_primary": 1,
+      "stated_tiers": [
+        1,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r1-env-var",
+      "expected_tier": 1,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0,
+        2,
+        1
+      ],
+      "pass": false
+    },
+    {
+      "id": "r2-auth-line",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r1-ci-green",
+      "expected_tier": 1,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2,
+        1,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r2-dedupe-refactor",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r2-sqlite-migration",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r2-rate-limit",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r0-docs-link",
+      "expected_tier": 0,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r0-version-string",
+      "expected_tier": 0,
+      "stated_primary": 1,
+      "stated_tiers": [
+        1,
+        2
+      ],
+      "pass": false
+    },
+    {
+      "id": "r0-log-typo",
+      "expected_tier": 0,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r0-stale-comment",
+      "expected_tier": 0,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r1-form-validation",
+      "expected_tier": 1,
+      "stated_primary": 1,
+      "stated_tiers": [
+        1,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r1-off-by-one",
+      "expected_tier": 1,
+      "stated_primary": 1,
+      "stated_tiers": [
+        1,
+        0,
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r1-retry-logic",
+      "expected_tier": 1,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2
+      ],
+      "pass": false
+    },
+    {
+      "id": "r1-deprecated-call",
+      "expected_tier": 1,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0,
+        1
+      ],
+      "pass": false
+    },
+    {
+      "id": "r1-export-button",
+      "expected_tier": 1,
+      "stated_primary": 1,
+      "stated_tiers": [
+        1,
+        0,
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r2-ratelimiter-line",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "r2-key-rotation",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r2-multitenant",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r2-password-hash",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "r2-entry-split",
+      "expected_tier": 2,
+      "stated_primary": 2,
+      "stated_tiers": [
+        2
+      ],
+      "pass": true
+    },
+    {
+      "id": "trap-auth-docs",
+      "expected_tier": 0,
+      "stated_primary": 1,
+      "stated_tiers": [
+        1,
+        0,
+        2
+      ],
+      "pass": false
+    },
+    {
+      "id": "trap-ratelimit-comment",
+      "expected_tier": 0,
+      "stated_primary": 0,
+      "stated_tiers": [
+        0
+      ],
+      "pass": true
+    }
+  ]
+}

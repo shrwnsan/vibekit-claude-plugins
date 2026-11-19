@@ -17,10 +17,11 @@
 // Verdict log for the run is redirected into test-results/ (the runtime
 // ~/.local/share/tempo log stays untouched by evals).
 // Deferred cases (router confidence < threshold) are scored against the
-// model condition's recorded per-case answers when --model-answers
-// <routing-*.json> is given; otherwise against the floor's tier-1 default
-// as a documented proxy.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+// model condition's recorded per-case answers (evals/ceremony/model-answers.json,
+// present by default; override with --model-answers <file>) and tagged
+// scoring-source "model-answer"; when no artifact is found they fall back to
+// the floor's tier-1 default as a documented proxy, tagged "floor-proxy".
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { triage, floorDecide } from '../../plugins/tempo/scripts/triage-router.mjs';
 
@@ -36,12 +37,16 @@ if (!process.env.TYPESAFE_API_KEY && !process.env.LIQUID_API_KEY && !process.env
   process.exit(0);
 }
 
-// model-condition per-case answers for deferral scoring, when recorded
+// model-condition per-case answers for deferral scoring, when recorded.
+// Default: the committed model-answers artifact next to the golden set; an
+// explicit --model-answers overrides it; neither present → floor proxy.
 let modelAnswers = null;
-const maFile = arg('--model-answers', null);
+let maFile = arg('--model-answers', null);
+const maDefault = path.join(path.dirname(path.resolve(process.cwd(), setFile)), 'model-answers.json');
+if (!maFile && existsSync(maDefault)) maFile = maDefault;
 if (maFile) {
   const ma = JSON.parse(readFileSync(path.resolve(process.cwd(), maFile), 'utf8'));
-  modelAnswers = Object.fromEntries((ma.cases ?? []).map((r) => [r.id, r.tier]));
+  modelAnswers = Object.fromEntries((ma.cases ?? []).map((r) => [r.id, r.stated_primary ?? r.tier]));
 }
 
 const RESULTS = path.resolve(process.cwd(), '..', '..', 'test-results');
@@ -55,10 +60,11 @@ for (const c of g.cases) {
     const source = v.source === 'floor' ? 'floor' : 'router';
     rows.push({ id: c.id, tier: c.tier, source, predicted: v.tier, provider: v.provider, model: v.servedModel ?? v.model, confidence: v.confidence, ok: v.tier === c.tier });
   } else if (v.status === 'defer') {
-    // without recorded model answers, the proxy for "main model decides" is
-    // the floor's answer (its tier-1 default for these no-signal cases)
-    const predicted = modelAnswers ? modelAnswers[c.id] : floorDecide(c.task).tier;
-    rows.push({ id: c.id, tier: c.tier, source: 'defer', predicted, deferredTo: modelAnswers ? 'model-recorded' : 'floor-proxy', choice: v.choice, confidence: v.confidence, provider: v.provider, ok: predicted === c.tier });
+    // scoring source per deferred case: the model condition's recorded
+    // answer when we have one, otherwise the floor's tier-1 default proxy
+    const answerSource = modelAnswers && modelAnswers[c.id] != null ? 'model-answer' : 'floor-proxy';
+    const predicted = answerSource === 'model-answer' ? modelAnswers[c.id] : floorDecide(c.task).tier;
+    rows.push({ id: c.id, tier: c.tier, source: 'defer', scoring: answerSource, predicted, deferredTo: answerSource === 'model-answer' ? 'model-recorded' : 'floor-proxy', choice: v.choice, confidence: v.confidence, provider: v.provider, ok: predicted === c.tier });
   } else {
     const fallback = floorDecide(c.task).tier; // documented fail-safe: floor default
     rows.push({ id: c.id, tier: c.tier, source: 'error', predicted: fallback, error: v.error, ok: fallback === c.tier });

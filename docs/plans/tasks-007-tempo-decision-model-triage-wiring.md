@@ -154,6 +154,37 @@ router 3, defer 7, same single miss (`routing-stage-a-wired-2026-11-19T14-39-11.
 now measured through the exact shipped code path rather than a runner-side
 floor pre-check.
 
+### Model-answers addendum (2026-11-19)
+
+The floor-proxy caveat is resolved. A fresh model-condition run
+(`run-routing --condition tempo`, Q&A headless, claude 2.1.319, 28 sequential
+sessions) was distilled into a committed per-case answer artifact,
+`evals/ceremony/model-answers.json` (stated_primary per case, no result-text
+tails). Re-scoring the recorded Stage A run against it — no new provider
+calls, deferred cases scored by recorded model answers instead of the floor's
+tier-1 default (`routing-stage-a-rescore-model-answers-2026-11-19T-rescore.json`) —
+corrects the blend from the recorded **27/28 to 25/28**:
+
+| Deferred case | expected | floor-proxy | model answer | effect |
+|---|---|---|---|---|
+| r0-test-typo | 0 | 1 (miss) | 0 | miss → pass |
+| r1-slugify / lint-script / off-by-one | 1 | 1 | 1 | unchanged |
+| r1-env-var | 1 | 1 | 0 | pass → miss |
+| r1-retry-logic | 1 | 1 | 2 | pass → miss |
+| r1-deprecated-call | 1 | 1 | 0 | pass → miss |
+
+So the floor-proxy was mildly optimistic on tier-1 no-signal cases: the main
+model, asked cold, sometimes over- or under-classifies them (it also
+reproduces the r0-test-typo pass, confirming the recorded run's only miss was
+a proxy artifact). Same-round fresh-run context: that day's Q&A run itself
+scored 22/28 (6 FAILs, several near-miss wording) — model-condition answers
+are noisier than the doc's 26/28 N=2 baseline. The Stage A gate (≥ 27/28)
+would fail on the corrected number; the deferral threshold (0.7) is the
+tuning lever that reclaims the three tier-1 defers. `stage-a-wired.mjs` now
+scores deferrals against `model-answers.json` by default (tagged
+"model-answer"), falling back to the floor proxy (tagged "floor-proxy") when
+the artifact is absent.
+
 ## Security review (post-implementation, 2026-11-19)
 
 Automated review flagged the keyless env-registered provider surface as

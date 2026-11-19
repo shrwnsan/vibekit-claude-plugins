@@ -11,36 +11,33 @@
 // floor a decision model must beat to justify a per-task call.
 //
 // Usage: node heuristic-router.mjs [--set routing-golden.json]
+// Exports predictTier() for other eval scripts. The canonical floor rules
+// live in the shipped plugin (plugins/tempo/scripts/triage-router.mjs,
+// floorDecide) — this CLI imports them so the eval floor and the runtime
+// fast path can never drift.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { floorDecide } from '../../plugins/tempo/scripts/triage-router.mjs';
 
-const setArgIdx = process.argv.indexOf('--set');
-const setFile = setArgIdx >= 0 ? process.argv[setArgIdx + 1] : 'routing-golden.json';
-const g = JSON.parse(readFileSync(path.resolve(process.cwd(), setFile), 'utf8'));
+export const predictTier = (task) => floorDecide(task).tier;
 
-function predictTier(task) {
-  const t = task.toLowerCase();
-  // 1. documentation/comment surface: whatever it mentions, the change is copy
-  if (/\b(docs|documentation|contributor guide|comment|readme|heading|markdown link)\b/.test(t)) return 0;
-  // 2. risk signals: security surface, concurrency, data lifecycle, architecture
-  if (/\b(auth\b|authenticat|token|credential|password|hashing|signing|encrypt|argon|hmac|multi-tenant|isolation|rate[ .]limit\w*|concurr|migration|migrate|sqlite|middleware)\b/.test(t)) return 2;
-  if (/\b(refactor|split|rewrite|share (their |the )?common|deduplicat|preserv\w* behavior)\b/.test(t)) return 2;
-  // 3. trivial signals
-  if (/\b(typo|misspell|copy tweak|one-line|one line|rename the local|log message|heading|constant|version string|stale comment|port)\b/.test(t)) return 0;
-  // 4. default: standard change
-  return 1;
-}
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const setArgIdx = process.argv.indexOf('--set');
+  const setFile = setArgIdx >= 0 ? process.argv[setArgIdx + 1] : 'routing-golden.json';
+  const g = JSON.parse(readFileSync(path.resolve(process.cwd(), setFile), 'utf8'));
 
-const results = g.cases.map((c) => ({ id: c.id, tier: c.tier, predicted: predictTier(c.task) }));
-for (const r of results) {
-  console.log(`${r.id.padEnd(24)} tier ${r.tier} predicted ${r.predicted}  ${r.predicted === r.tier ? 'ok' : 'MISS'}`);
+  const results = g.cases.map((c) => ({ id: c.id, tier: c.tier, predicted: predictTier(c.task) }));
+  for (const r of results) {
+    console.log(`${r.id.padEnd(24)} tier ${r.tier} predicted ${r.predicted}  ${r.predicted === r.tier ? 'ok' : 'MISS'}`);
+  }
+  const pass = results.filter((r) => r.predicted === r.tier).length;
+  const byTier = {};
+  for (const r of results) {
+    byTier[r.tier] = byTier[r.tier] || { n: 0, ok: 0 };
+    byTier[r.tier].n++;
+    if (r.predicted === r.tier) byTier[r.tier].ok++;
+  }
+  console.log(`\nheuristic accuracy: ${pass}/${results.length} (${Math.round((pass / results.length) * 100)}%)`);
+  for (const t of Object.keys(byTier).sort()) console.log(`  tier ${t}: ${byTier[t].ok}/${byTier[t].n}`);
 }
-const pass = results.filter((r) => r.predicted === r.tier).length;
-const byTier = {};
-for (const r of results) {
-  byTier[r.tier] = byTier[r.tier] || { n: 0, ok: 0 };
-  byTier[r.tier].n++;
-  if (r.predicted === r.tier) byTier[r.tier].ok++;
-}
-console.log(`\nheuristic accuracy: ${pass}/${results.length} (${Math.round((pass / results.length) * 100)}%)`);
-for (const t of Object.keys(byTier).sort()) console.log(`  tier ${t}: ${byTier[t].ok}/${byTier[t].n}`);

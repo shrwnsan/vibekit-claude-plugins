@@ -89,6 +89,11 @@ Safety envelope: the decision model **proposes, never disposes**. Low-confidence
 novel-looking states fall through to the main model. Irreversible actions are never
 gated by it alone. Every call logs state + probabilities (audit trail, and eval data).
 
+> Wiring plan (2026-11-19): [tasks-007](tasks-007-tempo-decision-model-triage-wiring.md) —
+> opt-in env-gated provider-agnostic router, t≈0.7 deferral, floor-first blend; all
+> §3.3/§7 prerequisites landed (tasks-006 golden set, reflex transport). §8's
+> heuristic-first and hook-vs-skill questions are answered there.
+
 ## 4. Non-goals
 
 - Not a commit/branch/handoff mechanics plugin — base keeps that layer.

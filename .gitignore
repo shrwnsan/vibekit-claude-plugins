@@ -69,3 +69,6 @@ social-*.md
 # Plugin sound files (users can add their own)
 plugins/ping/sounds/*.*
 !plugins/ping/sounds/README.md
+
+# agent worktrees (box convention)
+.worktrees/

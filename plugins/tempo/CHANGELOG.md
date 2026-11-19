@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.2.0 (2026-11-19)
+
+- Optional decision-model triage layer (prd-010 §3.3, tasks-007): `scripts/triage-router.mjs`
+  classifies via keyword floor → provider → confidence deferral, one deterministic call site.
+- Keyword floor ships inside the router (canonical `floorDecide`, imported by the eval
+  harness so runtime and eval can never drift) — floor hits decide for free, no provider
+  call, and work with zero keys (local-only; the model layer stays opt-in). Same
+  fast-path shape as reflex. `risk-triage` just runs the script and adopts `status:"tier"`.
+- New providers are config, not code: any Jev-compatible endpoint registers via
+  `TEMPO_PROVIDER_<NAME>_URL` (+ optional `_MODEL`/`_KEY`); built-ins TypeSafe/Liquid/local
+  keep their env names, models overridable per provider. Hardened per security review:
+  customs are https-only, activate only when named in `TEMPO_PROVIDERS` or gated behind
+  `TEMPO_CUSTOM_PROVIDERS=1` (env can arrive from sources the script can't distinguish,
+  e.g. project-scoped settings), and every provider call logs its destination host.
+  `TEMPO_LOCAL_URL` follows the same rules (https + named in `TEMPO_PROVIDERS`; setting
+  the URL is not itself consent — unlike an API key it chooses the destination).
+- Provider-agnostic by design: TypeSafe Jev (`TYPESAFE_API_KEY`), Liquid d1
+  (`LIQUID_API_KEY`), or a self-hosted open-weight endpoint (`TEMPO_LOCAL_URL`); any
+  Jev-API-compatible server drops in. Provider failure cycles to the next, then
+  defers to self-triage — fail-safe, never blocks.
+- Opt-in, not a new default: no provider configured → behavior identical to 0.1.5.
+  `TEMPO_TRIAGE=0` is the kill switch. Setting a provider key is the privacy consent:
+  task text egresses to that hosted provider.
+- Confidence deferral at t=0.7 (`TEMPO_TRIAGE_THRESHOLD`, tasks-006 N=2): low-confidence
+  answers defer to main-model self-triage. The router proposes; the conflict rule,
+  verify gate, and fail-twice promotion still decide everything.
+- Runtime verdict log `~/.local/share/tempo/verdicts.jsonl` (0600, `$HOME`-abbreviated
+  paths, task verbatim for replay) + provider-health failstate — same hygiene as reflex.
+- risk-triage skill gains a router-assist step (only when configured and classification
+  is not a clear first match).
+
 ## 0.1.5 (2026-11-07)
 
 - README Install section uses the one-step marketplace install line

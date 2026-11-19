@@ -44,13 +44,33 @@ GATEValid=false
 log() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
 
 # ---- hygiene assertion: control arms must not see the treatment -------------
-hygiene_check() { # $1 = config dir of the run
+hygiene_check() { # $1 = config dir of the run; uses $ARM
   local dir="$1" hit=""
-  # arms C/D must not contain the skill; B must not contain verification guidance
-  if grep -rq "modern-web-guidance" "$dir/config/skills" 2>/dev/null; then hit="skill files present"; fi
-  if grep -rq "agent-browser" "$dir/prompt.txt" 2>/dev/null && [ "${ARM_VERIFY:-false}" = false ]; then
-    # B and D prompts must not ask for browser verification
-    grep -qi "verify\|agent-browser\|vitals" "$dir/prompt.txt" 2>/dev/null && hit="verification language in control prompt"
+  local want_skill want_verify
+  want_skill=$(python3 -c "import json;print(str(json.load(open('gate.config.json'))['arms']['$ARM']['guidance']).lower())")
+  want_verify=$ARM_VERIFY
+  # skill present only where guidance is part of the treatment
+  if [ "$want_skill" = false ] && grep -rq "modern-web-guidance" "$dir/config/skills" 2>/dev/null; then
+    hit="skill files present in control arm"
+  fi
+  # prompts must not carry non-negated verification language where verify is
+  # not the treatment ("do NOT verify anything in a browser" is fine)
+  if [ "$want_verify" = false ]; then
+    if python3 - "$dir/prompt.txt" <<'HYE'
+import re, sys
+t = open(sys.argv[1]).read().lower()
+for sent in re.split(r"[.\n]", t):
+    if re.search(r"\b(verify|agent-browser|vitals)\b", sent) and not re.search(r"\b(do not|don't|never|without)\b", sent):
+        sys.exit(0)
+sys.exit(1)
+HYE
+    then
+      hit="verification language in control prompt"
+    fi
+  fi
+  # treatment arms must actually have their treatment
+  if [ "$want_skill" = true ] && [ "$ARM" = A ] && [ ! -f "$dir/config/skills/modern-web-guidance/SKILL.md" ]; then
+    hit="skill missing from treatment arm"
   fi
   if [ -n "$hit" ]; then log "HYGIENE FAIL (arm $ARM run $RUNI): $hit"; exit 3; fi
 }

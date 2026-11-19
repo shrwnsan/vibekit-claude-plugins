@@ -73,9 +73,25 @@ tail, so the prompt prefix remains cache-stable.
 /plugin install tempo --marketplace shrwnsan/vibekit-claude-plugins
 ```
 
-No configuration, no API keys. A decision-model triage layer (calibrated tier
-probabilities from a Jev-compatible provider) is planned but not required; see
-prd-010 §3.3.
+No configuration, no API keys. The optional decision-model triage layer ships
+off by default — it activates only when you set a provider key; see
+[Decision-model triage](#decision-model-triage-optional) below.
+
+## Decision-model triage (optional)
+
+`risk-triage` can ask a decision model for the tier instead of guessing: with
+`TYPESAFE_API_KEY` or `LIQUID_API_KEY` in the environment (or `TEMPO_LOCAL_URL`
+pointing at a self-hosted Jev-compatible endpoint), the skill runs
+`scripts/triage-router.mjs` whenever classification is not a clear first match.
+High-confidence answers (≥ 0.7, `TEMPO_TRIAGE_THRESHOLD`) are adopted; everything
+else — low confidence, provider error, no key — falls back to self-triage exactly
+as before. `TEMPO_TRIAGE=0` disables the layer.
+
+Notes: setting a provider key is the privacy consent — task text goes to that
+hosted provider (self-hosted `TEMPO_LOCAL_URL` sidesteps this). Calls cost
+~$0.0002 each (Jev published rate, ~4K-token state). Every call is logged to
+`~/.local/share/tempo/verdicts.jsonl` (0600, `$HOME`-abbreviated). Design and
+eval plan: `docs/plans/tasks-007`, `docs/plans/prd-010` §3.3.
 
 ## Usage
 

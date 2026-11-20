@@ -17,7 +17,11 @@
 #   TEMPO_GATE_RUNS      runs per arm            (default from config: 3)
 #   TEMPO_GATE_ISOLATION profile|docker          (default profile)
 #   TEMPO_GATE_MODEL     recorded into manifest  (default: inherit env)
-#   TEMPO_GATE_MAX_TURNS cap per session         (default 30)
+#   TEMPO_GATE_MAX_TURNS cap per session         (default 30→40 in code)
+#   TEMPO_GATE_PRICING_CARD  pricing card id recorded per run, e.g.
+#                            "openrouter:z-ai/glm-5.3-flash". Manifests store
+#                            token counts as the authoritative cost record;
+#                            the harness $ field is not billing.
 set -u
 cd "$(dirname "$0")"
 GATE_DIR="$PWD"
@@ -170,19 +174,26 @@ json.dump({"claimedFixes": claims, "runnerPass": passes, "runnerFail": fails,
 PYEOF
 
   # ---- manifest line --------------------------------------------------------
-  python3 - "$MANIFEST" "$ARM" "$RUNI" "$RUN_DIR" "$RC" "$SCORE_RC" "$MODEL" "$ISOLATION" "$GATEValid" <<'PYEOF'
+  python3 - "$MANIFEST" "$ARM" "$RUNI" "$RUN_DIR" "$RC" "$SCORE_RC" "$MODEL" "$ISOLATION" "$GATEValid" "${TEMPO_GATE_PRICING_CARD:-unset}" <<'PYEOF'
 import json, sys, pathlib
-man, arm, runi, rundir, rc, score_rc, model, isolation, gatevalid = sys.argv[1:]
+man, arm, runi, rundir, rc, score_rc, model, isolation, gatevalid, pricing = sys.argv[1:]
 out = json.load(open(f"{rundir}/out/claims.json"))
 sess = {}
 try:
     s = json.load(open(f"{rundir}/out/session.json"))
+    u = s.get("usage") or {}
     sess = {k: s.get(k) for k in ("num_turns", "duration_ms", "total_cost_usd", "model")}
+    # token counts are the authoritative cost record; total_cost_usd prices at
+    # harness rates and is NOT billing (see eval-029 spend note)
+    sess["tokens"] = {"input": u.get("input_tokens", 0),
+                      "cache_read": u.get("cache_read_input_tokens", 0),
+                      "cache_creation": u.get("cache_creation_input_tokens", 0),
+                      "output": u.get("output_tokens", 0)}
 except Exception:
     pass
 rec = {"arm": arm, "run": int(runi), "isolation": isolation, "gateValid": gatevalid == "True",
        "harnessExit": int(rc), "allChecksPass": int(score_rc) == 0, "model": model,
-       "session": sess, **out}
+       "pricingCard": pricing, "session": sess, **out}
 open(man, "a").write(json.dumps(rec) + "\n")
 print(json.dumps(rec))
 PYEOF

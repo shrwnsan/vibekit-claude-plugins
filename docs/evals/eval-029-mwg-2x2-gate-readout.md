@@ -6,11 +6,11 @@
 **Runner:** scripts/tempo-gate/run.sh (TEMPO_GATE_*), Docker isolation, fresh container per run
 **Harness:** Claude Code CLI 2.1.319; model recorded per run: `glm-5.3-flash[1m]` (via ANTHROPIC_BASE_URL gateway)
 **Fixture:** docs/evals/fixtures/mwg-gate (four seeded defects: CLS, reduced motion, color scheme, dialog focus/inertness)
-**Total measured spend:** ~$18 (12 runs)
+**Total measured spend:** ~$19.53 as listed by the harness (claude CLI prices tokens at Anthropic list rates), but the gateway served `glm-5.3-flash` — repriced against OpenRouter's `z-ai/glm-5.3-flash` card ($0.15/M prompt, $0.50/M completion, $0.03/M cache-read), the actual cost was **~$0.56** (per arm: A $0.15, B $0.13, C $0.17, D $0.11). The harness-reported `total_cost_usd` in the manifests is therefore not a billing record; token counts are. This makes larger-n reruns and the flip-condition experiments near-zero-cost follow-ups.
 
 ## Result table
 
-| Arm | Guidance | Verify | Full-fix runs (n=3) | Median cost | Median wall | False-claim runs |
+| Arm | Guidance | Verify | Full-fix runs (n=3) | Median cost (harness-listed)* | Median wall | False-claim runs |
 |---|---|---|---|---|---|---|
 | A | yes | yes (skill) | **2/3** | $2.06 | 320s | 0 |
 | B | yes | no | **2/3** | $1.30 | 373s | **1** |
@@ -18,6 +18,8 @@
 | D | no | no | **3/3** | $1.35 | 485s | 0 |
 
 Scoring is runner-owned (`run-gate-checks.sh` verdicts against the arm's edited page); "claims" are keyword counts from the agent's own report, compared against runner verdicts for the false-pass metric. A manifest writer bug printed `gateValid:false` on docker runs; the per-run `isolation:"docker"` field is authoritative.
+
+\* Harness-listed costs price tokens at Anthropic rates; see the spend note above for the OpenRouter repricing (~35x lower).
 
 ## Predictions vs. observations
 

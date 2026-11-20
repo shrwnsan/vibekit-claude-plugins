@@ -1,4 +1,0 @@
-cls             Pass        cls=0.0 (threshold 0.1; entries per shift in vitals --json)
-reduced-motion  Fail        transitionDuration reduced=? default=?
-color-scheme    Pass        dark=rgb(15, 21, 34) light=rgb(255, 255, 255) colorScheme=light dark
-dialog          Fail        background=broken focus_in_dialog=BODY esc_closed=none focus_return=BODY

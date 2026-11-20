@@ -71,3 +71,6 @@ The two properties are independent. Passing one says nothing about the other
   entirely. Keep a served mode for parity, but don't require it.
 - Never edit a running orchestration script; bash reads incrementally.
   Fix forward in the next invocation, annotate the manifest.
+- Run the unslop pass on every doc before the PR opens, not after review
+  asks (the repo's global AGENTS.md already scopes unslop to prose; gate
+  001 missed it and committed ~20 em dashes).

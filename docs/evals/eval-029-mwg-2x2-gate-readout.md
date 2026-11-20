@@ -50,6 +50,27 @@ The null result kills the port. `modern-web-guidance` does **not** land in tempo
 - A harder fixture with defects that are *not* the canonical four (e.g., `color-scheme` on form controls only, popover/top-layer edge cases, CLS from web-font swap with `size-adjust`).
 - Larger n on the secondary prediction alone (false-pass rate of guide-without-verification arms), which is the commercially interesting claim for the skill.
 
+## Learnings (layered by confidence)
+
+**Validated in this run (directly observed, reproducible):**
+
+1. **Fixture environment is instruction surface.** The fixture's own HTML comments leaked "do not fix anything here" into a control workdir; an arm obeyed them and refused the task. Answer-bearing files (`fixed.html`) shipped into run workdirs were a near-miss of the same kind. Rule adopted for all future gates: a run workdir contains only what a real user's project would contain — no meta-commentary, no solutions. (Enforced by the runner's contamination guard.)
+2. **Scoring hooks must be part of the task contract.** An arm legitimately reimplemented the modal under different markup and the scorer failed a possibly-correct page. The parity contract line in the common task text (`.cta`, `#open-modal`, `#dialog`/`#modal` preserved) is the honest fix; fuzzy behavioral scoring would reintroduce judgment into mechanical verdicts.
+3. **Harness cost fields are not billing.** `total_cost_usd` priced tokens at harness rates while a gateway-served model ran at ~35x lower card rates. Runner now records token counts and a declared `pricingCard` per run; token arithmetic against a real price card is the only cost record.
+4. **Pre-commitment did its job in both directions.** The primary prediction being on record made the null a decision, not a debate; the secondary prediction being on record made its weak support a finding, not a story. Both were written before any run data existed.
+
+**Underpowered signals (one or two incidents; worth targeted follow-up, not conclusions):**
+
+5. Verification arms converged faster in wall-clock median (320s vs 485s) despite doing strictly more checks — evidence-gathering may short-circuit the guess-and-check thrash loop. If this holds at larger n, it is a stronger pitch for the skill than correctness.
+6. The single fabricated success came from the guide-without-verification arm (B); the failing verification arm (A run 2) honestly reported zero fixes. This is the exact mechanism the skill claims to fix, and is the most commercially interesting targeted follow-up: a larger-n B-vs-A false-pass study (~$0.10/run at the repriced card).
+7. Ceiling effect is diagnosed but not proven as the sole cause: the fixture's four defects are the canonical four, plausibly training-data-trivial for current models. A fixture of non-canonical defects is the cleanest test of whether the verification effect exists for strong models.
+
+**Process learnings (adopted for future gates):**
+
+8. Smoke one arm before running the matrix. Every infrastructure defect (root-uid refusal, network-isolated browser, command drift, turn-cap truncation) was found for nickels in smoke runs; the written step is now "arm D, n=1, before anything else."
+9. A fixture needs its two properties tested separately: scoring validity (discriminates known-good/known-bad — the fixture README baseline) and treatment sensitivity (arms differ — the 2x2). Passing one says nothing about the other.
+10. Never edit a running orchestration script; fix forward in the next invocation and annotate (the `gateValid` case bug was corrected at readout time, per-run `isolation` field authoritative).
+
 ## Run artifacts
 
 Manifests: `scripts/tempo-gate/test-results/*.jsonl` (12 lines, committed). Per-run transcripts, prompts, edited pages, and score output: `scripts/tempo-gate/runs/` (43 MB, not committed; archived on oci-prime at `/tmp/vibekit-gate` — ephemeral; manifests are the durable record).

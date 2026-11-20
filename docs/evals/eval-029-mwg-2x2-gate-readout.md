@@ -1,5 +1,8 @@
 # eval-029: prd-012 modern-web-guidance 2x2 gate readout
 
+The reusable method distilled from this run lives in
+[ref-007: skill-gate methodology](../ref/ref-007-skill-gate-methodology.md); this doc is the instance.
+
 **Status:** complete. **Outcome: null result — the port is not landed.**
 **Date:** 2026-11-19
 **Gate:** docs/plans/prd-012-modern-web-guidance.md, section 6

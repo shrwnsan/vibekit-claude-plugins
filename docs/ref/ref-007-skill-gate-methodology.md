@@ -10,7 +10,7 @@ Back: [root README](../README.md) · Instance: [eval-029](../evals/eval-029-mwg-
 ## The shape of a gate
 
 1. **Plan of record** (`docs/plans/prd-0XX-*.md`) states the prediction
-   *before* any data exists — primary and secondary, with direction.
+   *before* any data exists: primary and secondary, with direction.
    A prediction not written down in advance is a story written after.
 2. **2x2 (or k-arm) crossing** the treatment's claimed ingredients, spec
    parity across arms, so each ingredient's effect is separable.
@@ -23,10 +23,10 @@ Back: [root README](../README.md) · Instance: [eval-029](../evals/eval-029-mwg-
 
 ## Fixture design: two properties, tested separately
 
-- **Scoring validity** — the check runner discriminates a known-bad page
+- **Scoring validity.** The check runner discriminates a known-bad page
   from a known-fixed page in both directions. Test with a seeded-defect page
   and its repaired twin before any agent sees it.
-- **Treatment sensitivity** — arms actually differ. A fixture whose defects
+- **Treatment sensitivity.** Arms actually differ. A fixture whose defects
   are training-data-trivial for the model tier under test saturates: control
   arms pass without treatment, and the gate reads null regardless of the
   treatment's real value. Choose defects the model does not canonically know.
@@ -41,7 +41,7 @@ The two properties are independent. Passing one says nothing about the other
   variants. Fixture comments are stripped on copy; the runner enforces this.
 - Control arms' harness environments are asserted clean *before launch*
   (skill files, prompt language), fail-closed. Negated instructions
-  ("do NOT verify") are not violations — match non-negated sentences only.
+  ("do NOT verify") are not violations; match non-negated sentences only.
 - Scoring hooks (ids/classes the check runner selects on) are preserved via
   a contract line in the *common* task text, identical across arms.
   Real verification suites depend on stable selectors; stating that contract

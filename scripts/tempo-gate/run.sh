@@ -6,11 +6,11 @@
 # pass/fail; the agent's own report is parsed separately for the false-pass metric.
 #
 # Isolation:
-#   profile (default here) — clean CLAUDE_CONFIG_DIR + fresh workdir copy per run.
+#   profile (default here): clean CLAUDE_CONFIG_DIR + fresh workdir copy per run.
 #                            NOT gate-grade on its own; results are stamped
 #                            "isolation": "profile", "gateValid": false unless
 #                            TEMPO_GATE_ISOLATION=docker.
-#   docker                 — one fresh container per run (see run-docker.sh).
+#   docker                  - one fresh container per run.
 #
 # Env (flag > env > config > default):
 #   TEMPO_GATE_ARMS      subset, e.g. "A,B"      (default all)
@@ -87,7 +87,7 @@ run_one() { # ARM RUNI
   mkdir -p "$RUN_DIR/config/skills" "$RUN_DIR/page" "$RUN_DIR/out"
   # Contamination guard: the workdir must look like an ordinary page to
   # modernize. Strip the fixture meta-comment (it tells agents not to fix),
-  # ship only the defect page + its asset — never fixed.html (the answer) or
+  # ship only the defect page + its asset: never fixed.html (the answer) or
   # index.inline.html (a solved variant).
   python3 - "$FIXTURE_DIR/index.html" "$RUN_DIR/page/index.html" <<'PYEOF'
 import re, sys

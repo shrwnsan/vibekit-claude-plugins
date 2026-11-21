@@ -18,10 +18,9 @@
 //                                "local" joins automatically when TEMPO_LOCAL_URL is set)
 //   TEMPO_TRIAGE_THRESHOLD       adopt-if-confidence-≥ (default 0.7, clamp 0.3–0.95)
 //   TEMPO_PROMOTE_THRESHOLD      promote-check adopt-if-p-≥ (default 0.6, clamp 0.3–0.95)
-//   TEMPO_EVIDENCE_REFLEX=1      merge recent same-cwd reflex deny verdicts into
-//                                the promote check's evidence (opt-in; see
-//                                reflexDenialEvidence below)
-//   TEMPO_EVIDENCE_WINDOW_MS     deny-recency window for the above (default 1h)
+//   TEMPO_EVIDENCE_REFLEX=1      feed recent same-cwd reflex deny verdicts into
+//                                the promote check's evidence (default off)
+//   TEMPO_EVIDENCE_WINDOW_MS     deny-recency window (default 1h)
 //   TEMPO_MODEL_TYPESAFE / _LIQUID / TEMPO_LOCAL_MODEL    per-provider model override
 //   TEMPO_LOCAL_URL              self-hosted systemone endpoint (adds "local")
 //   TEMPO_LOCAL_API_KEY          optional bearer token for the local endpoint
@@ -414,15 +413,10 @@ async function triage(task, opts = {}) {
   return full; // fail-safe: caller self-triages
 }
 
-// -- Reflex denial evidence (opt-in cross-plugin signal) ---------------------
-// When TEMPO_EVIDENCE_REFLEX=1 and the reflex verdict log is readable, recent
-// same-cwd deny verdicts are summarized into the promote check's evidence —
-// permission-gate denials are failed attempts the skills' promotion model
-// can't see on its own (field note: issues #169/#170). Strictly additive and
-// one-directional: reflex knows nothing of tempo; a missing, corrupt, or
-// empty log changes nothing. Log lines carry verbatim command text, so only
-// the bounded deny *reasons* (pattern + risk scores) merge in — never raw
-// commands. Window: TEMPO_EVIDENCE_WINDOW_MS, default 1 hour.
+// -- Reflex denial evidence --------------------------------------------------
+// Why: permission-gate denials are failed attempts the promotion rule can't
+// see on its own (issues #169/#170). Privacy: reflex log lines carry verbatim
+// commands, so only the deny reasons merge in — never raw commands.
 function reflexDenialEvidence(env, now) {
   if (env.TEMPO_EVIDENCE_REFLEX !== '1') return null;
   const logPath = env.REFLEX_LOG ?? path.join(homedir(), '.local', 'share', 'reflex', 'verdicts.jsonl');

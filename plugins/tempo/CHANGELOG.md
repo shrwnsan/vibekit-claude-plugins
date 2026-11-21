@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1 (2026-11-21)
+
+- Opt-in cross-plugin evidence for the promote check (issues #169/#170): with
+  `TEMPO_EVIDENCE_REFLEX=1`, recent same-cwd **reflex deny verdicts** (permission-gate
+  denials, which the skills' promotion model can't see on its own) are summarized into
+  the evidence the escalation judgment sees. Strictly additive and one-directional —
+  reflex knows nothing of tempo; a missing/corrupt/empty reflex log changes nothing;
+  deny *reasons* merge in (bounded, never raw commands; they carry verbatim command
+  text). Window `TEMPO_EVIDENCE_WINDOW_MS`, default 1 hour, max 5 denials.
+  Live A/B: vague "access-policy misconfiguration" evidence alone → hold p=0.29;
+  the same evidence plus two reflex denies → escalate p=0.64.
+- 4 new tests (36 total). `reflex` itself is unchanged: its deny persistence was
+  already correct — the #169 "zero deny entries" observation was an analysis error,
+  corrected on the issue with log evidence.
+
 ## 0.3.0 (2026-11-19)
 
 - Fail-once promotion detector (prd-010 §3.3.4, tasks-008): `scripts/triage-router.mjs

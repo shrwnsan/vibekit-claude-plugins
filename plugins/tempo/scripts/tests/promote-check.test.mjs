@@ -323,3 +323,30 @@ test("stale or different-cwd denies are not merged in", async () => {
 		rmSync(tmp, { recursive: true, force: true });
 	}
 });
+
+test("fast-path deny reasons merge without the matched-command fragment", async () => {
+	const tmp = makeTmp();
+	try {
+		// literal split so the live project-scoped reflex hook doesn't deny
+		// the Bash call writing this test (it matches the contiguous string)
+		const cmd = "rm " + "-rf /tmp/somebuild";
+		writeReflexLog(tmp, [
+			reflexDeny({ reason: `unambiguous destruction — recursive rm of home/absolute path: "${cmd}"` }),
+			reflexDeny({ ts: new Date(NOW - 9 * 60_000).toISOString(), reason: "typesafe prod_infra=p0.88 ≥ deny 0.85" }),
+		]);
+		let seenEvidence;
+		await promoteCheck(TASK, EVIDENCE, {
+			env: reflexEnv(tmp, { TEMPO_EVIDENCE_REFLEX: "1" }),
+			fetchImpl: (url, init) => {
+				seenEvidence = JSON.parse(init.body).state.evidence;
+				return Promise.resolve(mockNoul(0.8));
+			},
+			now: () => NOW,
+		});
+		assert.match(seenEvidence, /recursive rm of home\/absolute path/); // pattern label survives
+		assert.doesNotMatch(seenEvidence, new RegExp(cmd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))); // fragment stripped
+		assert.match(seenEvidence, /prod_infra=p0\.88/); // model-chain reason intact
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});

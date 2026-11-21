@@ -443,7 +443,10 @@ function reflexDenialEvidence(env, now) {
     const t = Date.parse(e.ts);
     if (!Number.isFinite(t) || t < cutoff) continue; // log is time-ordered: old line ends the scan
     if (e.cwd && e.cwd !== cwd) continue;
-    if (e.reason) denies.push(String(e.reason).slice(0, 120));
+    // enforce the privacy line, don't assert it: fast-path deny reasons end
+    // with a ≤60-char matched-command fragment after ': "' — strip from the
+    // delimiter so only pattern labels and model risk scores can egress
+    if (e.reason) denies.push(String(e.reason).split(': "')[0].slice(0, 120));
   }
   if (!denies.length) return null;
   return `${denies.length} reflex-gate command denial${denies.length === 1 ? '' : 's'} in this cwd recently: ${denies.join('; ')}`;

@@ -108,12 +108,12 @@ in the tier-0 or tier-1 flow, `scripts/triage-router.mjs --promote --task …
 under-tiering (a risk surface, hidden scope) rather than an ordinary fixable
 mistake. `escalate` (p ≥ 0.6, `TEMPO_PROMOTE_THRESHOLD`) promotes one tier
 immediately; every other outcome changes nothing. The check is one-way — it
-can only save you a wasted attempt, never weaken the fail-twice backstop.
-If [reflex](../reflex/README.md) is also installed, `TEMPO_EVIDENCE_REFLEX=1`
-feeds its recent permission-gate denials (same project, last hour) into the
-same judgment — gate denials are failed attempts the promotion rule can't
-see on its own. Opt-in, one-directional, and inert when reflex isn't there.
-that always stands behind it.
+can only save you a wasted attempt, never weaken the fail-twice backstop
+that always stands behind it. If [reflex](../reflex/README.md) is also
+installed, `TEMPO_EVIDENCE_REFLEX=1` feeds its recent permission-gate
+denials (same project, last hour) into the same judgment — gate denials are
+failed attempts the promotion rule can't see on its own. Opt-in,
+one-directional, and inert when reflex isn't there.
 
 Setting a provider key is the privacy consent — task text goes to that hosted
 provider (a self-hosted endpoint sidesteps this). Every call is logged to

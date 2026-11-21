@@ -8,7 +8,7 @@
   rule can't see on its own. Deny reasons only (never raw commands), last hour
   (`TEMPO_EVIDENCE_WINDOW_MS`), max 5. Inert without reflex. Live: evidence alone
   scored hold p=0.29; with two gate denials attached, escalate p=0.64.
-- 4 new tests (36 total). Reflex itself is unchanged — its deny persistence was
+- 5 new tests (37 total — the fifth pins the fragment-strip privacy invariant). Reflex itself is unchanged — its deny persistence was
   already correct; the #169 "zero deny entries" observation was an analysis error,
   corrected on the issue with log evidence.
 

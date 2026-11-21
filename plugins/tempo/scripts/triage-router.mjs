@@ -441,7 +441,7 @@ function reflexDenialEvidence(env, now) {
     }
     if (e?.kind !== 'verdict' || e.decision !== 'deny') continue;
     const t = Date.parse(e.ts);
-    if (!Number.isFinite(t) || t < cutoff) continue; // log is time-ordered: old line ends the scan
+    if (!Number.isFinite(t) || t < cutoff) continue; // outside the window: skipped, not scan-ending — the scan is whole-file by design (ts order is an append-time assumption, not a guarantee)
     if (e.cwd && e.cwd !== cwd) continue;
     // enforce the privacy line, don't assert it: fast-path deny reasons end
     // with a ≤60-char matched-command fragment after ': "' — strip from the

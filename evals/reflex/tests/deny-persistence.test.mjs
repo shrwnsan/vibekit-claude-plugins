@@ -10,12 +10,19 @@
  * (deterministic fast-path and classifier threshold) log through decide()
  * → logLine(). These tests prove it on both paths so it cannot silently
  * regress. The classifier path runs against a localhost mock systemone
- * endpoint (started in-test, port pinned, loopback only); no external
+ * endpoint (started in-test on an ephemeral loopback port); no external
  * network is touched.
+ *
+ * runGate uses async spawn, NOT spawnSync: the mock server lives in this
+ * process, and spawnSync blocks the event loop that has to serve the gate
+ * child's fetch — every run timed out at the gate's 3s fetch abort and the
+ * classifier test silently skipped everywhere, CI included (found in review
+ * 2026-11-21; the same reason evals/reflex/run.mjs documents its spawn
+ * choice).
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -30,13 +37,22 @@ function makeTmp() {
 }
 
 function runGate(env, payload) {
-	const r = spawnSync("node", [GATE], {
-		input: JSON.stringify(payload),
-		encoding: "utf8",
-		timeout: 15_000,
-		env: { ...process.env, ...env },
+	return new Promise((resolve) => {
+		const child = spawn("node", [GATE], {
+			env: { ...process.env, ...env },
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+		let out = "", err = "";
+		child.stdout.on("data", (c) => (out += c));
+		child.stderr.on("data", (c) => (err += c));
+		const timer = setTimeout(() => child.kill("SIGKILL"), 10_000);
+		child.on("close", (code) => {
+			clearTimeout(timer);
+			resolve({ status: code, stdout: out, stderr: err });
+		});
+		child.stdin.on("error", () => {}); // EPIPE if the gate exits before reading
+		child.stdin.end(JSON.stringify(payload));
 	});
-	return r;
 }
 
 function readLog(tmp) {
@@ -62,7 +78,7 @@ const RMDASHRF = "rm " + "-rf ";
 test("fast-path deny persists a deny verdict line", async () => {
 	const tmp = makeTmp();
 	try {
-		const r = runGate(
+		const r = await runGate(
 			{ REFLEX_LOG: join(tmp, "verdicts.jsonl"), REFLEX_STATE_FILE: join(tmp, "failstate.json") },
 			PAYLOAD(RMDASHRF + "/tmp/somebuild")
 		);
@@ -79,7 +95,7 @@ test("fast-path deny persists a deny verdict line", async () => {
 	}
 });
 
-test("classifier deny (riskP ≥ denyP) persists a deny verdict line", async () => {
+test("classifier deny (riskP ≥ denyP) persists a deny verdict line", async (t) => {
 	const tmp = makeTmp();
 	const server = http.createServer((req, res) => {
 		let b = "";
@@ -95,7 +111,7 @@ test("classifier deny (riskP ≥ denyP) persists a deny verdict line", async () 
 	await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 	try {
 		const url = `http://127.0.0.1:${server.address().port}/v1/systemone`;
-		const r = runGate(
+		const r = await runGate(
 			{
 				REFLEX_LOG: join(tmp, "verdicts.jsonl"),
 				REFLEX_STATE_FILE: join(tmp, "failstate.json"),
@@ -107,17 +123,15 @@ test("classifier deny (riskP ≥ denyP) persists a deny verdict line", async () 
 		);
 		assert.equal(r.status, 0);
 		const lines = readLog(tmp);
-		// A sandboxed shell (Claude Code bash sandbox on this box) blocks the
-		// child's loopback fetch (observed as "fetch failed" or a 3s abort
-		// timeout), so the gate hands off to the classifier and no deny can
-		// exist. Provider-error + no deny = environment limitation, not the
-		// behavior under test — skip rather than fail red. A real regression
-		// (deny decided but not logged) still fails this test: the provider
-		// call succeeds there, so no provider-error line appears. Unsandboxed
-		// local runs and CI both exercise the real path.
+		// Escape hatch, not the norm — with the event loop free the mock
+		// answers in ~100ms, so reaching here means this environment genuinely
+		// cannot fetch loopback. provider-error + no deny is a pair a real
+		// regression can't produce (a deny requires a successful provider
+		// call, which never logs provider-error), so skip visibly rather than
+		// fail red; CI and normal local runs exercise the real path.
 		const providerErrored = lines.some((l) => l.kind === "provider-error");
 		if (providerErrored && !lines.some((l) => l.decision === "deny")) {
-			console.log("skip: loopback egress blocked by sandbox; run unsandboxed or in CI to exercise");
+			t.skip("loopback fetch unavailable here; CI and normal local runs exercise the real path");
 			return;
 		}
 		const deny = lines.find((l) => l.kind === "verdict" && l.decision === "deny");

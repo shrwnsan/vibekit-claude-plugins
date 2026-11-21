@@ -67,6 +67,13 @@ a second elicitation on the same infrastructure, not new machinery.
 
 ## Follow-ups
 
+- Per-call reasoning effort: a `{model}@{effort}` convention (e.g.
+  `TEMPO_MODEL_TYPESAFE="jev-latest@low"` parsed into the body's model plus an
+  effort field) is an idea, not a feature — no provider documents an effort
+  parameter on the systemone protocol today. Revisit in the checkpoint-adjudication
+  design (the judgment most likely to want per-call effort control: a done-claim
+  deserves more thought than tier routing), and only if a provider documents or a
+  smoke call proves the field is honored rather than silently ignored.
 - Enacted measurement (Stage B-style): how often the check fires in real
   sessions and its override rate — from the verdict log's `mode:"promote"`
   lines, reflex `correlate-outcomes.mjs` pattern.

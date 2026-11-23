@@ -61,7 +61,7 @@
  * decision-gate.ts (MIT, Copyright (c) 2026 shrwnsan). This file is
  * Apache-2.0 as part of vibekit.
  */
-import { appendFileSync, mkdirSync, readFileSync, realpathSync, writeFileSync, existsSync } from "node:fs";
+import { appendFileSync, chmodSync, mkdirSync, readFileSync, realpathSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname, sep } from "node:path";
 
@@ -349,11 +349,24 @@ async function runChain(cfg, env, state, failState, logCtx = {}) {
 
 // -- Logging -------------------------------------------------------------------
 
+// Files created before the 0600 hygiene landed (reflex <0.1.1) keep whatever
+// mode they were born with — appendFileSync/writeFileSync mode only applies
+// at creation. Found live in 0.2.0: a 664 verdicts.jsonl holding verbatim
+// commands (including credential-bearing denial commands), world-readable.
+// Tighten on every write, not just creation; chmod failure is best-effort
+// like the write itself.
+function tightenPerms(p) {
+	try {
+		if (existsSync(p)) chmodSync(p, 0o600);
+	} catch { /* best-effort */ }
+}
+
 function logLine(cfg, obj) {
 	try {
 		// 0700/0600: the log stores verbatim command text — anything typed,
 		// including inline credentials — so it is user-private by construction
 		mkdirSync(dirname(cfg.log), { recursive: true, mode: 0o700 });
+		tightenPerms(cfg.log);
 		appendFileSync(cfg.log, JSON.stringify(obj) + "\n", { mode: 0o600 });
 	} catch { /* logging must never break gating */ }
 }
@@ -364,6 +377,7 @@ function loadFailState(cfg) {
 function saveFailState(cfg, s) {
 	try {
 		mkdirSync(dirname(cfg.stateFile), { recursive: true, mode: 0o700 });
+		tightenPerms(cfg.stateFile);
 		writeFileSync(cfg.stateFile, JSON.stringify(s), { mode: 0o600 });
 	} catch { /* ignore */ }
 }

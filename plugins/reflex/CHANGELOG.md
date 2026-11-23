@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1 (2026-11-21)
+
+- Fixed: verdict log and failstate files created by pre-0.1.1 reflex kept their birth
+  permissions forever (`appendFileSync`/`writeFileSync` mode only applies at creation) —
+  a live 664 verdicts.jsonl holding verbatim commands (including credential-bearing
+  denial commands) was world-readable, flagged by `/reflex:status` as PERMS WIDE.
+  Both write paths now tighten existing files to 0600 on every write; fresh files are
+  created 0600 as before. Existing wide files self-heal on the next gate write — no
+  manual action needed (this box's were tightened out-of-band).
+- 3 new tests (44 total; the outcomes date-bomb fixed separately in #174).
+
 ## 0.2.0 (2026-11-13)
 
 - Added: `/reflex:status` — a paste-safe health and metrics report backed by

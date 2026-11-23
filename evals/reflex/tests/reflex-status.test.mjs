@@ -189,13 +189,18 @@ test("--since window excludes old verdicts from windowed counts", async () => {
 // -- outcomes -------------------------------------------------------------------
 
 test("outcome labels aggregated, ask override rate computed", async () => {
+	// relative to now: fixed timestamps age out of the status window's 7d
+	// default and this test started failing on its own anniversary (found
+	// 2026-11-21, eight days after the fixtures were written)
+	const now = Date.now();
+	const at = (offsetMin) => new Date(now - offsetMin * 60_000).toISOString();
 	const lines = [
-		verdict({ decision: "ask", fastpath: "ask", pattern: "force push", ts: "2026-11-13T01:00:00Z" }),
-		outcomeLine({ verdictTs: "2026-11-13T01:00:00Z", verdict: "ask", outcome: "agreed" }),
-		verdict({ decision: "ask", provider: "typesafe", riskP: 0.7, ts: "2026-11-13T02:00:00Z" }),
-		outcomeLine({ verdictTs: "2026-11-13T02:00:00Z", verdict: "ask", outcome: "overridden", class: "model:typesafe" }),
-		verdict({ decision: "allow", fastpath: "allow", ts: "2026-11-13T03:00:00Z" }),
-		outcomeLine({ verdictTs: "2026-11-13T03:00:00Z", verdict: "allow", outcome: "agreed" }),
+		verdict({ decision: "ask", fastpath: "ask", pattern: "force push", ts: at(60) }),
+		outcomeLine({ verdictTs: at(60), verdict: "ask", outcome: "agreed" }),
+		verdict({ decision: "ask", provider: "typesafe", riskP: 0.7, ts: at(50) }),
+		outcomeLine({ verdictTs: at(50), verdict: "ask", outcome: "overridden", class: "model:typesafe" }),
+		verdict({ decision: "allow", fastpath: "allow", ts: at(40) }),
+		outcomeLine({ verdictTs: at(40), verdict: "allow", outcome: "agreed" }),
 	];
 	const r = await runStatus(lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
 	assert.match(r.out, /agreed 2/i);

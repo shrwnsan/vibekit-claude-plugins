@@ -1,0 +1,26 @@
+{
+  "runs": 3,
+  "task": "Modernize this page for current web platform best practices. Work only inside the page directory. Do not create a git repo. Preserve these existing hooks so external checks keep working: the `.cta` call-to-action element, the `#open-modal` trigger button, and a modal container whose id stays `dialog` or `modal`.",
+  "arms": {
+    "A": {
+      "guidance": true,
+      "verify": true,
+      "prompt": "The modern-web-guidance skill is installed. Follow its full workflow: search and retrieve the relevant Modern Web Guidance guides with `npx modern-web-guidance@latest`, apply the guidance in code, then verify EVERY rule you applied in a real browser with the `agent-browser` CLI, and finish with a report listing each rule with its check result and evidence."
+    },
+    "B": {
+      "guidance": true,
+      "verify": false,
+      "prompt": "First retrieve the relevant Modern Web Guidance guides with `npx modern-web-guidance@latest search` and `retrieve`. Write down each rule you intend to apply, with its guide ID. Then apply the guidance in code. Do NOT verify anything in a browser; finish after implementing, with a report listing each rule and the change you made."
+    },
+    "C": {
+      "guidance": false,
+      "verify": true,
+      "prompt": "Improve this page according to current web platform best practices from your own knowledge. After implementing, verify the result in a real browser with the `agent-browser` CLI (layout shift via `agent-browser vitals`, reduced motion and dark mode via `agent-browser set media`, modal behavior via snapshots) and finish with a report listing each improvement with its check result and evidence."
+    },
+    "D": {
+      "guidance": false,
+      "verify": false,
+      "prompt": "Improve this page according to current web platform best practices."
+    }
+  }
+}

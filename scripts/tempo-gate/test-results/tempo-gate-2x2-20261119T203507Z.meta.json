@@ -1,0 +1,1 @@
+{ "started": "20261119T203507Z", "isolation": "docker", "gateValid": true, "model": "glm-5.3-flash[1m]", "maxTurns": 40 }

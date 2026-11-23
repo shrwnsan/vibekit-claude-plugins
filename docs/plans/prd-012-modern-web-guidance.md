@@ -132,6 +132,8 @@ contracts gate, and the contracts skill does not wait on this one.
 
 ## 6. Validation gate: the 2x2 A/B
 
+Method and harness conventions: [ref-007: skill-gate methodology](../ref/ref-007-skill-gate-methodology.md); runner: `scripts/tempo-gate/`.
+
 Guidance retrieval crossed with browser verification, spec parity across
 arms. The prediction under test: verification, not guidance retrieval, is
 what changes outcomes.

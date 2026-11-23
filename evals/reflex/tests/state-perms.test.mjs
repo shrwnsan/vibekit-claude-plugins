@@ -17,7 +17,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, writeFileSync, statSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, chmodSync, statSync, rmSync } from "node:fs";
 import http from "node:http";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -51,8 +51,12 @@ test("wide-mode verdict log is tightened to 0600 on the next write", async () =>
 	const tmp = mkdtempSync(join(tmpdir(), "reflex-perms-"));
 	try {
 		const log = join(tmp, "verdicts.jsonl");
-		// a log born in the pre-hygiene era
+		// a log born in the pre-hygiene era — chmod after write because
+		// writeFileSync mode is umasked (runners 022 → 0644, dev boxes 002
+		// → 0664); the explicit chmod pins the seed regardless (same pattern
+		// as reflex-status.test.mjs's loose-perms fixture)
 		writeFileSync(log, '{"ts":"2026-01-01T00:00:00Z","kind":"verdict","decision":"allow"}\n', { mode: 0o664 });
+		chmodSync(log, 0o664);
 		assert.equal(statSync(log).mode & 0o777, 0o664);
 		const code = await runGate({ REFLEX_LOG: log, REFLEX_STATE_FILE: join(tmp, "failstate.json") }, payload);
 		assert.equal(code, 0);
@@ -76,6 +80,7 @@ test("wide-mode failstate is tightened to 0600 on the next save", async () => {
 	try {
 		const state = join(tmp, "failstate.json");
 		writeFileSync(state, "{}", { mode: 0o664 });
+		chmodSync(state, 0o664); // umask-proof the wide seed (see test 1)
 		// failstate only saves after a decision-model chain run, so this one
 		// goes through the provider path (loopback mock, answered because the
 		// event loop stays free). No environment skip: saveFailState runs

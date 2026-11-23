@@ -18,6 +18,9 @@
 //                                "local" joins automatically when TEMPO_LOCAL_URL is set)
 //   TEMPO_TRIAGE_THRESHOLD       adopt-if-confidence-≥ (default 0.7, clamp 0.3–0.95)
 //   TEMPO_PROMOTE_THRESHOLD      promote-check adopt-if-p-≥ (default 0.6, clamp 0.3–0.95)
+//   TEMPO_EVIDENCE_REFLEX=1      feed recent same-cwd reflex deny verdicts into
+//                                the promote check's evidence (default off)
+//   TEMPO_EVIDENCE_WINDOW_MS     deny-recency window (default 1h)
 //   TEMPO_MODEL_TYPESAFE / _LIQUID / TEMPO_LOCAL_MODEL    per-provider model override
 //   TEMPO_LOCAL_URL              self-hosted systemone endpoint (adds "local")
 //   TEMPO_LOCAL_API_KEY          optional bearer token for the local endpoint
@@ -410,6 +413,45 @@ async function triage(task, opts = {}) {
   return full; // fail-safe: caller self-triages
 }
 
+// -- Reflex denial evidence --------------------------------------------------
+// Why: permission-gate denials are failed attempts the promotion rule can't
+// see on its own (issues #169/#170). Privacy: reflex log lines carry verbatim
+// commands, so only the deny reasons merge in — never raw commands.
+function reflexDenialEvidence(env, now) {
+  if (env.TEMPO_EVIDENCE_REFLEX !== '1') return null;
+  const logPath = env.REFLEX_LOG ?? path.join(homedir(), '.local', 'share', 'reflex', 'verdicts.jsonl');
+  let raw;
+  try {
+    raw = readFileSync(logPath, 'utf8');
+  } catch {
+    return null;
+  }
+  const windowMs = Number(env.TEMPO_EVIDENCE_WINDOW_MS ?? 60 * 60 * 1000);
+  const cutoff = now() - (Number.isFinite(windowMs) && windowMs > 0 ? windowMs : 60 * 60 * 1000);
+  const cwd = homeAbbrev(process.cwd());
+  const denies = [];
+  const lines = raw.split('\n');
+  for (let i = lines.length - 1; i >= 0 && denies.length < 5; i--) {
+    if (!lines[i]) continue;
+    let e;
+    try {
+      e = JSON.parse(lines[i]);
+    } catch {
+      continue;
+    }
+    if (e?.kind !== 'verdict' || e.decision !== 'deny') continue;
+    const t = Date.parse(e.ts);
+    if (!Number.isFinite(t) || t < cutoff) continue; // outside the window: skipped, not scan-ending — the scan is whole-file by design (ts order is an append-time assumption, not a guarantee)
+    if (e.cwd && e.cwd !== cwd) continue;
+    // enforce the privacy line, don't assert it: fast-path deny reasons end
+    // with a ≤60-char matched-command fragment after ': "' — strip from the
+    // delimiter so only pattern labels and model risk scores can egress
+    if (e.reason) denies.push(String(e.reason).split(': "')[0].slice(0, 120));
+  }
+  if (!denies.length) return null;
+  return `${denies.length} reflex-gate command denial${denies.length === 1 ? '' : 's'} in this cwd recently: ${denies.join('; ')}`;
+}
+
 // -- Promote check (fail-once escalation, prd-010 §3.3.4) --------------------
 // Returns { status, p?, provider?, host?, model?, servedModel?, ms, error? }
 // status: disabled | unconfigured | escalate | hold | error
@@ -420,7 +462,8 @@ async function promoteCheck(task, evidence, opts = {}) {
   const { env = process.env, fetchImpl = globalThis.fetch.bind(globalThis), now = Date.now } = opts;
   const cfg = resolveConfig(env);
   const start = now();
-  const common = { task, evidence, cwd: homeAbbrev(process.cwd()), mode: 'promote' };
+  const mergedEvidence = [evidence, reflexDenialEvidence(env, now)].filter(Boolean).join('\n');
+  const common = { task, evidence: mergedEvidence, cwd: homeAbbrev(process.cwd()), mode: 'promote' };
 
   if (!cfg.enabled) return { status: 'disabled', ms: now() - start };
 
@@ -437,7 +480,7 @@ async function promoteCheck(task, evidence, opts = {}) {
     }
     let outcome;
     try {
-      outcome = await callNoul(cfg, p, name, task, evidence, fetchImpl, now);
+      outcome = await callNoul(cfg, p, name, task, mergedEvidence, fetchImpl, now);
     } catch (e) {
       errors.push(e.message);
       const prev = readFailstate(cfg, now())[name] ?? { fails: 0 };

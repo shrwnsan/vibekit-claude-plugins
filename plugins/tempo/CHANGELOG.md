@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1 (2026-11-21)
+
+- Opt-in cross-plugin evidence for the promote check (issues #169/#170): with
+  `TEMPO_EVIDENCE_REFLEX=1`, recent same-cwd reflex deny verdicts merge into the
+  escalation judgment's evidence — gate denials are failed attempts the promotion
+  rule can't see on its own. Deny reasons only (never raw commands), last hour
+  (`TEMPO_EVIDENCE_WINDOW_MS`), max 5. Inert without reflex. Live: evidence alone
+  scored hold p=0.29; with two gate denials attached, escalate p=0.64.
+- 5 new tests (37 total — the fifth pins the fragment-strip privacy invariant). Reflex itself is unchanged — its deny persistence was
+  already correct; the #169 "zero deny entries" observation was an analysis error,
+  corrected on the issue with log evidence.
+
 ## 0.3.0 (2026-11-19)
 
 - Fail-once promotion detector (prd-010 §3.3.4, tasks-008): `scripts/triage-router.mjs

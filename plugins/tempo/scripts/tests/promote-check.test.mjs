@@ -15,7 +15,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { promoteCheck, PROVIDERS } from "../triage-router.mjs";
+import { promoteCheck, PROVIDERS, homeAbbrev } from "../triage-router.mjs";
 
 const TASK = "Add a slugify helper to the utils module.";
 const EVIDENCE = "test 'slugify collapses spaces' failed: received 'a b', expected 'a-b' (first failure)";
@@ -199,6 +199,153 @@ test("failstate is shared: typesafe in backoff → only liquid is called", async
 		assert.equal(v.status, "escalate");
 		assert.equal(v.provider, "liquid");
 		assert.equal(liquidCalls, 1);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+// -- reflex denial evidence (TEMPO_EVIDENCE_REFLEX, tasks cross-ref #169/#170) --
+
+// fixture: a reflex verdicts.jsonl with denies for this cwd and another one
+function writeReflexLog(tmp, entries) {
+	writeFileSync(join(tmp, "reflex-verdicts.jsonl"), entries.map((e) => JSON.stringify(e)).join("\n") + "\n");
+}
+
+const reflexEnv = (tmp, over = {}) =>
+	baseEnv(tmp, {
+		REFLEX_LOG: join(tmp, "reflex-verdicts.jsonl"),
+		...over,
+	});
+
+const reflexDeny = (over = {}) => ({
+	ts: new Date(NOW - 5 * 60_000).toISOString(),
+	kind: "verdict",
+	decision: "deny",
+	reason: "typesafe prod_infra=p0.88 ≥ deny 0.85",
+	cwd: homeAbbrev(process.cwd()),
+	command: "deploy-to-production --env prod",
+	...over,
+});
+
+test("opt-in: TEMPO_EVIDENCE_REFLEX=1 merges recent same-cwd reflex denies into the evidence", async () => {
+	const tmp = makeTmp();
+	try {
+		writeReflexLog(tmp, [reflexDeny(), reflexDeny({ ts: new Date(NOW - 10 * 60_000).toISOString(), reason: "typesafe exfiltration=p0.86 ≥ deny 0.85" })]);
+		let seenEvidence;
+		const v = await promoteCheck(TASK, EVIDENCE, {
+			env: reflexEnv(tmp, { TEMPO_EVIDENCE_REFLEX: "1" }),
+			fetchImpl: (url, init) => {
+				seenEvidence = JSON.parse(init.body).state.evidence;
+				return Promise.resolve(mockNoul(0.8));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "escalate");
+		assert.match(seenEvidence, /2 reflex-gate command denials/);
+		assert.match(seenEvidence, /prod_infra=p0\.88/);
+		assert.match(seenEvidence, /exfiltration=p0\.86/);
+		// the human-written evidence stays in front
+		assert.ok(seenEvidence.indexOf(EVIDENCE) < seenEvidence.indexOf("reflex-gate"));
+		// the logged verdict carries the merged evidence verbatim (replay)
+		assert.match(logLines(tmp)[0].evidence, /reflex-gate command denials/);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("default off: reflex log ignored unless TEMPO_EVIDENCE_REFLEX=1", async () => {
+	const tmp = makeTmp();
+	try {
+		writeReflexLog(tmp, [reflexDeny()]);
+		let seenEvidence;
+		await promoteCheck(TASK, EVIDENCE, {
+			env: reflexEnv(tmp),
+			fetchImpl: (url, init) => {
+				seenEvidence = JSON.parse(init.body).state.evidence;
+				return Promise.resolve(mockNoul(0.8));
+			},
+			now: () => NOW,
+		});
+		assert.equal(seenEvidence, EVIDENCE);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("missing or garbage reflex log → no crash, evidence unchanged", async () => {
+	const tmp = makeTmp();
+	try {
+		writeFileSync(join(tmp, "reflex-verdicts.jsonl"), "not json at all\n");
+		let seenEvidence;
+		const v = await promoteCheck(TASK, EVIDENCE, {
+			env: reflexEnv(tmp, { TEMPO_EVIDENCE_REFLEX: "1" }),
+			fetchImpl: (url, init) => {
+				seenEvidence = JSON.parse(init.body).state.evidence;
+				return Promise.resolve(mockNoul(0.8));
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "escalate");
+		assert.equal(seenEvidence, EVIDENCE);
+		// missing file entirely: same outcome
+		rmSync(join(tmp, "reflex-verdicts.jsonl"));
+		const v2 = await promoteCheck(TASK, EVIDENCE, {
+			env: reflexEnv(tmp, { TEMPO_EVIDENCE_REFLEX: "1" }),
+			fetchImpl: () => Promise.resolve(mockNoul(0.8)),
+			now: () => NOW,
+		});
+		assert.equal(v2.status, "escalate");
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("stale or different-cwd denies are not merged in", async () => {
+	const tmp = makeTmp();
+	try {
+		writeReflexLog(tmp, [
+			reflexDeny({ ts: new Date(NOW - 2 * 3600_000).toISOString() }), // outside 1h window
+			reflexDeny({ cwd: "~/elsewhere" }), // other project
+			reflexDeny({ decision: "allow" }), // not a deny
+			reflexDeny(), // fresh, this cwd → the only one that counts
+		]);
+		let seenEvidence;
+		await promoteCheck(TASK, EVIDENCE, {
+			env: reflexEnv(tmp, { TEMPO_EVIDENCE_REFLEX: "1" }),
+			fetchImpl: (url, init) => {
+				seenEvidence = JSON.parse(init.body).state.evidence;
+				return Promise.resolve(mockNoul(0.8));
+			},
+			now: () => NOW,
+		});
+		assert.match(seenEvidence, /1 reflex-gate command denial/);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("fast-path deny reasons merge without the matched-command fragment", async () => {
+	const tmp = makeTmp();
+	try {
+		// literal split so the live project-scoped reflex hook doesn't deny
+		// the Bash call writing this test (it matches the contiguous string)
+		const cmd = "rm " + "-rf /tmp/somebuild";
+		writeReflexLog(tmp, [
+			reflexDeny({ reason: `unambiguous destruction — recursive rm of home/absolute path: "${cmd}"` }),
+			reflexDeny({ ts: new Date(NOW - 9 * 60_000).toISOString(), reason: "typesafe prod_infra=p0.88 ≥ deny 0.85" }),
+		]);
+		let seenEvidence;
+		await promoteCheck(TASK, EVIDENCE, {
+			env: reflexEnv(tmp, { TEMPO_EVIDENCE_REFLEX: "1" }),
+			fetchImpl: (url, init) => {
+				seenEvidence = JSON.parse(init.body).state.evidence;
+				return Promise.resolve(mockNoul(0.8));
+			},
+			now: () => NOW,
+		});
+		assert.match(seenEvidence, /recursive rm of home\/absolute path/); // pattern label survives
+		assert.doesNotMatch(seenEvidence, new RegExp(cmd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))); // fragment stripped
+		assert.match(seenEvidence, /prod_infra=p0\.88/); // model-chain reason intact
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}

@@ -5,6 +5,13 @@ All notable changes to the Ping Claude Code plugin will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.3.2 (2026-11-25)
+
+- Quoted `${CLAUDE_PLUGIN_ROOT}` in all four hook commands — the validator
+  flagged the unquoted expansion as a space-in-path hazard (hook paths with
+  spaces would split the command). Behavior identical on spaceless paths;
+  validation warnings drop 4 -> 0.
+
 ## [Unreleased]
 
 ## [1.3.0] - 2026-02-13

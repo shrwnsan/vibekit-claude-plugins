@@ -53,6 +53,31 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Delete head branch after successful merge
+        if: steps.check.outputs.docs_only == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # --auto returns before the squash lands; delete only once the PR
+          # state is MERGED. Never deletes an open/failed PR's branch. If the
+          # ref is already gone (retry, manual cleanup), the miss is a no-op.
+          # HEAD_REF/PR_NUMBER go through env (workflow-injection hygiene).
+          STATE=""
+          for i in $(seq 1 30); do
+            STATE=$(gh pr view "$PR_NUMBER" --json state -q .state 2>/dev/null || echo "")
+            [ "$STATE" = "MERGED" ] && break
+            sleep 2
+          done
+          if [ "$STATE" = "MERGED" ]; then
+            gh api -X DELETE "repos/$REPO/git/refs/heads/$HEAD_REF" \
+              && echo "head branch deleted" || echo "head branch already gone"
+          else
+            echo "PR not merged after 60s; leaving head branch in place"
+          fi
+
       - name: Comment on non-docs PR
         if: steps.check.outputs.docs_only == 'false'
         run: |

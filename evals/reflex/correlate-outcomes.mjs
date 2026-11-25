@@ -8,9 +8,14 @@
  * appends one kind:"outcome" line per correlated verdict, directly after the
  * verdict it labels:
  *
- *   {"ts":"…","kind":"outcome","verdictTs":"…","tool_use_id":"…",
+ *   {"ts":"…","kind":"outcome","verdictTs":"…","resultTs":"…","tool_use_id":"…",
  *    "verdict":"ask","outcome":"agreed|overridden|no-match","basis":"…",
  *    "class":"fastpath:ask:force push"}
+ *
+ * resultTs is the answering record's own timestamp; approval latency =
+ * resultTs − verdictTs (rubber-stamp vs genuine decision, for the tuner).
+ * Present only when that record carries a parseable `timestamp` — omitted
+ * outright otherwise, never null or defaulted.
  *
  * Join key: the verdict's tool_use_id (logged by the gate since 0.1.5 from
  * the documented PreToolUse input); transcript_path (home-abbreviated by the
@@ -107,6 +112,7 @@ function collectCandidates(projectsDir, idSet, minTsMs) {
 						isError: block.is_error === true,
 						text: String(block.content ?? "").slice(0, 300),
 						sessionId: typeof rec.sessionId === "string" ? rec.sessionId : (typeof rec.session_id === "string" ? rec.session_id : undefined),
+						resultTs: typeof rec.timestamp === "string" && Number.isFinite(Date.parse(rec.timestamp)) ? rec.timestamp : undefined,
 					});
 					byId.set(id, list);
 				}
@@ -210,6 +216,7 @@ for (const v of pending) {
 		ts: new Date().toISOString(),
 		kind: "outcome",
 		verdictTs: v.ts,
+		resultTs: candidate?.resultTs, // undefined → dropped by JSON.stringify, same convention as the gate's optional fields
 		tool_use_id: v.tool_use_id,
 		verdict: v.decision,
 		outcome,
@@ -244,6 +251,19 @@ for (const decision of ["ask", "deny", "allow"]) {
 	const t = byDecision[decision];
 	if (!t) continue;
 	console.log(`  ${decision}: agreed=${t.agreed} overridden=${t.overridden} no-match=${t["no-match"]} — ${rateLine(t)}`);
+}
+// Ask approval latency — resultTs − verdictTs separates rubber-stamping
+// (sub-second) from genuine decisions. Ask lines only, both timestamps
+// parseable, latency ≥ 0 (negative = clock skew, not latency); nearest-rank
+// percentiles: sort ascending, take index ceil(p/100·n)−1. Silent at n=0.
+const latencies = outcomes
+	.filter((o) => o.verdict === "ask" && typeof o.resultTs === "string")
+	.map((o) => Date.parse(o.resultTs) - Date.parse(o.verdictTs))
+	.filter((ms) => Number.isFinite(ms) && ms >= 0)
+	.sort((a, b) => a - b);
+if (latencies.length > 0) {
+	const rank = (p) => latencies[Math.ceil((p / 100) * latencies.length) - 1];
+	console.log(`  ask approval latency: p50 ${rank(50)}ms p95 ${rank(95)}ms (n=${latencies.length})`);
 }
 if (byClass.size > 0) {
 	console.log("by class:");

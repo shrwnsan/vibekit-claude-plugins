@@ -232,9 +232,10 @@ when named in `TEMPO_PROVIDERS`. Tests 19–21.
 
 ## Follow-ups (post-0.2.0, each its own task)
 
-- §3.3 points 2–4: skill-route selection, checkpoint adjudication
-  (done?/flaky?/review-depth Noul calls), fail-once promotion detector
-  (p > 0.6 → promote) — all consumers of the same router
+- §3.3 points 2–3: skill-route selection, checkpoint adjudication
+  (done?/flaky?/review-depth Noul calls) — consumers of the same router.
+  Point 4 is done: the fail-once promotion detector shipped in
+  [tasks-008](tasks-008-tempo-fail-once-promotion-detector.md) (tempo 0.3.0).
 - Outcome labeling: post-hoc join of `~/.local/share/tempo/verdicts.jsonl`
   to session transcripts (reflex `correlate-outcomes.mjs` pattern,
   deliberately outside the gate process); scrub-before-publish step for any
@@ -242,5 +243,13 @@ when named in `TEMPO_PROVIDERS`. Tests 19–21.
 - Weekly accuracy-vs-cost curve per provider from the log (prd-010 §6)
 - v1.1 golden cases (non-echoing risk variants, generalization set) run
   against the wired router
-- A model-condition per-case artifact (test-results JSON) so deferred cases
-  score against recorded main-model answers instead of the floor proxy
+
+Done since this doc was written:
+
+- Model-answers artifact + honest Stage A re-score (#167, 25/28 corrected
+  from the floor-proxy 27/28)
+- Fail-once promotion detector (tasks-008, tempo 0.3.0)
+- Cross-plugin evidence: reflex deny verdicts feed the promote check's
+  evidence, opt-in `TEMPO_EVIDENCE_REFLEX=1` (tempo 0.3.1, issues
+  #169/#170); validated live 2026-11-25 — real gate denial merged into
+  evidence within seconds, judge escalated at p=0.61

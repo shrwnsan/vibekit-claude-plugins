@@ -79,4 +79,14 @@ a second elicitation on the same infrastructure, not new machinery.
   lines, reflex `correlate-outcomes.mjs` pattern.
 - §3.3 point 3, checkpoint adjudication (done?/flaky?/review-depth) — next
   consumer of the same router; needs verify-gate call-site design.
-- §3.3 point 2, skill-route selection.
+- §3.3 point 2, skill-route selection, folded with the ops re-tiering finding
+  (issue #170): long ops sessions re-scope continuously, and tiering once at
+  intake under-tiered a day-long infra session end to end. Re-tier each
+  request against a session baseline (or nudge via a hook when commands
+  start matching infra patterns).
+
+Validated live 2026-11-25, first session after 0.3.1 shipped: a real
+permission-gate denial was merged into the promote check's evidence within
+seconds (deny reasons only — the command fragment was stripped per the
+privacy invariant the security review enforced), and the judge escalated at
+p=0.61. Enabled via `TEMPO_EVIDENCE_REFLEX=1` in settings.

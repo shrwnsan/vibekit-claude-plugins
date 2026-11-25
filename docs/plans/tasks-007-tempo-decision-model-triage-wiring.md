@@ -253,3 +253,5 @@ Done since this doc was written:
   evidence, opt-in `TEMPO_EVIDENCE_REFLEX=1` (tempo 0.3.1, issues
   #169/#170); validated live 2026-11-25 — real gate denial merged into
   evidence within seconds, judge escalated at p=0.61
+- Docs-only auto-merge now deletes its head branch after merging
+  (#177) — `delete_branch_on_merge` never applied to that flow

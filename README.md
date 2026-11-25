@@ -138,6 +138,11 @@ tier.
 /tempo:tier-2-risky     # force the risky flow
 ```
 
+Optional and cross-plugin: with reflex installed and
+`TEMPO_EVIDENCE_REFLEX=1`, reflex's permission-gate denials feed tempo's
+escalation judgment — a blocked command counts as a failed attempt, so
+under-tiered tasks promote sooner. Off by default; inert without reflex.
+
 [Details](plugins/tempo/README.md)
 
 ### Reflex

@@ -117,7 +117,9 @@ one-directional, and inert when reflex isn't there.
 
 Setting a provider key is the privacy consent — task text goes to that hosted
 provider (a self-hosted endpoint sidesteps this). Every call is logged to
-`~/.local/share/tempo/verdicts.jsonl` (0600, `$HOME`-abbreviated). Measured:
+`~/.local/share/tempo/verdicts.jsonl` (0600, `$HOME`-abbreviated; since 0.3.2
+each line carries the provider's `input_tokens`/`output_tokens` for exact
+spend; `TEMPO_LOG=off` disables logging, decisions unaffected). Measured:
 27/28 routing accuracy on the golden set, parity with the best heuristic —
 see `docs/plans/tasks-007` and `docs/plans/prd-010` §3.3.
 

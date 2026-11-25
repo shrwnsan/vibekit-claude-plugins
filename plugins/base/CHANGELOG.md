@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing pending.
 
+## [1.12.5] - 2026-11-26
+
+### Fixed
+- branch-hygiene classifier is POSIX sh compatible: the documented
+  `sh classify-branches.sh` invocation no longer dies on bash-only syntax
+  (process substitutions, `[[ ]]`, `echo -e`, `pipefail`). Output is
+  byte-identical to the previous bash version under `sh`, `bash`, and
+  `dash`; an empty worktree list no longer emits a bogus prunable
+  verdict. SKILL.md documents that `bash` works too and pins the skill
+  version (1.0.1).
+
 ## [1.12.4] - 2026-11-13
 
 ### Changed

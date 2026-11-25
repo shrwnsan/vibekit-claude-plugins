@@ -15,6 +15,8 @@ MAIN="${1:-}"
 git show-ref --verify --quiet "refs/heads/$MAIN" || { echo "error: mainline '$MAIN' not found" >&2; exit 2; }
 
 TAB=$(printf '\t')
+tmp=$(mktemp)   # one scratch file shared by content_landed/mainline_newer (sequential, never nested); cleaned on exit
+trap 'rm -f "$tmp"' EXIT
 
 # --- helpers ---------------------------------------------------------------
 
@@ -35,7 +37,6 @@ squash_evidence() {  # $1 = ref; prints matching mainline squash commits or empt
 }
 
 content_landed() {  # $1 = ref; true if branch's key non-docs files all exist on mainline
-  tmp=$(mktemp)
   git diff --name-only "$MAIN...$1" | grep -vE '(^docs/|\.md$)' | head -3 > "$tmp"
   found=0
   rc=0
@@ -43,13 +44,11 @@ content_landed() {  # $1 = ref; true if branch's key non-docs files all exist on
     found=$((found+1))
     git cat-file -e "refs/heads/$MAIN:$f" 2>/dev/null || { rc=1; break; }
   done < "$tmp"
-  rm -f "$tmp"
   # docs-only (or empty) diff carries no content evidence — caller must pair with squash_evidence
   [ "$found" -gt 0 ] && [ "$rc" -eq 0 ]
 }
 
 mainline_newer() {  # $1 = ref; true if mainline's copy of touched files diverged from branch's
-  tmp=$(mktemp)
   git diff --name-only "$MAIN...$1" | head -5 > "$tmp"
   newer=0
   same=0
@@ -61,7 +60,6 @@ mainline_newer() {  # $1 = ref; true if mainline's copy of touched files diverge
       newer=$((newer+1))
     fi
   done < "$tmp"
-  rm -f "$tmp"
   [ "$newer" -gt 0 ] && [ "$newer" -ge "$same" ]
 }
 

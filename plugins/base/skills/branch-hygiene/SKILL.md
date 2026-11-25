@@ -7,6 +7,8 @@ allowed-tools:
   - bash(sh:*)
   - bash(bash:*)
   - Read
+metadata:
+  version: "1.0.1"
 ---
 
 # Branch & Worktree Hygiene
@@ -24,7 +26,7 @@ file presence, and feature greps.
 
 ## Workflow
 
-1. **Classify** — run the read-only classifier:
+1. **Classify** — run the read-only classifier (POSIX sh; `bash` works too):
    ```bash
    sh <skill-dir>/scripts/classify-branches.sh [mainline-ref]
    ```

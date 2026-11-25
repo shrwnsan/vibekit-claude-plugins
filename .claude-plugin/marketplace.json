@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "VibeKit: Productivity Plus Claude Code Plugin Marketplace - Curated collection of productivity-enhancing plugins",
-    "version": "1.12.1"
+    "version": "1.12.2"
   },
   "plugins": [
     {
@@ -138,7 +138,7 @@
       "name": "tempo",
       "source": "./plugins/tempo",
       "description": "Safety-proportional process for agentic SDLC: trivial changes skip ceremony, risky changes earn it. Risk-tiered loop with fail-twice auto-promotion and a verify-before-done hard gate.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "shrwnsan"
       },
@@ -171,7 +171,7 @@
       "name": "reflex",
       "source": "./plugins/reflex",
       "description": "Pre-classifier permission gate for auto mode: System One decision models (TypeSafe Jev, Liquid d1, compatible endpoints) as typed allow/ask/deny PreToolUse decisions. Fails safe — errors hand back to Claude Code's own classifier.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": {
         "name": "shrwnsan"
       },

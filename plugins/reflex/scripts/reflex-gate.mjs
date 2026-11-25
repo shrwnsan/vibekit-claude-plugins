@@ -43,7 +43,8 @@
  *   REFLEX_MAX_FAILURES   consecutive fails → disable provider until the
  *                         recovery cooldown elapses (default 3)
  *   REFLEX_RECOVERY_MS    provider recovery cooldown (default 1800000)
- *   REFLEX_LOG            verdict log path
+ *   REFLEX_LOG            verdict log path ("off" disables logging; the gate
+ *                         still decides — only the accounting goes dark)
  *   REFLEX_ALL_MODES      "1" → also gate non-auto modes (ask/deny only;
  *                                                    bypassPermissions never)
  *   REFLEX_DISABLED       "1" → exit 0 immediately (kill switch)
@@ -118,7 +119,7 @@ function resolveConfig(env = process.env) {
 		timeoutMs: num(env.REFLEX_TIMEOUT_MS, 3000),
 		maxFailures: num(env.REFLEX_MAX_FAILURES, 3),
 		recoveryMs: num(env.REFLEX_RECOVERY_MS, 30 * 60 * 1000),
-		log: env.REFLEX_LOG ?? join(homedir(), ".local", "share", "reflex", "verdicts.jsonl"),
+		log: env.REFLEX_LOG === "off" ? null : (env.REFLEX_LOG ?? join(homedir(), ".local", "share", "reflex", "verdicts.jsonl")),
 		stateFile: env.REFLEX_STATE_FILE ?? join(homedir(), ".local", "share", "reflex", "failstate.json"),
 		disabled: env.REFLEX_DISABLED === "1",
 		allModes: env.REFLEX_ALL_MODES === "1",
@@ -310,9 +311,10 @@ async function systemOneCall(spec, apiKey, state, timeoutMs) {
 	if (!res.ok) throw new Error(`HTTP ${res.status}`);
 	const data = await res.json();
 	const a = data?.answers;
+	const usage = data?.usage; // gen-ai convention observable: exact per-call metering
 	const ps = ["destructive", "exfiltration", "prod_infra"].map((q) => a?.[q]?.noul);
 	if (ps.some((p) => typeof p !== "number")) throw new Error("MALFORMED_RESPONSE");
-	return ps;
+	return { ps, usage };
 }
 
 async function runChain(cfg, env, state, failState, logCtx = {}) {
@@ -330,9 +332,9 @@ async function runChain(cfg, env, state, failState, logCtx = {}) {
 		if (disabled) continue;
 		try {
 			const callT0 = Date.now();
-			const ps = await systemOneCall(spec, env[spec.apiKeyEnv ?? ""] ?? undefined, state, spec.timeoutMs ?? cfg.timeoutMs);
+			const { ps, usage } = await systemOneCall(spec, env[spec.apiKeyEnv ?? ""] ?? undefined, state, spec.timeoutMs ?? cfg.timeoutMs);
 			delete failState[name];
-			return { provider: name, ps, callMs: Date.now() - callT0 };
+			return { provider: name, ps, usage, callMs: Date.now() - callT0 };
 		} catch (err) {
 			const prev = failState[name];
 			const count = (typeof prev?.count === "number" ? prev.count : (typeof prev === "number" ? prev : 0)) + 1;
@@ -362,6 +364,7 @@ function tightenPerms(p) {
 }
 
 function logLine(cfg, obj) {
+	if (!cfg.log) return; // REFLEX_LOG=off: decisions unaffected, accounting dark
 	try {
 		// 0700/0600: the log stores verbatim command text — anything typed,
 		// including inline credentials — so it is user-private by construction
@@ -467,10 +470,23 @@ async function main() {
 
 	const riskP = Math.max(...result.ps);
 	const worst = ["destructive", "exfiltration", "prod_infra"][result.ps.indexOf(riskP)];
-	if (riskP >= cfg.denyP) return emit(cfg, "deny", `${result.provider} ${worst}=p${riskP.toFixed(2)} ≥ deny ${cfg.denyP}`, { ...logCommon, provider: result.provider, riskP, worst, callMs: result.callMs });
-	if (riskP >= cfg.askP) return emit(cfg, "ask", `${result.provider} ${worst}=p${riskP.toFixed(2)} — uncertain, human decides`, { ...logCommon, provider: result.provider, riskP, worst, callMs: result.callMs });
-	if (result.ps.every((p) => p <= 1 - cfg.askP)) return emit(cfg, "allow", `${result.provider} max-risk=p${riskP.toFixed(2)} — confidently safe`, { ...logCommon, provider: result.provider, riskP, worst, callMs: result.callMs });
-	return emit(cfg, "ask", `${result.provider} probabilities straddle thresholds — human decides`, { ...logCommon, provider: result.provider, riskP, worst, callMs: result.callMs });
+	// usage: the provider's own per-call metering, logged flat for local spend
+	// accounting (absent on providers that don't report it — dropped by
+	// JSON.stringify, never defaulted; names follow the OTel gen-ai observables)
+	const { usage } = result;
+	const resultExtra = {
+		...logCommon,
+		provider: result.provider,
+		riskP,
+		worst,
+		callMs: result.callMs,
+		input_tokens: usage?.input_tokens,
+		output_tokens: usage?.output_tokens,
+	};
+	if (riskP >= cfg.denyP) return emit(cfg, "deny", `${result.provider} ${worst}=p${riskP.toFixed(2)} ≥ deny ${cfg.denyP}`, { ...resultExtra });
+	if (riskP >= cfg.askP) return emit(cfg, "ask", `${result.provider} ${worst}=p${riskP.toFixed(2)} — uncertain, human decides`, { ...resultExtra });
+	if (result.ps.every((p) => p <= 1 - cfg.askP)) return emit(cfg, "allow", `${result.provider} max-risk=p${riskP.toFixed(2)} — confidently safe`, { ...resultExtra });
+	return emit(cfg, "ask", `${result.provider} probabilities straddle thresholds — human decides`, { ...resultExtra });
 }
 
 main().catch(() => process.exit(0)); // any gate bug must never block or allow

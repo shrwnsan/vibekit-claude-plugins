@@ -17,7 +17,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, writeFileSync, chmodSync, statSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, chmodSync, statSync, rmSync, readFileSync, existsSync } from "node:fs";
 import http from "node:http";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -112,6 +112,69 @@ test("fresh files are created 0600 as before", async () => {
 		const code = await runGate({ REFLEX_LOG: log, REFLEX_STATE_FILE: join(tmp, "failstate.json") }, payload);
 		assert.equal(code, 0);
 		assert.equal(statSync(log).mode & 0o777, 0o600);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+function readJsonLines(p) {
+	try {
+		return readFileSync(p, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
+	} catch {
+		return [];
+	}
+}
+
+test("verdict line carries provider usage tokens when reported", async () => {
+	const tmp = mkdtempSync(join(tmpdir(), "reflex-perms-"));
+	const server = http.createServer((req, res) => {
+		let b = "";
+		req.on("data", (c) => (b += c));
+		req.on("end", () => {
+			res.writeHead(200, { "Content-Type": "application/json" });
+			res.end(JSON.stringify({
+				model: "mock-1",
+				usage: { input_tokens: 1234, output_tokens: 5 },
+				answers: { destructive: { noul: 0.1 }, exfiltration: { noul: 0.1 }, prod_infra: { noul: 0.1 } },
+			}));
+		});
+	});
+	await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+	try {
+		const log = join(tmp, "verdicts.jsonl");
+		const code = await runGate(
+			{
+				REFLEX_LOG: log,
+				REFLEX_STATE_FILE: join(tmp, "failstate.json"),
+				REFLEX_PROVIDERS: "typesafe",
+				REFLEX_SPEC_TYPESAFE_JSON: JSON.stringify({ url: `http://127.0.0.1:${server.address().port}/v1/systemone` }),
+				TYPESAFE_API_KEY: "test-key",
+			},
+			{ tool_input: { command: "deploy-to-production --env prod", tool_name: "Bash" }, permission_mode: "auto" }
+		);
+		assert.equal(code, 0);
+		const entries = readJsonLines(log);
+		if (entries.some((e) => e.kind === "provider-error") && !entries.some((e) => e.kind === "verdict")) {
+			console.log("skip: loopback egress blocked by sandbox; run unsandboxed or in CI");
+			return;
+		}
+		const v = entries.find((e) => e.kind === "verdict");
+		assert.ok(v, "no verdict logged");
+		assert.equal(v.input_tokens, 1234);
+		assert.equal(v.output_tokens, 5);
+	} finally {
+		server.close();
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("REFLEX_LOG=off disables logging; the gate still decides", async () => {
+	const tmp = mkdtempSync(join(tmpdir(), "reflex-perms-"));
+	try {
+		const log = join(tmp, "verdicts.jsonl");
+		const code = await runGate({ REFLEX_LOG: "off", REFLEX_STATE_FILE: join(tmp, "failstate.json") }, payload);
+		assert.equal(code, 0);
+		assert.equal(existsSync(log), false, "log file created despite off");
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}

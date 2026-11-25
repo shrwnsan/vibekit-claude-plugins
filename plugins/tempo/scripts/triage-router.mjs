@@ -24,7 +24,9 @@
 //   TEMPO_MODEL_TYPESAFE / _LIQUID / TEMPO_LOCAL_MODEL    per-provider model override
 //   TEMPO_LOCAL_URL              self-hosted systemone endpoint (adds "local")
 //   TEMPO_LOCAL_API_KEY          optional bearer token for the local endpoint
-//   TEMPO_LOG / TEMPO_STATE_FILE runtime state (default ~/.local/share/tempo/*)
+//   TEMPO_LOG / TEMPO_STATE_FILE runtime state (default ~/.local/share/tempo/*;
+//                                TEMPO_LOG=off disables logging — the router
+//                                still decides, only the accounting goes dark)
 //
 // Usage: node triage-router.mjs --task "Fix the typo in the README heading."
 //        echo "task text" | node triage-router.mjs
@@ -175,7 +177,7 @@ function resolveConfig(env = process.env) {
     threshold: clamp(Number(env.TEMPO_TRIAGE_THRESHOLD ?? 0.7), 0.3, 0.95),
     promoteThreshold: clamp(Number(env.TEMPO_PROMOTE_THRESHOLD ?? 0.6), 0.3, 0.95),
     order: env.TEMPO_PROVIDERS?.split(',').map((s) => s.trim()).filter(Boolean) ?? ['typesafe', 'liquid'],
-    log: env.TEMPO_LOG ?? path.join(homedir(), '.local', 'share', 'tempo', 'verdicts.jsonl'),
+    log: env.TEMPO_LOG === 'off' ? null : (env.TEMPO_LOG ?? path.join(homedir(), '.local', 'share', 'tempo', 'verdicts.jsonl')),
     stateFile: env.TEMPO_STATE_FILE ?? path.join(homedir(), '.local', 'share', 'tempo', 'failstate.json'),
     backoffMs: 5 * 60 * 1000,
     env,
@@ -286,7 +288,7 @@ async function callProvider(cfg, provider, name, task, criteria, fetchImpl, now)
     const a = json.answers?.tier;
     if (!a || typeof a.choice !== 'string') throw new Error(`${name} returned no choice answer`);
     if (!(a.choice in FLOW_TIER)) throw new Error(`${name} returned unknown choice "${a.choice}"`);
-    return { choice: a.choice, confidence: Number(a.confidence ?? 0), model, servedModel: json.model ?? model };
+    return { choice: a.choice, confidence: Number(a.confidence ?? 0), model, servedModel: json.model ?? model, usage: json.usage };
   }
   throw new Error(`${name} exhausted retries`); // unreachable; for shape
 }
@@ -329,7 +331,7 @@ async function callNoul(cfg, provider, name, task, evidence, fetchImpl, now) {
     if (!res.ok) throw new Error(`${name} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 120)}`);
     const p = Number(json.answers?.escalate?.noul);
     if (!Number.isFinite(p)) throw new Error(`${name} returned no noul answer`);
-    return { p, model, servedModel: json.model ?? model };
+    return { p, model, servedModel: json.model ?? model, usage: json.usage };
   }
   throw new Error(`${name} exhausted retries`); // unreachable; for shape
 }
@@ -339,6 +341,7 @@ async function callNoul(cfg, provider, name, task, evidence, fetchImpl, now) {
 // disabled make no call, so they log nothing. Task text stays verbatim
 // (replay + outcome joins); every path field is $HOME-abbreviated.
 function logVerdict(cfg, entry) {
+  if (!cfg.log) return; // TEMPO_LOG=off: decisions unaffected, accounting dark
   try {
     mkdirSync(path.dirname(cfg.log), { recursive: true, mode: 0o700 });
     appendFileSync(cfg.log, JSON.stringify({ v: 1, plugin: 'tempo', ...entry }) + '\n', { mode: 0o600 });
@@ -404,7 +407,9 @@ async function triage(task, opts = {}) {
     } catch {
       /* unreachable for configured providers */
     }
-    const full = { ...verdict, source: 'provider', provider: name, host, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start };
+    // usage: provider's own per-call metering (OTel gen-ai observables; absent
+    // on endpoints that don't report it — dropped by JSON.stringify)
+    const full = { ...verdict, source: 'provider', provider: name, host, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start, input_tokens: outcome.usage?.input_tokens, output_tokens: outcome.usage?.output_tokens };
     logVerdict(cfg, { t: new Date(now()).toISOString(), status: full.status, tier: full.tier ?? null, ...full, ...common });
     return full;
   }
@@ -500,7 +505,7 @@ async function promoteCheck(task, evidence, opts = {}) {
     } catch {
       /* unreachable for configured providers */
     }
-    const full = { ...verdict, p: outcome.p, source: 'provider', provider: name, host, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start };
+    const full = { ...verdict, p: outcome.p, source: 'provider', provider: name, host, model: outcome.model, servedModel: outcome.servedModel, ms: now() - start, input_tokens: outcome.usage?.input_tokens, output_tokens: outcome.usage?.output_tokens };
     logVerdict(cfg, { t: new Date(now()).toISOString(), status: full.status, p: full.p, ...full, ...common });
     return full;
   }

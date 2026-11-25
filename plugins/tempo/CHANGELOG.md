@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.2 (2026-11-25)
+
+- Usage accounting: verdict lines carry `input_tokens`/`output_tokens` from the
+  provider's per-call metering (OTel gen-ai observables; absent on endpoints
+  that don't report it) — exact spend for triage and promote checks alike.
+- `TEMPO_LOG=off` disables logging; the router still decides (triage, promote,
+  and the cross-plugin evidence feed all unaffected — evidence reads the
+  reflex log, not tempo's).
+- 2 new tests (41 total).
+
 ## 0.3.1 (2026-11-21)
 
 - Opt-in cross-plugin evidence for the promote check (issues #169/#170): with

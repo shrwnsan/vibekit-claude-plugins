@@ -617,3 +617,48 @@ test("named https TEMPO_LOCAL_URL works and is called at that URL", async () => 
 		rmSync(tmp, { recursive: true, force: true });
 	}
 });
+
+test("verdict log carries provider usage tokens when reported", async () => {
+	const tmp = makeTmp();
+	try {
+		let calls = 0;
+		const v = await triage(TASK, {
+			env: baseEnv(tmp),
+			fetchImpl: () => {
+				calls += 1;
+				return Promise.resolve({
+					json: () => Promise.resolve({
+						model: "jev-latest",
+						usage: { input_tokens: 999, output_tokens: 2 },
+						answers: { tier: { choice: "tier-1-standard", confidence: 0.9 } },
+					}),
+					ok: true,
+					status: 200,
+				});
+			},
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		const line = JSON.parse(readFileSync(join(tmp, "verdicts.jsonl"), "utf8").trim());
+		assert.equal(line.input_tokens, 999);
+		assert.equal(line.output_tokens, 2);
+		assert.equal(calls, 1);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("TEMPO_LOG=off disables logging; the router still decides", async () => {
+	const tmp = makeTmp();
+	try {
+		const v = await triage(TASK, {
+			env: baseEnv(tmp, { TEMPO_LOG: "off" }),
+			fetchImpl: () => Promise.resolve(mockAnswer("tier-1-standard", 0.9)),
+			now: () => NOW,
+		});
+		assert.equal(v.status, "tier");
+		assert.equal(existsSync(join(tmp, "verdicts.jsonl")), false, "log file created despite off");
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});

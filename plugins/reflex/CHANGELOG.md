@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2 (2026-11-25)
+
+- Usage accounting: model-verdict lines now carry `input_tokens`/`output_tokens`
+  from the provider's own per-call metering (OTel gen-ai observables; absent on
+  endpoints that don't report it). Cost = input_tokens x $0.042/M (input-only
+  metering; output free) — exact plugin spend without trusting any console.
+- `REFLEX_LOG=off` disables logging; the gate still decides (decisions and
+  accounting are independent by construction — now tested).
+- 2 new tests (47 total).
+
 ## 0.2.1 (2026-11-21)
 
 - Fixed: verdict log and failstate files created by pre-0.1.1 reflex kept their birth

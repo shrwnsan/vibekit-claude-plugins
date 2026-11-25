@@ -104,7 +104,7 @@ tail -f ~/.local/share/reflex/verdicts.jsonl
 | `REFLEX_TIMEOUT_MS` | `3000` | Per-provider timeout (kept tight: hooks stall tool calls) |
 | `REFLEX_MAX_FAILURES` | `3` | Consecutive failures → provider disabled |
 | `REFLEX_RECOVERY_MS` | `1800000` | Disabled-provider cooldown before a retry (30 min) |
-| `REFLEX_LOG` | `~/.local/share/reflex/verdicts.jsonl` | Verdict log (one JSON per line) |
+| `REFLEX_LOG` | `~/.local/share/reflex/verdicts.jsonl` | Verdict log (one JSON per line); `off` disables logging (the gate still decides) |
 | `REFLEX_ALL_MODES` | – | `1` = also gate non-auto modes (ask/deny only; reflex never allows outside auto; `bypassPermissions` always excluded) |
 | `REFLEX_DISABLED` | – | `1` = kill switch (silent exit) |
 
@@ -133,7 +133,10 @@ gate process (zero hot-path latency, no new failure mode). The log's
 `cwd` and `transcript_path` fields are home-abbreviated like the provider
 prompt (`$HOME` → `~`), so shared logs carry no username; the correlator
 expands `~` before matching (basename fallback covers older absolute
-lines). The one verbatim field is `command`, because eval replay needs the
+paths). Since 0.2.2, model-chain verdicts also carry the provider's
+`input_tokens`/`output_tokens` — exact local spend accounting at $0.042/M
+input (output free).
+The one verbatim field is `command`, because eval replay needs the
 exact text the gate decided on:
 
 ```bash

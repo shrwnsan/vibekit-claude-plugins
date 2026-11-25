@@ -30,13 +30,14 @@ const assistantUse = (id, cmd) => JSON.stringify({
 	sessionId: "sess-a",
 });
 
-// extra: { text, isError, toolUseResult, kind, perm, sessionId }
+// extra: { text, isError, toolUseResult, kind, perm, ts, sessionId }
 const userResult = (id, extra = {}) => JSON.stringify({
 	type: "user",
 	message: { role: "user", content: [{ type: "tool_result", content: extra.text ?? "out", is_error: extra.isError ?? false, tool_use_id: id }] },
 	toolUseResult: extra.toolUseResult ?? { stdout: "out" },
 	...(extra.kind ? { toolDenialKind: extra.kind } : {}),
 	...(extra.perm ? { permissionDecision: extra.perm } : {}),
+	...(extra.ts ? { timestamp: extra.ts } : {}),
 	sessionId: extra.sessionId ?? "sess-a",
 });
 
@@ -359,5 +360,66 @@ test("home-abbreviated transcript_path (~ form, gate ≥0.2.0) still routes", as
 		{ verdictTs: "T16", tool_use_id: "call_16", verdict: "ask", outcome: "agreed", basis: "user-rejected", class: "fastpath:ask:force push" },
 		{ verdictTs: "T17", tool_use_id: "call_17", verdict: "ask", outcome: "overridden", basis: "ran", class: "fastpath:ask:force push" },
 	]);
+	rmSync(root, { recursive: true, force: true });
+});
+
+test("outcome lines carry resultTs from the answering record; no timestamp → field omitted", async () => {
+	const root = scenario({
+		"log.jsonl": [
+			verdict({ ts: "T18", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "call_18" }),
+			verdict({ ts: "T19", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "call_19" }),
+		].join("\n") + "\n",
+		"projects/p-a/sess-a.jsonl": [
+			assistantUse("call_18", "git push --force"),
+			userResult("call_18", { kind: "user-rejected", isError: true, text: "no", toolUseResult: "User rejected tool use", ts: "2026-01-01T00:00:00.400Z" }),
+			assistantUse("call_19", "git push --force"),
+			userResult("call_19", { kind: "user-rejected", isError: true, text: "no", toolUseResult: "User rejected tool use" }),
+		].join("\n") + "\n",
+	});
+	const r = await runCorrelator(root);
+	const byId = Object.fromEntries(r.outcomes.map((o) => [o.tool_use_id, o]));
+	assert.equal(byId.call_18.resultTs, "2026-01-01T00:00:00.400Z");
+	assert.equal("resultTs" in byId.call_19, false, "omitted outright, never null/defaulted");
+	rmSync(root, { recursive: true, force: true });
+});
+
+test("summary prints ask approval latency (nearest-rank p50/p95); negative or missing timestamps excluded", async () => {
+	const root = scenario({
+		"log.jsonl": [
+			verdict({ ts: "2026-01-01T00:00:00.000Z", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "c5" }),
+			verdict({ ts: "2026-01-01T00:00:00.000Z", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "c6" }),
+			verdict({ ts: "2026-01-01T00:00:00.000Z", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "c7" }),
+			verdict({ ts: "2026-01-01T00:00:00.000Z", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "c8" }),
+		].join("\n") + "\n",
+		"projects/p-a/sess-a.jsonl": [
+			assistantUse("c5", "git push --force"),
+			userResult("c5", { kind: "user-rejected", isError: true, text: "no", toolUseResult: "User rejected tool use", ts: "2026-01-01T00:00:00.100Z" }),
+			assistantUse("c6", "git push --force"),
+			userResult("c6", { kind: "user-rejected", isError: true, text: "no", toolUseResult: "User rejected tool use", ts: "2026-01-01T00:00:03.000Z" }),
+			// resultTs before verdictTs = clock skew, not latency — skipped
+			assistantUse("c7", "git push --force"),
+			userResult("c7", { kind: "user-rejected", isError: true, text: "no", toolUseResult: "User rejected tool use", ts: "2025-12-31T23:59:59.000Z" }),
+			// no timestamp — skipped
+			assistantUse("c8", "git push --force"),
+			userResult("c8", { kind: "user-rejected", isError: true, text: "no", toolUseResult: "User rejected tool use" }),
+		].join("\n") + "\n",
+	});
+	const r = await runCorrelator(root);
+	// n=2: latencies [100, 3000]; nearest-rank p50 = ceil(1)-1 → 100, p95 = ceil(1.9)-1 → 3000
+	assert.match(r.out, /ask approval latency: p50 100ms p95 3000ms \(n=2\)/);
+	rmSync(root, { recursive: true, force: true });
+});
+
+test("no timestamped ask results → no latency line", async () => {
+	const root = scenario({
+		"log.jsonl": verdict({ ts: "T20", decision: "ask", fastpath: "ask", pattern: "force push", toolUseId: "call_20" }) + "\n",
+		"projects/p-a/sess-a.jsonl": [
+			assistantUse("call_20", "git push --force"),
+			userResult("call_20", { kind: "user-rejected", isError: true, text: "no", toolUseResult: "User rejected tool use" }),
+		].join("\n") + "\n",
+	});
+	const r = await runCorrelator(root);
+	assert.equal(r.outcomes.length, 1);
+	assert.doesNotMatch(r.out, /approval latency/);
 	rmSync(root, { recursive: true, force: true });
 });

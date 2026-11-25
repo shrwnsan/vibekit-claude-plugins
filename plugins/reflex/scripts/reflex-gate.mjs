@@ -34,7 +34,12 @@
  * $REFLEX_LOG (default ~/.local/share/reflex/verdicts.jsonl) so labelled
  * sets for the measurement harness accumulate from real traffic.
  *
- * Config: environment variables only — never config files, never key values.
+ * Config: env vars, plus one optional JSON file (~/.claude/reflex-config.json,
+ * relocatable via REFLEX_CONFIG) for persistent user choices the env can't
+ * express — per-pattern-class disables and thresholds. Precedence: env >
+ * config file > built-in defaults, so runtime env (settings.json, tests)
+ * always wins and the gate stays deterministic under CI. A malformed config
+ * file is ignored whole (defaults apply); reflex-status --check surfaces it.
  *   REFLEX_PROVIDERS      csv cycle order            (default "typesafe,liquid")
  *   REFLEX_SPEC_<N>_JSON  per-provider spec override (merged over presets)
  *   REFLEX_THRESHOLD_DENY max-risk p ≥ this → deny   (default 0.85)
@@ -45,9 +50,20 @@
  *   REFLEX_RECOVERY_MS    provider recovery cooldown (default 1800000)
  *   REFLEX_LOG            verdict log path ("off" disables logging; the gate
  *                         still decides — only the accounting goes dark)
+ *   REFLEX_CONFIG         config file path (default ~/.claude/reflex-config.json)
  *   REFLEX_ALL_MODES      "1" → also gate non-auto modes (ask/deny only;
  *                                                    bypassPermissions never)
  *   REFLEX_DISABLED       "1" → exit 0 immediately (kill switch)
+ *
+ * Config file schema (all keys optional; unknown keys ignored):
+ *   { "version": 1,
+ *     "thresholds": { "deny": 0.85, "ask": 0.55 },
+ *     "disabledClasses": ["inline credential (Authorization/Bearer header)"] }
+ * disabledClasses removes a labeled pattern class from its list entirely —
+ * including the secrets list, where a disabled class can let a command fall
+ * through to the read-only allow (e.g. disabling ".env file" lets plain
+ * `cat .env` be allowed). That is a deliberate loosening: make it in the
+ * file, own it in the file. Deny classes are disable-able too — same rule.
  *
  * Provider presets (active = keyless or env var set):
  *   liquid   systemone  api.liquid.ai/decisions/v1/systemone   d1.1         LIQUID_API_KEY
@@ -109,13 +125,43 @@ function resolveConfig(env = process.env) {
 			} catch { /* invalid override: keep preset */ }
 		}
 	}
+	// Optional config file: persistent user choices (class disables, default
+	// thresholds). Malformed/unreadable → ignored whole, defaults stand; the
+	// error string is carried so reflex-status --check can surface it. The
+	// gate itself never prints — silent on purpose in the hook path.
+	const configPath = env.REFLEX_CONFIG ?? join(homedir(), ".claude", "reflex-config.json");
+	let user = {};
+	let configError = null;
+	try {
+		const parsed = JSON.parse(readFileSync(configPath, "utf8"));
+		if (parsed && typeof parsed === "object") user = parsed;
+		else configError = "config is not a JSON object";
+	} catch (err) {
+		if (err?.code !== "ENOENT") configError = `config unreadable: ${String(err?.message ?? err).slice(0, 80)}`;
+		// ENOENT = no config file: the normal case, not an error
+	}
+	const disabledClasses = new Set(
+		Array.isArray(user.disabledClasses) ? user.disabledClasses.filter((c) => typeof c === "string" && c) : []
+	);
+	const cfgDeny = Number.isFinite(Number(user.thresholds?.deny)) ? Number(user.thresholds.deny) : null;
+	const cfgAsk = Number.isFinite(Number(user.thresholds?.ask)) ? Number(user.thresholds.ask) : null;
+	// env wins over config — but only when the env value is actually numeric;
+	// a string like "0.99" must not fall through to the config's number (the
+	// env author asked for 0.99, not for whatever the file says).
+	const envDeny = env.REFLEX_THRESHOLD_DENY;
+	const envAsk = env.REFLEX_THRESHOLD_ASK;
+	const denyRaw = envDeny !== undefined && envDeny !== "" && Number.isFinite(Number(envDeny)) ? Number(envDeny) : (cfgDeny ?? 0.85);
+	const askRaw = envAsk !== undefined && envAsk !== "" && Number.isFinite(Number(envAsk)) ? Number(envAsk) : (cfgAsk ?? 0.55);
 	const providers = (env.REFLEX_PROVIDERS ?? "typesafe,liquid")
 		.split(",").map((s) => s.trim()).filter((n) => specs[n]);
 	return {
 		providers,
 		specs,
-		denyP: clamp(Number(env.REFLEX_THRESHOLD_DENY ?? 0.85), 0.5, 0.99),
-		askP: clamp(Number(env.REFLEX_THRESHOLD_ASK ?? 0.55), 0.3, Number(env.REFLEX_THRESHOLD_DENY ?? 0.85)),
+		configPath,
+		configError,
+		disabledClasses,
+		denyP: clamp(denyRaw, 0.5, 0.99),
+		askP: clamp(askRaw, 0.3, denyRaw),
 		timeoutMs: num(env.REFLEX_TIMEOUT_MS, 3000),
 		maxFailures: num(env.REFLEX_MAX_FAILURES, 3),
 		recoveryMs: num(env.REFLEX_RECOVERY_MS, 30 * 60 * 1000),
@@ -451,14 +497,17 @@ async function main() {
 
 	// 0. Secrets exposure — before the read-only fast path, so cat .env asks;
 	// before the model chain, so inline credentials never reach a provider.
-	const secret = firstMatch(SECRETS_PATTERNS, cmd);
+	// disabledClasses removes a labeled class from its list whole (config
+	// file) — a disabled secrets class can let its commands fall through to
+	// the read-only allow; that loosening is the config author's, on purpose.
+	const secret = firstMatch(SECRETS_PATTERNS.filter(([label]) => !cfg.disabledClasses.has(label)), cmd);
 	if (secret) return emit(cfg, "ask", `carries secrets material — ${secret.label}: "${secret.snippet}"`, { ...logCommon, fastpath: "secrets", pattern: secret.label });
 
 	// 1-3. Local fast paths — decided without the network.
 	if (fastPathAllow(cmd)) return emit(cfg, "allow", "read-only fast path", { ...logCommon, fastpath: "allow" });
-	const denyHit = firstMatch(DENY_PATTERNS, cmd);
+	const denyHit = firstMatch(DENY_PATTERNS.filter(([label]) => !cfg.disabledClasses.has(label)), cmd);
 	if (denyHit) return emit(cfg, "deny", `unambiguous destruction — ${denyHit.label}: "${denyHit.snippet}"`, { ...logCommon, fastpath: "deny", pattern: denyHit.label });
-	const askHit = firstMatch(ASK_PATTERNS, cmd);
+	const askHit = firstMatch(ASK_PATTERNS.filter(([label]) => !cfg.disabledClasses.has(label)), cmd);
 	if (askHit) return emit(cfg, "ask", `risky pattern — ${askHit.label}: "${askHit.snippet}" (human decides)`, { ...logCommon, fastpath: "ask", pattern: askHit.label });
 
 	// 4. Decision-model chain.

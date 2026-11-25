@@ -101,12 +101,51 @@ tail -f ~/.local/share/reflex/verdicts.jsonl
 | `REFLEX_SPEC_<N>_JSON` | – | Per-provider spec override (merged over preset) |
 | `REFLEX_THRESHOLD_DENY` | `0.85` | Max risk p ≥ → deny |
 | `REFLEX_THRESHOLD_ASK` | `0.55` | Max risk p ≥ → ask; all p ≤ 1−ask → allow |
+| `REFLEX_CONFIG` | `~/.claude/reflex-config.json` | Config file path (persistent thresholds + `disabledClasses`; see Config file below) |
 | `REFLEX_TIMEOUT_MS` | `3000` | Per-provider timeout (kept tight: hooks stall tool calls) |
 | `REFLEX_MAX_FAILURES` | `3` | Consecutive failures → provider disabled |
 | `REFLEX_RECOVERY_MS` | `1800000` | Disabled-provider cooldown before a retry (30 min) |
 | `REFLEX_LOG` | `~/.local/share/reflex/verdicts.jsonl` | Verdict log (one JSON per line); `off` disables logging (the gate still decides) |
+| `REFLEX_COST_PER_MTOK` | `0.042` | $/M input tokens for `/reflex:tune` cost stats (output free) |
 | `REFLEX_ALL_MODES` | – | `1` = also gate non-auto modes (ask/deny only; reflex never allows outside auto; `bypassPermissions` always excluded) |
 | `REFLEX_DISABLED` | – | `1` = kill switch (silent exit) |
+
+## Config file
+
+Env vars configure a session; `~/.claude/reflex-config.json` (relocatable
+via `REFLEX_CONFIG`) persists your choices across sessions. All keys
+optional, unknown keys ignored:
+
+```json
+{
+  "version": 1,
+  "thresholds": { "deny": 0.85, "ask": 0.55 },
+  "disabledClasses": [".env file"]
+}
+```
+
+Precedence: env var > config file > built-in defaults, so settings.json
+`env` blocks and test harnesses stay authoritative. An env value beats the
+config whenever it is numeric at all — `REFLEX_THRESHOLD_DENY=0.9` wins over
+the file's `0.85`; empty or non-numeric falls through to the config. A
+malformed config file is ignored whole and the gate stays silent about it
+(hooks never print); `reflex-status --check` is what surfaces the error as
+a trip.
+
+`disabledClasses` entries match pattern labels by exact string — the same
+labels `/reflex:status` already prints as top pattern labels — and remove
+the class from its list whole.
+
+> **Warning: disabling a class is a deliberate loosening of the gate.** A
+> disabled secrets class no longer preempts the read-only allow — with
+> `".env file"` disabled, plain `cat .env` is allowed with no human in the
+> loop. Deny classes are disable-able too: a command that would hard-match
+> a deny regex stops being refused. Disable only a class you have decided
+> to live without, on evidence.
+
+The intended workflow: take the label from `/reflex:status`, decide from
+`/reflex:tune`'s evidence, then edit the file by hand — or let
+`/reflex:tune` write the disable after you choose it (next section).
 
 ## What the model sees (injection discipline)
 
@@ -135,7 +174,7 @@ prompt (`$HOME` → `~`), so shared logs carry no username; the correlator
 expands `~` before matching (basename fallback covers older absolute
 paths). Since 0.2.2, model-chain verdicts also carry the provider's
 `input_tokens`/`output_tokens` — exact local spend accounting at $0.042/M
-input (output free).
+input (output free; rate overridable via `REFLEX_COST_PER_MTOK`).
 The one verbatim field is `command`, because eval replay needs the
 exact text the gate decided on:
 
@@ -146,7 +185,11 @@ node evals/reflex/correlate-outcomes.mjs --dry-run  # summary only
 
 Its summary prints the override rate per decision and per pattern class.
 If humans approve most asks, ask patterns are over-fitted and train
-habituation; that number is the input to threshold tuning. Outcome labels
+habituation; that number is the input to threshold tuning. Outcome lines
+also carry `resultTs` (the answering record's timestamp) whenever the
+correlator could stamp it, so `resultTs − verdictTs` is the ask approval
+latency — and sub-second approvals are the rubber-stamp signature the
+tuner flags. Outcome labels
 accumulate only while 0.1.5+ is running (pre-0.1.5 verdict lines carry no
 ids and are skipped). The correlator ships with the gate; XavierJev's
 lesson is that the wiring is the easy part.
@@ -171,13 +214,60 @@ is inferred from the newest verdict line's field shape (`mode` since 0.1.3,
 `~`-cwd since 0.1.6) and compared against the installed manifest, because
 hooks pin at session start and lag plugin updates. Always exits 0.
 
+`--check` is the scriptable trip-detector — the deliberate exception to the
+always-exit-0 report above (a health report that fails is worse than one
+that reports the failure):
+
+```bash
+node plugins/reflex/scripts/reflex-status.mjs --check
+```
+
+Healthy is silent stdout + exit 0. Anything that needs attention prints one
+line and exits 1, so cron and CI can compose on the exit code. Trips:
+
+- **deny overridden** — the headline: a refused command ran anyway; the
+  hard boundary has been crossed
+- kill switch on (`REFLEX_DISABLED=1`)
+- verdict log PERMS WIDE (wider than 0600)
+- a provider in active failstate
+- running-gate drift vs the installed manifest
+- config unusable (defaults in effect)
+
+Deliberate accounting states are INFO, never trips: `REFLEX_LOG=off` is
+INFO with exit 0 — accounting dark by your own choice, but the
+deny-override watch is blind without the log.
+
+## Tuning: `/reflex:tune`
+
+The command runs `scripts/reflex-tune.mjs`, which aggregates the verdict
+log into a per-class table — asks, distinct sessions, override rate
+(conditional on outcome labels: unlabeled asks are missing data, not
+consent), approval latency where `resultTs` exists, token cost at
+`REFLEX_COST_PER_MTOK` — and flags prune candidates:
+
+- override rate ≥ 90% across ≥ 5 distinct sessions and ≥ 10 asks — the
+  pattern almost never changes the outcome;
+- approval p95 < 1000 ms over ≥ 5 labeled asks — approved faster than a
+  human could read it, the rubber-stamp signature.
+
+Nothing changes until you choose: the command asks which candidate to act
+on, and only your explicit choice writes. A disable lands in
+`disabledClasses` in the config file and appends a `kind:"tuning"` audit
+line to the verdict log, so the loosening keeps its own accounting. Under
+`REFLEX_LOG=off` the command reports log-off and stops — there is nothing
+to tune on — and `--record` is refused outright: an audit line written
+nowhere is theater.
+
 ## Thresholds are defaults, not truths
 
 `0.85 / 0.55` are starting points calibrated to nothing. Tune them against
 your own traffic: raise `ask` if reflex asks too often on your routine
 commands; raise `deny` if you see false denies in the log. The ladder is
 deliberately conservative between thresholds, so the middle band is always
-`ask`.
+`ask`. Env vars change a session; write `thresholds` to the config file
+(see Config file above) to persist them. For the prune decision — which
+ask patterns to retire outright — run `/reflex:tune` and let the override
+rates decide.
 
 ## Credits & lineage
 

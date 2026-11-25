@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.3.0 (2026-11-25)
+
+- `/reflex:tune` + `scripts/reflex-tune.mjs`: per-class ask-layer stats from the
+  verdict log — asks, distinct sessions, override rate conditional on outcome
+  labels, approval latency (when outcome lines carry resultTs), and per-class
+  token cost (sums the 0.2.2 usage fields at `REFLEX_COST_PER_MTOK`, default
+  $0.042/M input-only). Prune candidates are flagged by evidence bar (override
+  ≥90% across ≥5 sessions and ≥10 asks, or sub-second approval p95) and are
+  proposals only: the command applies a change only after an explicit choice,
+  writing `~/.claude/reflex-config.json` and appending a `kind:"tuning"` audit
+  line (`--record`; refused under `REFLEX_LOG=off` — audit needs accounting).
+- Config file: `~/.claude/reflex-config.json` (relocatable via `REFLEX_CONFIG`)
+  holds persistent user choices the env can't express — `disabledClasses`
+  (exact pattern-label match, removes the class from its list whole) and
+  default thresholds. Precedence env > config > defaults, so settings.json and
+  tests stay authoritative; a malformed file is ignored whole and surfaced by
+  `reflex-status --check`. Disabling is a deliberate loosening — a disabled
+  secrets class can let its commands fall through to the read-only allow.
+- `reflex-status --check`: the scriptable trip-detector — silent, exit 0 when
+  healthy; one line per finding, exit 1 on trips (deny overridden = headline,
+  kill switch on, PERMS WIDE, provider in active failstate, gate drift,
+  unusable config). `REFLEX_LOG=off` is INFO, not a trip (accounting dark by
+  choice — noted once, because it also blinds the deny-override watch).
+- Status report: says so when the log is off (instead of "not found"), shows
+  the config's disabled classes, and the outcomes footer now points at
+  `/reflex:tune` instead of a repo-side file a plugin install doesn't have.
+- Tests: reflex suite grows 48 → 60 (config precedence + class disabling via
+  the gate, --check trips, tune stats/candidates/log-off/record).
+
 ## 0.2.2 (2026-11-25)
 
 - Usage accounting: model-verdict lines now carry `input_tokens`/`output_tokens`
